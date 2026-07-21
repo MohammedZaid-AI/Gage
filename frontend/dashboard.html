@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gage — Field Assistant</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">🌱</span>
+      <div>
+        <h1>Gage</h1>
+        <p class="tagline">AI agricultural field assistant</p>
+      </div>
+    </div>
+    <div class="badges">
+      <span id="robot-badge" class="badge">Robot: —</span>
+      <span id="inspection-badge" class="badge">Inspection: idle</span>
+    </div>
+  </header>
+
+  <main class="grid">
+    <!-- Controls -->
+    <section class="card controls">
+      <h2>Controls</h2>
+      <div class="btn-row">
+        <button id="btn-start" class="btn primary">Start Inspection</button>
+        <button id="btn-stop" class="btn">Stop Inspection</button>
+        <button id="btn-capture" class="btn">Capture Image</button>
+      </div>
+      <div class="dpad">
+        <button class="btn move" data-cmd="forward">▲</button>
+        <div class="dpad-mid">
+          <button class="btn move" data-cmd="left">◀</button>
+          <button class="btn move" data-cmd="stop">■</button>
+          <button class="btn move" data-cmd="right">▶</button>
+        </div>
+        <button class="btn move" data-cmd="backward">▼</button>
+      </div>
+      <button id="btn-estop" class="btn danger">■ Emergency Stop</button>
+      <input id="file-input" type="file" accept="image/*" capture="environment" hidden />
+    </section>
+
+    <!-- Camera -->
+    <section class="card camera">
+      <h2>Latest Camera Image</h2>
+      <div class="image-wrap">
+        <img id="latest-image" alt="No image yet" />
+        <p id="no-image" class="muted">Waiting for first capture…</p>
+      </div>
+      <p class="ai-summary" id="latest-summary">—</p>
+    </section>
+
+    <!-- Sensors -->
+    <section class="card sensors">
+      <h2>Field Readings</h2>
+      <div class="metrics">
+        <div class="metric"><span class="m-label">Temperature</span><span class="m-val" id="m-temp">—</span></div>
+        <div class="metric"><span class="m-label">Humidity</span><span class="m-val" id="m-hum">—</span></div>
+        <div class="metric"><span class="m-label">Soil Moisture</span><span class="m-val" id="m-soil">—</span></div>
+        <div class="metric"><span class="m-label">GPS</span><span class="m-val" id="m-gps">—</span></div>
+        <div class="metric"><span class="m-label">Observations</span><span class="m-val" id="m-count">0</span></div>
+      </div>
+    </section>
+
+    <!-- History -->
+    <section class="card history">
+      <h2>Observation History</h2>
+      <ul id="history-list" class="history-list"><li class="muted">No observations yet.</li></ul>
+    </section>
+
+    <!-- Conversation -->
+    <section class="card chat">
+      <h2>Assistant <span class="muted">(English / ಕನ್ನಡ)</span></h2>
+      <div id="chat-log" class="chat-log"></div>
+      <form id="chat-form" class="chat-form">
+        <input id="chat-input" type="text" placeholder="Ask about the field… / ಗಿಡ ಹೇಗಿದೆ?" autocomplete="off" />
+        <button class="btn primary" type="submit">Ask</button>
+      </form>
+    </section>
+  </main>
+
+  <script src="/static/js/dashboard.js"></script>
+</body>
+</html>

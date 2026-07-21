@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.env
+storage/images/*
+!storage/images/.gitkeep
+storage/observations.db
+.venv/
+venv/
