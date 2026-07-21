@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from backend.ai.base import LLMProvider, VisionProvider
 from backend.ai.mock import MockLLMProvider, MockVisionProvider
 from backend.config import get_settings
-from backend.models import Observation
+from backend.models import Conversation, Inspection, Observation
 
 logger = logging.getLogger("gage.ai")
 
@@ -26,9 +26,14 @@ def _select_vision() -> VisionProvider:
 
 
 def _select_llm() -> LLMProvider:
-    s = get_settings()
-    if s.llm_provider != "mock":
-        logger.warning("llm provider %r not implemented yet; using mock", s.llm_provider)
+    """Map LLM_PROVIDER to an implementation. Add gemini/ollama/openai here only."""
+    name = get_settings().llm_provider.lower()
+    if name == "groq":
+        from backend.ai.providers.groq_provider import GroqLLMProvider  # lazy: only import SDK when used
+
+        return GroqLLMProvider()
+    if name != "mock":
+        logger.warning("llm provider %r not implemented yet; using mock", name)
     return MockLLMProvider()
 
 
@@ -45,20 +50,46 @@ def describe_image(image_bytes: bytes) -> str:
     return _vision.describe(image_bytes)
 
 
+def _inspection_status(db: Session) -> str:
+    active = db.execute(
+        select(Inspection).where(Inspection.ended_at.is_(None))
+    ).scalars().first()
+    return f"active (session #{active.id})" if active else "no active inspection"
+
+
+def _recent_conversation(db: Session, limit: int = 3) -> str:
+    turns = list(
+        db.execute(
+            select(Conversation).order_by(Conversation.timestamp.desc()).limit(limit)
+        ).scalars()
+    )
+    if not turns:
+        return ""
+    lines = [f"Q: {t.question}\nA: {t.answer}" for t in reversed(turns)]
+    return "\n\nPrevious conversation:\n" + "\n".join(lines)
+
+
 def _build_context(db: Session) -> str:
-    """Assemble the latest observation + sensor snapshot the assistant reasons over."""
+    """Assemble the field snapshot the assistant reasons over: latest observation,
+    sensors, GPS, inspection status, and recent conversation."""
+    status = _inspection_status(db)
     obs = db.execute(
         select(Observation).order_by(Observation.timestamp.desc()).limit(1)
     ).scalar_one_or_none()
 
     total = db.query(Observation).count()
     if obs is None:
-        return f"No observations recorded yet. Total inspections logged: {total}."
+        return (
+            f"Inspection status: {status}.\n"
+            f"No observations recorded yet. Total observations: {total}."
+            + _recent_conversation(db)
+        )
 
     def fmt(v: float | None, unit: str) -> str:
         return f"{v}{unit}" if v is not None else "n/a"
 
     return (
+        f"Inspection status: {status}\n"
         f"Latest observation ({obs.timestamp:%Y-%m-%d %H:%M} UTC):\n"
         f"- Description: {obs.ai_summary or 'not analysed'}\n"
         f"- GPS: {fmt(obs.gps_lat, '')}, {fmt(obs.gps_long, '')}\n"
@@ -66,6 +97,7 @@ def _build_context(db: Session) -> str:
         f"- Humidity: {fmt(obs.humidity, ' %')}\n"
         f"- Soil moisture: {fmt(obs.soil_moisture, ' %')}\n"
         f"- Total observations so far: {total}"
+        + _recent_conversation(db)
     )
 
 

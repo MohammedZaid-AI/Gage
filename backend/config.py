@@ -16,6 +16,10 @@ class Settings(BaseSettings):
     gemini_api_key: str = ""
     openai_api_key: str = ""
 
+    # Groq (OpenAI-compatible). Model is configurable; defaults to GPT-OSS 120B.
+    groq_api_key: str = ""
+    groq_model: str = "gpt-oss-120b"
+
 
 @lru_cache
 def get_settings() -> Settings:
