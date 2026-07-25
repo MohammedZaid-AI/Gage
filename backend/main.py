@@ -9,45 +9,63 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from backend.config import get_settings
-from backend.database import get_db, init_db
-from backend.models import Observation
+from backend.database import SessionLocal, get_db, init_db
+from backend.models import Farm, Node, Observation
 from backend.realtime import broadcaster
-from backend.routers import chat, inspection, observation, robot
-from backend.routers.inspection import active_inspection
-from backend.schemas import InspectionOut, ObservationOut
-from backend.state import robot_state
+from backend.routers import auth, chat, farm, observation
+from backend.schemas import ObservationOut
+from backend.seed import seed_demo
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 
 app = FastAPI(title="Gage", description="AI agricultural field assistant")
 
-app.include_router(inspection.router)
+app.include_router(auth.router)
+app.include_router(farm.router)
 app.include_router(observation.router)
-app.include_router(robot.router)
 app.include_router(chat.router)
 
 
 @app.on_event("startup")
 def _startup() -> None:
     init_db()
+    if get_settings().seed_demo:
+        with SessionLocal() as db:
+            seed_demo(db)
 
 
 @app.get("/api/state")
 def get_state(db: Session = Depends(get_db)) -> dict:
-    """One-shot snapshot for initial dashboard render (WS handles live updates)."""
-    insp = active_inspection(db)
-    latest = db.execute(
-        select(Observation).order_by(Observation.timestamp.desc()).limit(1)
+    """Snapshot of the first farm for the built-in dashboard (WS handles live updates).
+
+    ponytail: single-farm demo view. Phase 4 makes the dashboard authenticated
+    and per-farm; real clients already use the farmer-scoped /farms + /observations APIs.
+    """
+    farm_row = db.execute(select(Farm).order_by(Farm.id).limit(1)).scalar_one_or_none()
+    if farm_row is None:
+        return {"farm": None, "node_id": None, "observation_count": 0,
+                "latest_observation": None, "history": []}
+
+    node = db.execute(
+        select(Node).where(Node.farm_id == farm_row.id).order_by(Node.created_at).limit(1)
     ).scalar_one_or_none()
-    recent = list(
-        db.execute(select(Observation).order_by(Observation.timestamp.desc()).limit(20)).scalars()
+    q = select(Observation).where(Observation.farm_id == farm_row.id).order_by(
+        Observation.timestamp.desc()
     )
+    latest = db.execute(q.limit(1)).scalar_one_or_none()
+    recent = list(db.execute(q.limit(20)).scalars())
+
+    def dump(o: Observation) -> dict:
+        return ObservationOut.model_validate(o).model_dump(mode="json")
+
     return {
-        "robot": robot_state,
-        "inspection": InspectionOut.model_validate(insp).model_dump(mode="json") if insp else None,
-        "observation_count": db.query(Observation).count(),
-        "latest_observation": ObservationOut.model_validate(latest).model_dump(mode="json") if latest else None,
-        "history": [ObservationOut.model_validate(o).model_dump(mode="json") for o in recent],
+        "farm": {"id": farm_row.id, "name": farm_row.name},
+        "node_id": node.id if node else None,
+        "observation_count": db.query(Observation).filter(
+            Observation.farm_id == farm_row.id
+        ).count(),
+        "latest_observation": dump(latest) if latest else None,
+        "history": [dump(o) for o in recent],
     }
 
 

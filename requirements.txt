@@ -7,3 +7,5 @@ python-multipart>=0.0.20
 opencv-python-headless>=4.10
 python-dotenv>=1.0
 openai>=1.50
+bcrypt>=4.1
+PyJWT>=2.9

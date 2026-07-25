@@ -16,30 +16,20 @@
       </div>
     </div>
     <div class="badges">
-      <span id="robot-badge" class="badge">Robot: —</span>
-      <span id="inspection-badge" class="badge">Inspection: idle</span>
+      <span id="farm-badge" class="badge">Farm: —</span>
+      <span id="node-badge" class="badge">Node: —</span>
     </div>
   </header>
 
   <main class="grid">
     <!-- Controls -->
     <section class="card controls">
-      <h2>Controls</h2>
+      <h2>Node</h2>
+      <p class="muted">Simulate a monitoring node capture: pick an image and the
+        dashboard uploads it with demo sensor readings.</p>
       <div class="btn-row">
-        <button id="btn-start" class="btn primary">Start Inspection</button>
-        <button id="btn-stop" class="btn">Stop Inspection</button>
-        <button id="btn-capture" class="btn">Capture Image</button>
+        <button id="btn-capture" class="btn primary">Capture &amp; Upload</button>
       </div>
-      <div class="dpad">
-        <button class="btn move" data-cmd="forward">▲</button>
-        <div class="dpad-mid">
-          <button class="btn move" data-cmd="left">◀</button>
-          <button class="btn move" data-cmd="stop">■</button>
-          <button class="btn move" data-cmd="right">▶</button>
-        </div>
-        <button class="btn move" data-cmd="backward">▼</button>
-      </div>
-      <button id="btn-estop" class="btn danger">■ Emergency Stop</button>
       <input id="file-input" type="file" accept="image/*" capture="environment" hidden />
     </section>
 

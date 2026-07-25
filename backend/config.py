@@ -20,6 +20,15 @@ class Settings(BaseSettings):
     groq_api_key: str = ""
     groq_model: str = "gpt-oss-120b"
 
+    # Auth. jwt_secret MUST be overridden in production via the environment.
+    jwt_secret: str = "dev-insecure-change-me"
+    jwt_algorithm: str = "HS256"
+    jwt_expire_minutes: int = 60 * 24 * 7  # 7 days
+
+    # Demo farmer/farm/node seeded on startup so the dashboard runs out of the box.
+    # ponytail: remove once real farmer onboarding exists.
+    seed_demo: bool = True
+
 
 @lru_cache
 def get_settings() -> Settings:

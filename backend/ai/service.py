@@ -1,7 +1,8 @@
 """AI facade: provider selection, language detection, and context assembly.
 
 Routers call `describe_image` and `answer_question`; everything about *which*
-model runs lives here.
+model runs lives here. Context is always scoped to a single farm so the
+assistant grounds its answer in that farmer's own field, never someone else's.
 """
 import logging
 
@@ -11,7 +12,7 @@ from sqlalchemy.orm import Session
 from backend.ai.base import LLMProvider, VisionProvider
 from backend.ai.mock import MockLLMProvider, MockVisionProvider
 from backend.config import get_settings
-from backend.models import Conversation, Inspection, Observation
+from backend.models import Conversation, Farm, Observation
 
 logger = logging.getLogger("gage.ai")
 
@@ -50,17 +51,13 @@ def describe_image(image_bytes: bytes) -> str:
     return _vision.describe(image_bytes)
 
 
-def _inspection_status(db: Session) -> str:
-    active = db.execute(
-        select(Inspection).where(Inspection.ended_at.is_(None))
-    ).scalars().first()
-    return f"active (session #{active.id})" if active else "no active inspection"
-
-
-def _recent_conversation(db: Session, limit: int = 3) -> str:
+def _recent_conversation(db: Session, farm_id: int, limit: int = 3) -> str:
     turns = list(
         db.execute(
-            select(Conversation).order_by(Conversation.timestamp.desc()).limit(limit)
+            select(Conversation)
+            .where(Conversation.farm_id == farm_id)
+            .order_by(Conversation.timestamp.desc())
+            .limit(limit)
         ).scalars()
     )
     if not turns:
@@ -69,41 +66,48 @@ def _recent_conversation(db: Session, limit: int = 3) -> str:
     return "\n\nPrevious conversation:\n" + "\n".join(lines)
 
 
-def _build_context(db: Session) -> str:
-    """Assemble the field snapshot the assistant reasons over: latest observation,
-    sensors, GPS, inspection status, and recent conversation."""
-    status = _inspection_status(db)
+def _build_context(db: Session, farm_id: int) -> str:
+    """Assemble this farm's snapshot: identity, latest observation, sensors, GPS,
+    and recent conversation."""
+    farm = db.get(Farm, farm_id)
+    header = f"Farm: {farm.name}" + (f", {farm.village}" if farm and farm.village else "")
+
     obs = db.execute(
-        select(Observation).order_by(Observation.timestamp.desc()).limit(1)
+        select(Observation)
+        .where(Observation.farm_id == farm_id)
+        .order_by(Observation.timestamp.desc())
+        .limit(1)
     ).scalar_one_or_none()
 
-    total = db.query(Observation).count()
+    total = (
+        db.query(Observation).filter(Observation.farm_id == farm_id).count()
+    )
     if obs is None:
         return (
-            f"Inspection status: {status}.\n"
-            f"No observations recorded yet. Total observations: {total}."
-            + _recent_conversation(db)
+            f"{header}\n"
+            f"No observations recorded yet for this farm. Total observations: {total}."
+            + _recent_conversation(db, farm_id)
         )
 
     def fmt(v: float | None, unit: str) -> str:
         return f"{v}{unit}" if v is not None else "n/a"
 
     return (
-        f"Inspection status: {status}\n"
-        f"Latest observation ({obs.timestamp:%Y-%m-%d %H:%M} UTC):\n"
-        f"- Description: {obs.ai_summary or 'not analysed'}\n"
+        f"{header}\n"
+        f"Latest observation ({obs.timestamp:%Y-%m-%d %H:%M} UTC, node {obs.node_id}):\n"
+        f"- Vision: {obs.vision_summary or 'not analysed'}\n"
         f"- GPS: {fmt(obs.gps_lat, '')}, {fmt(obs.gps_long, '')}\n"
         f"- Temperature: {fmt(obs.temperature, ' C')}\n"
         f"- Humidity: {fmt(obs.humidity, ' %')}\n"
         f"- Soil moisture: {fmt(obs.soil_moisture, ' %')}\n"
-        f"- Total observations so far: {total}"
-        + _recent_conversation(db)
+        f"- Total observations for this farm: {total}"
+        + _recent_conversation(db, farm_id)
     )
 
 
-def answer_question(db: Session, question: str) -> tuple[str, str]:
-    """Return (answer, language) grounded in current field context."""
+def answer_question(db: Session, farm_id: int, question: str) -> tuple[str, str]:
+    """Return (answer, language) grounded in the given farm's field context."""
     language = detect_language(question)
-    context = _build_context(db)
+    context = _build_context(db, farm_id)
     answer = _llm.answer(question, context, language)
     return answer, language
