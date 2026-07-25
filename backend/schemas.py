@@ -35,6 +35,7 @@ class FarmerOut(BaseModel):
 # --- farm / node ---
 class FarmCreate(BaseModel):
     name: str
+    crop_type: str = "sugarcane"
     village: str | None = None
     area_acres: float | None = None
 
@@ -43,6 +44,7 @@ class FarmOut(BaseModel):
     model_config = _orm
     id: int
     name: str
+    crop_type: str
     village: str | None
     area_acres: float | None
     created_at: datetime
@@ -149,3 +151,39 @@ class ChatResponse(BaseModel):
     question: str
     answer: str
     language: str
+
+
+# --- farm intelligence ---
+class HealthOut(BaseModel):
+    score: int
+    status: str
+    reasons: list[str]
+
+
+class TrendOut(BaseModel):
+    metric: str
+    current: float
+    previous: float
+    delta: float
+    direction: str
+    unit: str
+
+
+class SensorSnapshot(BaseModel):
+    temperature: float | None
+    humidity: float | None
+    soil_moisture: float | None
+
+
+class FarmSummaryOut(BaseModel):
+    farm_id: int
+    name: str
+    crop_type: str
+    location: str
+    health: HealthOut
+    last_observation_time: datetime | None
+    sensor_snapshot: SensorSnapshot
+    trends: list[TrendOut]
+    active_alerts: list[AlertOut]
+    ai_summary: str | None
+    latest_observation: ObservationOut | None

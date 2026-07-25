@@ -107,8 +107,10 @@ storage/
 
 ## Extending the AI
 
-Business logic only touches `backend/ai`'s `describe_image` /
-`answer_question`. To add Gemini, OpenAI, Ollama, Qwen2.5-VL or Gemma:
+Chat goes through `AIOrchestrator.answer` (`backend/ai/orchestrator.py`), which
+assembles the Farm Context, retrieves knowledge, builds the structured prompt,
+and calls the provider via `backend/ai/service.py`. To add Gemini, OpenAI,
+Ollama, Qwen2.5-VL or Gemma:
 
 1. Implement `VisionProvider` / `LLMProvider` (`backend/ai/base.py`).
 2. Route to it in `_select_vision` / `_select_llm` (`backend/ai/service.py`).

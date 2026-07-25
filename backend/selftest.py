@@ -3,7 +3,10 @@
 Covers the pieces with real branching, no server needed:
 - OpenCV image analysis and language detection/routing
 - password hashing + JWT round-trip
-- farm-scoped context assembly (grounding + tenant isolation)
+- Farm Context Engine (grounding + tenant isolation) + trend detection
+- structured prompt builder + grounding rules
+- AI orchestrator + conversation memory
+- rule-based health score
 - observation merge (image + sensors), alert rules, offline detection
 """
 from datetime import datetime, timedelta
@@ -13,8 +16,10 @@ import numpy as np
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+from backend.ai import knowledge, prompt_builder
 from backend.ai.mock import MockLLMProvider, MockVisionProvider
-from backend.ai.service import _build_context, detect_language
+from backend.ai.orchestrator import AIOrchestrator
+from backend.ai.service import detect_language
 from backend.core.security import (
     create_access_token,
     decode_access_token,
@@ -23,8 +28,16 @@ from backend.core.security import (
     verify_password,
 )
 from backend.database import Base
-from backend.models import Alert, Farm, Farmer, Node, NodeHealth, Observation
-from backend.services import alerts, observation_service
+from backend.models import (
+    Alert,
+    Conversation,
+    Farm,
+    Farmer,
+    Node,
+    NodeHealth,
+    Observation,
+)
+from backend.services import alerts, farm_context, health_score, observation_service
 
 
 def _encode(bgr: np.ndarray) -> bytes:
@@ -75,12 +88,16 @@ def _memory_session():
     return sessionmaker(bind=engine)()
 
 
-def test_context_is_farm_scoped() -> None:
+def _obs(fid, nid, oid, ts, **kw):
+    return Observation(id=oid, farm_id=fid, node_id=nid, timestamp=ts, **kw)
+
+
+def test_context_engine_and_prompt() -> None:
     db = _memory_session()
-    farmer = Farmer(phone="1", password_hash="x", name="A")
+    farmer = Farmer(phone="1", password_hash="x", name="A", language="en")
     db.add(farmer)
     db.flush()
-    a = Farm(farmer_id=farmer.id, name="Farm A", village="Mandya")
+    a = Farm(farmer_id=farmer.id, name="Farm A", crop_type="sugarcane", village="Mandya")
     b = Farm(farmer_id=farmer.id, name="Farm B")
     db.add_all([a, b])
     db.flush()
@@ -89,21 +106,95 @@ def test_context_is_farm_scoped() -> None:
         Node(id="nb", farm_id=b.id, api_key=generate_api_key()),
     ])
     db.flush()
-    db.add(Observation(
-        id="o1", farm_id=a.id, node_id="na",
-        temperature=27.5, humidity=60.0, soil_moisture=41.0,
-        vision_summary="Healthy green foliage dominates the frame.",
-    ))
+    t0 = datetime(2026, 7, 24, 8, 0)
+    t1 = datetime(2026, 7, 25, 8, 0)
+    db.add(_obs(a.id, "na", "o0", t0, temperature=28.0, humidity=60.0, soil_moisture=54.0,
+                vision_summary="Healthy green foliage."))
+    db.add(_obs(a.id, "na", "o1", t1, temperature=29.0, humidity=88.0, soil_moisture=42.0,
+                vision_summary="Slight yellowing on some leaves."))
+    db.add(Alert(farm_id=a.id, node_id="na", type="humidity_high", severity="warning",
+                 message="High humidity 88% (disease risk)", value=88.0))
     db.commit()
 
-    ctx = _build_context(db, a.id)
-    assert "Farm A" in ctx and "Mandya" in ctx       # farm identity grounded
-    assert "27.5" in ctx and "41.0" in ctx           # sensor readings grounded
-    assert "Healthy green foliage" in ctx            # vision grounded
+    ctx = farm_context.build(db, a)
+    # Context loads the right things, newest first.
+    assert ctx.latest.id == "o1" and len(ctx.recent) == 2
+    assert ctx.crop_type == "sugarcane" and ctx.location == "Mandya"
+    assert len(ctx.active_alerts) == 1
 
-    other = _build_context(db, b.id)                 # Farm B has no observations
-    assert "No observations recorded yet" in other
-    assert "27.5" not in other                       # tenant isolation: no A data leaks
+    # Trend detection: soil moisture dropped 54 -> 42 (down 12), humidity up 60 -> 88.
+    trends = {t.metric: t for t in ctx.trends}
+    assert trends["soil_moisture"].delta == -12.0 and trends["soil_moisture"].direction == "down"
+    assert trends["humidity"].direction == "up"
+
+    # Prompt builder: structured sections + grounded facts + trend + alert + rules.
+    docs = knowledge.retrieve("irrigation and humidity", "", k=3)
+    prompt = prompt_builder.build(ctx, docs, "How is my field?")
+    for section in ("# FARM", "# CURRENT OBSERVATION", "# SENSOR READINGS",
+                    "# RECENT HISTORY", "# ACTIVE ALERTS", "# AGRICULTURAL KNOWLEDGE",
+                    "# USER QUESTION"):
+        assert section in prompt, f"missing section {section}"
+    assert "Observed" in prompt and "Recommendation" in prompt   # grounding rules present
+    assert "42.0" in prompt and "88.0" in prompt                 # grounded sensor facts
+    assert "decreased by 12.0" in prompt                         # trend surfaced
+    assert "High humidity 88%" in prompt                         # alert surfaced
+    assert "sugarcane" in prompt.lower()
+
+    # Tenant isolation: Farm B (no data) must not leak Farm A's numbers.
+    ctx_b = farm_context.build(db, b)
+    prompt_b = prompt_builder.build(ctx_b, [], "How is my field?")
+    assert "No observation recorded yet" in prompt_b
+    assert "42.0" not in prompt_b
+
+
+def test_knowledge_retrieval() -> None:
+    # "irrigate?" must match the "irrigation" doc despite the word/punctuation gap.
+    hits = knowledge.retrieve("How is my crop and should I irrigate?", "", k=2)
+    assert hits and any("irrigation" in d.title.lower() for d in hits)
+    assert knowledge.retrieve("xyzzy unrelated gibberish", "", k=3) == []  # never guess
+
+
+def test_orchestrator_and_memory() -> None:
+    db = _memory_session()
+    farm, node = _farm_with_node(db)
+    db.add(_obs(farm.id, node.id, "o1", datetime(2026, 7, 25, 8, 0),
+               temperature=29.0, humidity=60.0, soil_moisture=42.0,
+               vision_summary="Healthy green foliage."))
+    db.commit()
+
+    ans1, lang1 = AIOrchestrator.answer(db, farm, "How is my crop?")
+    assert ans1 and lang1 == "en"
+    assert db.query(Conversation).count() == 1  # turn persisted (memory)
+
+    # Second turn: prior conversation is in context (memory works).
+    AIOrchestrator.answer(db, farm, "What about irrigation?")
+    assert db.query(Conversation).count() == 2
+    ctx = farm_context.build(db, farm)
+    assert len(ctx.conversation) == 2 and ctx.conversation[0].question == "How is my crop?"
+
+
+def test_health_score() -> None:
+    db = _memory_session()
+    farm, node = _farm_with_node(db)
+
+    # Healthy snapshot -> high score.
+    db.add(_obs(farm.id, node.id, "h1", datetime(2026, 7, 25, 8, 0),
+               temperature=28.0, humidity=60.0, soil_moisture=45.0,
+               vision_summary="Healthy green foliage dominates the frame."))
+    db.commit()
+    good = health_score.compute(farm_context.build(db, farm))
+    assert good.score >= 80 and good.status == "Healthy"
+
+    # Stressed snapshot: dry soil + high humidity + vision anomaly + alert -> low score.
+    db.add(_obs(farm.id, node.id, "h2", datetime(2026, 7, 25, 9, 0),
+               temperature=42.0, humidity=90.0, soil_moisture=12.0,
+               vision_summary="Noticeable yellowing, possible disease."))
+    db.add(Alert(farm_id=farm.id, node_id=node.id, type="soil_low",
+                 severity="warning", message="Low soil moisture", value=12.0))
+    db.commit()
+    bad = health_score.compute(farm_context.build(db, farm))
+    assert bad.score < good.score and bad.status in ("Watch", "Critical")
+    assert any("soil moisture" in r.lower() for r in bad.reasons)
 
 
 def _farm_with_node(db):
@@ -173,7 +264,10 @@ if __name__ == "__main__":
     test_vision_reads_the_image()
     test_language_detection_and_routing()
     test_password_and_token()
-    test_context_is_farm_scoped()
+    test_context_engine_and_prompt()
+    test_knowledge_retrieval()
+    test_orchestrator_and_memory()
+    test_health_score()
     test_merge_and_alerts()
     test_offline_detection()
     print("OK — all self-checks passed")

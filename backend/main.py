@@ -12,7 +12,14 @@ from backend.config import get_settings
 from backend.database import SessionLocal, get_db, init_db
 from backend.models import Alert, Farm, Node, NodeHealth, Observation
 from backend.realtime import broadcaster
-from backend.routers import auth, chat, farm, node as node_router, observation
+from backend.routers import (
+    auth,
+    chat,
+    farm,
+    farm_intel,
+    node as node_router,
+    observation,
+)
 from backend.schemas import AlertOut, NodeHealthOut, ObservationOut
 from backend.seed import seed_demo
 from backend.services import alerts
@@ -23,6 +30,7 @@ app = FastAPI(title="Gage", description="AI agricultural field assistant")
 
 app.include_router(auth.router)
 app.include_router(farm.router)
+app.include_router(farm_intel.router)
 app.include_router(node_router.router)
 app.include_router(observation.router)
 app.include_router(chat.router)

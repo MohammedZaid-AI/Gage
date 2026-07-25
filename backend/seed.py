@@ -29,7 +29,8 @@ def seed_demo(db: Session) -> None:
     )
     db.add(farmer)
     db.flush()
-    farm = Farm(farmer_id=farmer.id, name="Demo Farm", village="Mandya", area_acres=2.5)
+    farm = Farm(farmer_id=farmer.id, name="Demo Farm", crop_type="sugarcane",
+                village="Mandya", area_acres=2.5)
     db.add(farm)
     db.flush()
     db.add(Node(

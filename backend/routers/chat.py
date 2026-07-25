@@ -1,13 +1,17 @@
-"""Conversational assistant endpoint (English / Kannada), scoped to a farm."""
+"""Conversational assistant endpoint (English / Kannada), scoped to a farm.
+
+The router only resolves ownership and delegates to the AI Orchestrator, which
+owns context assembly, RAG, prompting, the LLM call, and saving the turn.
+"""
 import logging
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from backend.ai import answer_question
+from backend.ai.orchestrator import AIOrchestrator
 from backend.database import get_db
 from backend.dependencies import get_current_farmer, owned_farm
-from backend.models import Conversation, Farmer
+from backend.models import Farmer
 from backend.schemas import ChatRequest, ChatResponse
 
 logger = logging.getLogger("gage.chat")
@@ -21,16 +25,5 @@ async def chat(
     db: Session = Depends(get_db),
 ) -> ChatResponse:
     farm = owned_farm(db, farmer, req.farm_id)
-    answer, language = answer_question(db, farm.id, req.question)
-
-    convo = Conversation(
-        farm_id=farm.id,
-        farmer_id=farmer.id,
-        question=req.question,
-        answer=answer,
-        language=language,
-    )
-    db.add(convo)
-    db.commit()
-    logger.info("chat answered for farm %d (%s)", farm.id, language)
+    answer, language = AIOrchestrator.answer(db, farm, req.question)
     return ChatResponse(question=req.question, answer=answer, language=language)

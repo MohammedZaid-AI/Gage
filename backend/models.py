@@ -42,6 +42,7 @@ class Farm(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     farmer_id: Mapped[int] = mapped_column(ForeignKey("farmers.id"), index=True)
     name: Mapped[str] = mapped_column(String)
+    crop_type: Mapped[str] = mapped_column(String, default="sugarcane")
     village: Mapped[str | None] = mapped_column(String, nullable=True)
     area_acres: Mapped[float | None] = mapped_column(Float, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
