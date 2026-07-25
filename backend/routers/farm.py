@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from backend.core.security import generate_api_key
 from backend.database import get_db
 from backend.dependencies import get_current_farmer, owned_farm
 from backend.models import Farm, Farmer, Node
@@ -48,7 +49,10 @@ def register_node(
     farm = owned_farm(db, farmer, farm_id)
     if db.get(Node, req.id):
         raise HTTPException(409, "Node id already registered")
-    node = Node(id=req.id, farm_id=farm.id, name=req.name)
+    node = Node(
+        id=req.id, farm_id=farm.id, name=req.name,
+        location=req.location, api_key=generate_api_key(),
+    )
     db.add(node)
     db.commit()
     db.refresh(node)

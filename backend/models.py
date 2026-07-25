@@ -1,14 +1,17 @@
 """Database models. Ownership chain: Farmer -> Farm -> Node -> Observation.
 
-Conversations belong to a Farm (and the Farmer who asked). Sensor readings live
-directly on the Observation for V1: a node reports exactly one temperature /
-humidity / soil-moisture triple per capture, so a separate `sensor_readings`
-table would be normalization without a payoff. Split it out only when a node's
-set of sensors starts varying over time.
+Design notes:
+- Node holds *identity* (id, api_key, location); mutable runtime telemetry lives
+  in NodeHealth (current snapshot, 1:1) and NodeHeartbeat (append-only history).
+- SensorReading is the raw ESP32 ingest log (source of truth for sensor history).
+  An Observation carries the merged snapshot the AI reads (denormalized read
+  model) and links back to the reading(s) that fed it via SensorReading.observation_id.
+- The phone reports one image + GPS; the ESP32 reports one temperature/humidity/
+  soil triple. The backend merges the two into a single Observation per capture.
 """
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.database import Base
@@ -56,20 +59,78 @@ class Farm(Base):
 
 
 class Node(Base):
-    """A monitoring node deployed in a farm (Android phone + ESP32 + sensors)."""
+    """A monitoring node (Android phone + ESP32) deployed in a farm. Identity only;
+    runtime telemetry is in NodeHealth / NodeHeartbeat."""
 
     __tablename__ = "nodes"
 
     id: Mapped[str] = mapped_column(String, primary_key=True)  # hardware/device id
     farm_id: Mapped[int] = mapped_column(ForeignKey("farms.id"), index=True)
     name: Mapped[str | None] = mapped_column(String, nullable=True)
-    status: Mapped[str] = mapped_column(String, default="active")  # active | offline
-    last_seen: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    api_key: Mapped[str] = mapped_column(String, unique=True, index=True)
+    location: Mapped[str | None] = mapped_column(String, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
 
     farm: Mapped[Farm] = relationship(back_populates="nodes")
+    health: Mapped["NodeHealth | None"] = relationship(
+        back_populates="node", uselist=False, cascade="all, delete-orphan"
+    )
     observations: Mapped[list["Observation"]] = relationship(
         back_populates="node", cascade="all, delete-orphan"
+    )
+
+
+class NodeHealth(Base):
+    """Current runtime snapshot for a node (upserted on every heartbeat)."""
+
+    __tablename__ = "node_health"
+
+    node_id: Mapped[str] = mapped_column(ForeignKey("nodes.id"), primary_key=True)
+    status: Mapped[str] = mapped_column(String, default="online")  # online | offline
+    last_seen: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    battery: Mapped[float | None] = mapped_column(Float, nullable=True)  # percent
+    wifi_strength: Mapped[int | None] = mapped_column(Integer, nullable=True)  # dBm
+    firmware_version: Mapped[str | None] = mapped_column(String, nullable=True)
+    gps_available: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    camera_available: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    storage_available: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+
+    node: Mapped[Node] = relationship(back_populates="health")
+
+
+class NodeHeartbeat(Base):
+    """Append-only heartbeat log from ESP32 or phone."""
+
+    __tablename__ = "node_heartbeats"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    node_id: Mapped[str] = mapped_column(ForeignKey("nodes.id"), index=True)
+    source: Mapped[str] = mapped_column(String)  # esp32 | phone
+    battery: Mapped[float | None] = mapped_column(Float, nullable=True)
+    wifi_strength: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    firmware_version: Mapped[str | None] = mapped_column(String, nullable=True)
+    gps_available: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    camera_available: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    storage_available: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    timestamp: Mapped[datetime] = mapped_column(DateTime, default=_now, index=True)
+
+
+class SensorReading(Base):
+    """Raw ESP32 sensor push. Linked to the Observation it was merged into (if any)."""
+
+    __tablename__ = "sensor_readings"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    node_id: Mapped[str] = mapped_column(ForeignKey("nodes.id"), index=True)
+    farm_id: Mapped[int] = mapped_column(ForeignKey("farms.id"), index=True)
+    temperature: Mapped[float | None] = mapped_column(Float, nullable=True)
+    humidity: Mapped[float | None] = mapped_column(Float, nullable=True)
+    soil_moisture: Mapped[float | None] = mapped_column(Float, nullable=True)
+    battery: Mapped[float | None] = mapped_column(Float, nullable=True)
+    timestamp: Mapped[datetime] = mapped_column(DateTime, default=_now, index=True)
+    observation_id: Mapped[str | None] = mapped_column(
+        ForeignKey("observations.id"), nullable=True
     )
 
 
@@ -87,10 +148,24 @@ class Observation(Base):
     humidity: Mapped[float | None] = mapped_column(Float, nullable=True)
     soil_moisture: Mapped[float | None] = mapped_column(Float, nullable=True)
     vision_summary: Mapped[str | None] = mapped_column(Text, nullable=True)  # per-image
-    ai_summary: Mapped[str | None] = mapped_column(Text, nullable=True)  # LLM, on demand
+    ai_summary: Mapped[str | None] = mapped_column(Text, nullable=True)  # LLM, on merge
 
     farm: Mapped[Farm] = relationship(back_populates="observations")
     node: Mapped[Node] = relationship(back_populates="observations")
+
+
+class Alert(Base):
+    __tablename__ = "alerts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    farm_id: Mapped[int] = mapped_column(ForeignKey("farms.id"), index=True)
+    node_id: Mapped[str | None] = mapped_column(ForeignKey("nodes.id"), nullable=True)
+    type: Mapped[str] = mapped_column(String, index=True)  # humidity_high, soil_low, ...
+    severity: Mapped[str] = mapped_column(String, default="warning")  # info|warning|critical
+    message: Mapped[str] = mapped_column(String)
+    value: Mapped[float | None] = mapped_column(Float, nullable=True)
+    resolved: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now, index=True)
 
 
 class Conversation(Base):

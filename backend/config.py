@@ -29,6 +29,20 @@ class Settings(BaseSettings):
     # ponytail: remove once real farmer onboarding exists.
     seed_demo: bool = True
 
+    # Observation merge: an image and a sensor reading from the same node within
+    # this window are merged into one observation.
+    merge_window_seconds: int = 60
+
+    # A node is considered offline if its last heartbeat is older than this.
+    offline_seconds: int = 180
+
+    # Alert rule thresholds. ponytail: global constants for V1; make them
+    # per-crop / per-farm rows when agronomy demands it.
+    humidity_max: float = 85.0       # % -> too humid (disease risk)
+    soil_moisture_min: float = 20.0  # % -> too dry (water stress)
+    temperature_max: float = 40.0    # C -> heat stress
+    low_battery_percent: float = 20.0
+
 
 @lru_cache
 def get_settings() -> Settings:

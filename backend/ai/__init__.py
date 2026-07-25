@@ -5,7 +5,12 @@ and the `describe_image` / `answer_question` helpers below. Swapping in Gemini,
 OpenAI, Ollama, Qwen2.5-VL or Gemma later is a change *here only*.
 """
 from backend.ai.base import LLMProvider, VisionProvider
-from backend.ai.service import answer_question, describe_image, detect_language
+from backend.ai.service import (
+    answer_question,
+    describe_image,
+    detect_language,
+    summarize_observation,
+)
 
 __all__ = [
     "LLMProvider",
@@ -13,4 +18,5 @@ __all__ = [
     "answer_question",
     "describe_image",
     "detect_language",
+    "summarize_observation",
 ]

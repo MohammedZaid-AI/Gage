@@ -51,6 +51,19 @@ class FarmOut(BaseModel):
 class NodeCreate(BaseModel):
     id: str  # hardware/device id, chosen by the deployer
     name: str | None = None
+    location: str | None = None
+
+
+class NodeHealthOut(BaseModel):
+    model_config = _orm
+    status: str
+    last_seen: datetime | None
+    battery: float | None
+    wifi_strength: int | None
+    firmware_version: str | None
+    gps_available: bool | None
+    camera_available: bool | None
+    storage_available: bool | None
 
 
 class NodeOut(BaseModel):
@@ -58,8 +71,54 @@ class NodeOut(BaseModel):
     id: str
     farm_id: int
     name: str | None
-    status: str
-    last_seen: datetime | None
+    location: str | None
+    api_key: str  # the owner needs this to provision the device
+    created_at: datetime
+    health: NodeHealthOut | None = None
+
+
+# --- node telemetry inputs (device -> backend) ---
+class SensorIn(BaseModel):
+    temperature: float | None = None
+    humidity: float | None = None
+    soil_moisture: float | None = None
+    battery: float | None = None
+    timestamp: datetime | None = None
+
+
+class HeartbeatIn(BaseModel):
+    source: str = "esp32"  # esp32 | phone
+    battery: float | None = None
+    wifi_strength: int | None = None
+    firmware_version: str | None = None
+    gps_available: bool | None = None
+    camera_available: bool | None = None
+    storage_available: bool | None = None
+
+
+class SensorReadingOut(BaseModel):
+    model_config = _orm
+    id: int
+    node_id: str
+    farm_id: int
+    temperature: float | None
+    humidity: float | None
+    soil_moisture: float | None
+    battery: float | None
+    timestamp: datetime
+    observation_id: str | None
+
+
+class AlertOut(BaseModel):
+    model_config = _orm
+    id: int
+    farm_id: int
+    node_id: str | None
+    type: str
+    severity: str
+    message: str
+    value: float | None
+    resolved: bool
     created_at: datetime
 
 

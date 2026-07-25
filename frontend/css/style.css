@@ -40,6 +40,18 @@ body {
 }
 .badge.on { background: var(--green-300); color: var(--green-900); }
 .badge.off { background: rgba(255, 255, 255, .15); }
+.badge.warn { background: #f6c85f; color: #4a3b00; }
+
+/* Node health + alerts panels */
+.node-list, .alert-list { list-style: none; margin: 0; padding: 0; max-height: 260px; overflow-y: auto; }
+.node-list li, .alert-list li { padding: 8px 0; border-bottom: 1px solid #eef1ee; font-size: 13px; }
+.node-list li:last-child, .alert-list li:last-child { border-bottom: none; }
+.node-list .badge { padding: 2px 8px; font-size: 11px; }
+.node-meta { color: var(--muted); font-size: 12px; margin-top: 3px; }
+.alert-item { display: flex; gap: 8px; align-items: baseline; }
+.alert-item.crit { color: #b3261e; }
+.alert-item.warn { color: #8a6d00; }
+.alert-list .ts { color: var(--muted); font-size: 12px; }
 
 .grid {
   display: grid; gap: 16px; padding: 18px;

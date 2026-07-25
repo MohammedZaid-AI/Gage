@@ -1,10 +1,17 @@
-"""Password hashing (bcrypt) and JWT access tokens. Pure crypto, no DB access."""
+"""Password hashing (bcrypt), JWT access tokens, node API keys. Pure crypto, no DB."""
+import secrets
 from datetime import datetime, timedelta, timezone
 
 import bcrypt
 import jwt
 
 from backend.config import get_settings
+
+
+def generate_api_key() -> str:
+    """Opaque per-node API key. ponytail: stored in plaintext (needs lookup-by-key);
+    hash it with a separate key id if at-rest protection becomes a requirement."""
+    return secrets.token_urlsafe(24)
 
 # bcrypt hashes at most 72 bytes; longer passwords are silently truncated by the
 # algorithm, so we slice explicitly to keep hashing and verifying consistent.

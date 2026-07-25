@@ -51,6 +51,16 @@ def describe_image(image_bytes: bytes) -> str:
     return _vision.describe(image_bytes)
 
 
+def summarize_observation(context: str, language: str = "en") -> str:
+    """One-line agronomic summary of a single observation. Reuses the LLM provider
+    interface (no new provider method) so it stays behind the same abstraction."""
+    return _llm.answer(
+        "In one short sentence, summarise the crop condition for the farmer.",
+        context,
+        language,
+    )
+
+
 def _recent_conversation(db: Session, farm_id: int, limit: int = 3) -> str:
     turns = list(
         db.execute(
