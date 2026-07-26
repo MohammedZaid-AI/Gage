@@ -18,7 +18,8 @@ class Settings(BaseSettings):
 
     # Groq (OpenAI-compatible). Model is configurable; defaults to GPT-OSS 120B.
     groq_api_key: str = ""
-    groq_model: str = "gpt-oss-120b"
+    # Groq namespaces the GPT-OSS models — the id is "openai/gpt-oss-120b", not "gpt-oss-120b".
+    groq_model: str = "openai/gpt-oss-120b"
 
     # Speech (STT + TTS). mock | sarvam. Sarvam handles Kannada/English voice.
     speech_provider: str = "mock"
