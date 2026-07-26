@@ -152,6 +152,40 @@ def test_context_engine_and_prompt() -> None:
     assert "42.0" not in prompt_b
 
 
+def test_crop_doctor_prompt_and_intents() -> None:
+    di = prompt_builder.detect_intent
+    assert di("Should I irrigate my field?") == "irrigation"
+    assert di("Is this red rot disease?") == "disease"
+    assert di("How much urea fertilizer to apply?") == "fertilizer"
+    assert di("Any borer pest attack?") == "pest"
+    assert di("How is my crop growth this week?") == "growth"
+    assert di("Hello Gage") == "general"
+
+    db = _memory_session()
+    farm, node = _farm_with_node(db)
+    # Two observations 3 days apart; vision says healthy but sensors show stress.
+    db.add(_obs(farm.id, node.id, "d0", datetime(2026, 7, 22, 8, 0),
+               temperature=28.0, humidity=60.0, soil_moisture=50.0,
+               vision_summary="Healthy green foliage."))
+    db.add(_obs(farm.id, node.id, "d1", datetime(2026, 7, 25, 8, 0),
+               temperature=29.0, humidity=90.0, soil_moisture=15.0,
+               vision_summary="Healthy green foliage dominates the frame."))
+    db.add(Alert(farm_id=farm.id, node_id=node.id, type="soil_low", severity="warning",
+                 message="Low soil moisture 15% (water stress)", value=15.0))
+    db.commit()
+
+    prompt = prompt_builder.build(farm_context.build(db, farm), [], "Should I irrigate?")
+    # Response contract: sections + insufficient-evidence rule + expert-help step.
+    for token in ("Observation:", "Analysis:", "Confidence:", "When to seek expert help",
+                  "I don't have enough evidence from the latest observation."):
+        assert token in prompt, f"missing {token!r}"
+    assert "Observed Facts" in prompt and "Inference" in prompt  # facts vs inference
+    assert "# FOCUS FOR THIS QUESTION (irrigation)" in prompt    # intent template
+    assert "Address these FIRST" in prompt                       # alert prioritization
+    assert "# SIGNAL CHECK" in prompt                            # vision vs sensor conflict
+    assert "compared to 3 days ago" in prompt                    # multi-observation comparison
+
+
 def test_knowledge_retrieval() -> None:
     # "irrigate?" must match the "irrigation" doc despite the word/punctuation gap.
     hits = knowledge.retrieve("How is my crop and should I irrigate?", "", k=2)
@@ -417,6 +451,7 @@ if __name__ == "__main__":
     test_language_detection_and_routing()
     test_password_and_token()
     test_context_engine_and_prompt()
+    test_crop_doctor_prompt_and_intents()
     test_knowledge_retrieval()
     test_orchestrator_and_memory()
     test_health_score()

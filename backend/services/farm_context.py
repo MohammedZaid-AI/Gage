@@ -7,6 +7,7 @@ latest + recent observations, latest sensor reading, active alerts, recent
 conversation (memory), and computed sensor trends (latest vs previous observation).
 """
 from dataclasses import dataclass, field
+from datetime import datetime
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -31,10 +32,17 @@ class Trend:
     previous: float
     delta: float           # current - previous (rounded)
     direction: str         # up | down | flat
+    days_ago: int          # age gap to the compared observation
 
     @property
     def unit(self) -> str:
         return "C" if self.metric == "temperature" else "%"
+
+    @property
+    def since(self) -> str:
+        if self.days_ago <= 0:
+            return "the previous observation"
+        return f"{self.days_ago} day{'s' if self.days_ago != 1 else ''} ago"
 
 
 @dataclass(frozen=True)
@@ -58,11 +66,20 @@ class FarmContext:
         return ", ".join(parts) if parts else "unknown"
 
 
+def _gap_days(a: datetime, b: datetime) -> int:
+    if a.tzinfo is not None:
+        a = a.replace(tzinfo=None)
+    if b.tzinfo is not None:
+        b = b.replace(tzinfo=None)
+    return max(0, (a - b).days)
+
+
 def _trends(recent: list[Observation]) -> list[Trend]:
     """Compare the latest observation with the previous one, per sensor metric."""
     if len(recent) < 2:
         return []
     cur, prev = recent[0], recent[1]
+    days_ago = _gap_days(cur.timestamp, prev.timestamp)
     out: list[Trend] = []
     for metric in ("soil_moisture", "humidity", "temperature"):
         c, p = getattr(cur, metric), getattr(prev, metric)
@@ -70,7 +87,7 @@ def _trends(recent: list[Observation]) -> list[Trend]:
             continue
         delta = round(c - p, 1)
         direction = "up" if delta > 0 else "down" if delta < 0 else "flat"
-        out.append(Trend(metric, c, p, delta, direction))
+        out.append(Trend(metric, c, p, delta, direction, days_ago))
     return out
 
 

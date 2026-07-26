@@ -185,6 +185,7 @@ class TrendOut(BaseModel):
     delta: float
     direction: str
     unit: str
+    days_ago: int
 
 
 class SensorSnapshot(BaseModel):

@@ -50,25 +50,54 @@ class MockVisionProvider(VisionProvider):
         return " ".join(parts)
 
 
-# Templated, context-grounded answers. A real LLM replaces this transparently.
-_KANNADA_HINT = (
-    "ಗಿಡದ ಇತ್ತೀಚಿನ ಪರಿಶೀಲನೆಯ ಆಧಾರದ ಮೇಲೆ ಉತ್ತರ:"
-)
+# Fact lines the mock lifts out of the built prompt so its answer stays grounded.
+_FACT_KEYS = ("Temperature:", "Humidity:", "Soil moisture:", "Vision:",
+              "[warning]", "[critical]", "decreased", "increased", "unchanged")
 
 
 class MockLLMProvider(LLMProvider):
+    """Offline stand-in for the LLM. Emits the Crop Doctor structure (Observation /
+    Analysis / Confidence / Recommendations) grounded in facts pulled from the
+    prompt, so the demo is coherent without an API key. A real model replaces this
+    transparently and does the genuine reasoning."""
+
     def answer(self, question: str, context: str, language: str) -> str:
+        if "summ" in question.lower():  # short one-liner for observation summaries
+            return ("ಇತ್ತೀಚಿನ ಮಾಪನಗಳ ಆಧಾರದ ಮೇಲೆ ಗಿಡ ಸಾಮಾನ್ಯ ಸ್ಥಿತಿಯಲ್ಲಿದೆ; "
+                    "ಮಣ್ಣಿನ ತೇವಾಂಶ ಮತ್ತು ಎಲೆಗಳ ಬಣ್ಣ ಗಮನಿಸಿ."
+                    if language == "kn" else
+                    "The crop appears broadly stable based on the latest readings; "
+                    "monitor soil moisture and leaf colour.")
+
+        facts, seen = [], set()
+        for ln in context.splitlines():
+            if any(k in ln for k in _FACT_KEYS):
+                f = ln.strip().lstrip("- ").strip()
+                if f not in seen:
+                    seen.add(f)
+                    facts.append(f)
+        observed = ("\n".join(f"- {f}" for f in facts) if facts
+                    else "- Limited data in the latest observation.")
+
         if language == "kn":
             return (
-                f"{_KANNADA_HINT}\n{context}\n\n"
-                "ಗಿಡ ಸಾಮಾನ್ಯ ಸ್ಥಿತಿಯಲ್ಲಿದೆ. ಮಣ್ಣಿನ ತೇವಾಂಶ ಮತ್ತು "
-                "ಎಲೆಗಳ ಬಣ್ಣವನ್ನು ಗಮನಿಸುತ್ತಿರಿ."
+                "Observation:\n" + observed + "\n\n"
+                "Analysis: ಲಭ್ಯವಿರುವ ಮಾಹಿತಿಯ ಆಧಾರದ ಮೇಲೆ ಗಿಡ ಸಾಮಾನ್ಯ ಸ್ಥಿತಿಯಲ್ಲಿದೆ.\n"
+                "Confidence: Medium (ಆಫ್‌ಲೈನ್ ಟೆಂಪ್ಲೇಟ್ ಉತ್ತರ).\n"
+                "Recommendations:\n"
+                "- Immediate: ಸಕ್ರಿಯ ಎಚ್ಚರಿಕೆಗಳಿಗೆ ಮೊದಲು ಗಮನ ಕೊಡಿ; ಮಣ್ಣಿನ ತೇವಾಂಶ ಕಡಿಮೆ ಇದ್ದರೆ ನೀರಾವರಿ ಮಾಡಿ.\n"
+                "- Monitoring: 2-3 ದಿನಗಳಲ್ಲಿ ಮತ್ತೆ ಪರಿಶೀಲಿಸಿ ಹೋಲಿಸಿ.\n"
+                "- When to seek expert help: ಲಕ್ಷಣಗಳು ಹೆಚ್ಚಾದರೆ ಕೃಷಿ ತಜ್ಞರನ್ನು ಸಂಪರ್ಕಿಸಿ."
             )
         return (
-            "Based on the latest field data:\n"
-            f"{context}\n\n"
-            "The plant looks stable overall. Keep an eye on soil moisture and "
-            "leaf colour, and re-inspect if yellowing spreads."
+            "Observation:\n" + observed + "\n\n"
+            "Analysis: Based on the latest field data, the plant appears broadly "
+            "stable; watch soil moisture and leaf colour.\n"
+            "Confidence: Medium (offline templated response).\n"
+            "Recommendations:\n"
+            "- Immediate: act on any active alerts first; irrigate if soil moisture is low.\n"
+            "- Monitoring: re-inspect the field in 2-3 days and compare.\n"
+            "- When to seek expert help: consult an agronomist if symptoms worsen or spread."
         )
 
 

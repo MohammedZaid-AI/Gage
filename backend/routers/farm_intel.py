@@ -51,7 +51,7 @@ def farm_summary(
         ),
         trends=[TrendOut(
             metric=t.metric, current=t.current, previous=t.previous,
-            delta=t.delta, direction=t.direction, unit=t.unit,
+            delta=t.delta, direction=t.direction, unit=t.unit, days_ago=t.days_ago,
         ) for t in ctx.trends],
         active_alerts=[AlertOut.model_validate(a) for a in ctx.active_alerts],
         # ponytail: reuse the observation's summary generated at merge — no fresh
