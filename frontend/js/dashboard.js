@@ -355,7 +355,7 @@ async function askText(q) {
   logBubble(esc(q), "user");
   const pending = logBubble(`<span class="typing"><span></span><span></span><span></span></span>`, "bot");
   try { const r = await jpost("/chat", { farm_id: state.farmId, question: q });
-    pending.innerHTML = docInline(r.answer); if (state.prefs.speak) speak(r.answer, r.language);
+    pending.innerHTML = docInline(r.answer); voiceOut(r.answer, r.language);
   } catch { pending.textContent = "Sorry, I'm unavailable right now."; }
 }
 function parseDoc(text) {
@@ -481,12 +481,29 @@ async function sendCapture(fd, key, coords) {
   catch { toast("Upload failed"); }
 }
 
-// ---------- voice ----------
-function speak(text, lang) {
+// ---------- voice output ----------
+function playB64(b64) {
+  try { new Audio("data:audio/wav;base64," + b64).play().catch(() => {}); return true; }
+  catch { return false; }
+}
+function browserSpeak(text, lang) {  // fallback only (needs an OS voice for the language)
   if (!("speechSynthesis" in window) || !text) return;
   const u = new SpeechSynthesisUtterance(text.replace(/[#*_`>-]/g, " "));
   u.lang = (lang || state.prefs.lang) === "kn" ? "kn-IN" : "en-IN";
   speechSynthesis.cancel(); speechSynthesis.speak(u);
+}
+// Speak an answer: prefer real provider audio (Sarvam); if none, synthesize via the
+// backend (uses the configured provider); browser voice is the last resort.
+async function voiceOut(text, language, audioB64) {
+  if (!state.prefs.speak || !text) return;
+  if (audioB64 && audioB64.length > 200 && playB64(audioB64)) return;
+  try {
+    const r = await jpost("/voice/speak", {
+      text: text.replace(/[#*_`>]/g, " ").slice(0, 900), language,
+    });
+    if (r.audio_base64 && r.audio_base64.length > 200 && playB64(r.audio_base64)) return;
+  } catch { /* fall through to browser voice */ }
+  browserSpeak(text, language);
 }
 let recorder = null, chunks = [];
 async function toggleMic() {
@@ -506,7 +523,7 @@ async function toggleMic() {
       const r = await fetch("/voice/ask", { method: "POST", headers: { Authorization: `Bearer ${state.token}` }, body: fd });
       if (!r.ok) throw new Error(); const d = await r.json();
       $("#ask-log").lastChild.textContent = "🎙️ " + d.transcript;
-      logBubble(docInline(d.answer), "bot"); if (state.prefs.speak) speak(d.answer, d.language);
+      logBubble(docInline(d.answer), "bot"); voiceOut(d.answer, d.language, d.audio_base64);
     } catch { $("#ask-log").lastChild.textContent = "🎙️ (couldn't hear that)"; }
     hint.textContent = "Tap to speak — Kannada or English";
   };
