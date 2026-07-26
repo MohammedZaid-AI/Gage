@@ -100,6 +100,14 @@ The backend merges that image with the ESP32's most recent sensor reading (withi
 > ESP32). Once your ESP32 is sending **real** sensors, tell me and I'll switch Scan
 > Crop to send the image only — a one-line change — so the real readings are used.
 
+> **Secure-context caveat (important):** over plain `http://<LAN-ip>:8000`, mobile
+> browsers **block the microphone and GPS** (those need HTTPS or localhost). So on
+> the phone: the **camera photo works**, but **GPS is skipped** and **voice (mic)
+> won't record**. Sensors/image/AI/dashboard all work fine over HTTP. To get mic +
+> GPS on the phone, serve over HTTPS — easiest is a tunnel like `cloudflared`/`ngrok`
+> (gives an https URL), or run the browser on the PC at `localhost` where they work.
+> The ESP32 is unaffected (it's not a browser; plain HTTP is fine).
+
 ---
 
 ## Step 6 — Verify it end to end
