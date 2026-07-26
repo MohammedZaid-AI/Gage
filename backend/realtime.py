@@ -31,6 +31,7 @@ class Broadcaster:
         payload = {"event": event, "data": data}
         async with self._lock:
             targets = list(self._clients)
+        logger.info("dashboard updated: broadcast %r -> %d client(s)", event, len(targets))
         for ws in targets:
             try:
                 await ws.send_json(payload)

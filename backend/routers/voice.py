@@ -50,6 +50,8 @@ async def voice_ask(
         logger.exception("text-to-speech failed")
         audio_out = b""
 
+    logger.info("voice completed: farm %s (%s, transcript=%d chars, audio=%d bytes)",
+                farm.id, language, len(transcript), len(audio_out))
     return VoiceAnswer(
         transcript=transcript,
         answer=answer,

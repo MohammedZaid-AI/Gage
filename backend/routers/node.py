@@ -104,6 +104,8 @@ async def heartbeat(
     raised = alerts.evaluate_battery(db, node.farm_id, node.id, req.battery)
     db.commit()
     db.refresh(health)
+    logger.info("node connected: heartbeat from %s (source=%s, battery=%s, fw=%s)",
+                node.id, req.source, req.battery, req.firmware_version)
 
     payload = NodeHealthOut.model_validate(health).model_dump(mode="json")
     await broadcaster.broadcast("node_health", {"node_id": node.id, **payload})

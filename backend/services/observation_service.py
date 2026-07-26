@@ -89,6 +89,7 @@ def _finalize(db: Session, obs: Observation) -> None:
     language = farm.farmer.language if farm and farm.farmer else "en"
     try:
         obs.ai_summary = summarize_observation(_obs_context(obs, farm), language)
+        logger.info("AI summary generated for observation %s", obs.id)
     except Exception:  # AI is best-effort; the observation stands without it
         logger.exception("AI summary failed for observation %s", obs.id)
 
@@ -121,6 +122,7 @@ def ingest_image(
         obs.gps_long = gps_long
     try:
         obs.vision_summary = describe_image(image_bytes)
+        logger.info("vision completed for observation %s", obs.id)
     except Exception:  # never let a vision hiccup drop the observation
         logger.exception("vision analysis failed for %s", obs.id)
         obs.vision_summary = "Automatic analysis unavailable."
