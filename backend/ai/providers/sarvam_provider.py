@@ -19,6 +19,7 @@ logger = logging.getLogger("gage.ai.sarvam")
 
 _BASE = "https://api.sarvam.ai"
 _TIMEOUT = 30.0
+_TTS_MAX_CHARS = 480  # Sarvam caps TTS input length; keep well under it.
 
 
 def _lang_code(language: str | None) -> str:
@@ -44,15 +45,23 @@ class SarvamSpeechProvider(SpeechProvider):
     def _headers(self) -> dict[str, str]:
         return {"api-subscription-key": self._key}
 
+    def _check(self, resp: httpx.Response, what: str) -> None:
+        """Surface Sarvam's actual error body (status + message) before raising."""
+        if resp.status_code >= 400:
+            logger.error("Sarvam %s -> HTTP %s: %s", what, resp.status_code, resp.text[:400])
+            resp.raise_for_status()
+
     def transcribe(self, audio: bytes, language: str | None = None) -> tuple[str, str]:
+        # Browsers record webm/opus; Sarvam expects wav/mp3. We pass it through with
+        # the reported type; if STT rejects the format the error body will say so.
         resp = httpx.post(
             f"{_BASE}/speech-to-text",
             headers=self._headers,
             data={"model": self._stt_model, "language_code": _lang_code(language)},
-            files={"file": ("audio.wav", audio, "audio/wav")},
+            files={"file": ("audio.webm", audio, "audio/webm")},
             timeout=_TIMEOUT,
         )
-        resp.raise_for_status()
+        self._check(resp, "speech-to-text")
         body = resp.json()
         transcript = body.get("transcript", "")
         code = body.get("language_code") or _lang_code(language)
@@ -63,14 +72,14 @@ class SarvamSpeechProvider(SpeechProvider):
             f"{_BASE}/text-to-speech",
             headers={**self._headers, "Content-Type": "application/json"},
             json={
-                "text": text,
+                "inputs": [text[:_TTS_MAX_CHARS]],   # Sarvam expects a list of texts
                 "target_language_code": _lang_code(language),
                 "speaker": self._speaker,
                 "model": self._tts_model,
             },
             timeout=_TIMEOUT,
         )
-        resp.raise_for_status()
+        self._check(resp, "text-to-speech")
         audios = resp.json().get("audios") or []
         if not audios:
             raise RuntimeError("Sarvam TTS returned no audio")
