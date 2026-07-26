@@ -30,6 +30,7 @@ def get_db() -> Iterator[Session]:
 
 
 def init_db() -> None:
-    from backend import models  # noqa: F401  ensure models are registered
+    from backend import models  # noqa: F401  ensure domain models are registered
+    from backend.dataset import models as dataset_models  # noqa: F401  dataset tables
 
     Base.metadata.create_all(bind=engine)

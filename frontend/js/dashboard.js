@@ -149,10 +149,64 @@ async function loadState() {
     renderNodes(s.nodes);
     renderAlerts(s.alerts);
     if (session.token && session.farmId) await fetchNodeKey();
+    loadDataset();
   } catch (e) {
     console.error("state load failed", e);
   }
 }
+
+// --- dataset panel ---
+function renderDatasetEntries(entries) {
+  const list = $("ds-list");
+  list.innerHTML = "";
+  if (!entries.length) {
+    list.innerHTML = '<li class="muted">No dataset entries yet.</li>';
+    $("ds-quality-dist").textContent = "Quality: —";
+    return;
+  }
+  const b = { high: 0, mid: 0, low: 0 };
+  for (const e of entries) {
+    e.quality_score >= 80 ? b.high++ : e.quality_score >= 50 ? b.mid++ : b.low++;
+    const li = document.createElement("li");
+    li.innerHTML = `<span class="ts">Q${e.quality_score} ${e.status}</span> — ${(e.labels || []).join(", ") || "—"}`;
+    list.append(li);
+  }
+  $("ds-quality-dist").textContent = `Quality: ${b.high} high · ${b.mid} mid · ${b.low} low`;
+}
+
+async function loadDataset() {
+  if (!session.token) return;
+  const H = { Authorization: `Bearer ${session.token}` };
+  try {
+    const s = await api("/dataset/stats", { headers: H });
+    $("ds-total").textContent = s.dataset_entries || 0;
+    $("ds-today").textContent = s.today_records || 0;
+    $("ds-quality").textContent = s.average_quality != null ? s.average_quality : "—";
+    $("ds-exported").textContent = s.exported_entries || 0;
+    const eh = s.export_history || [];
+    $("ds-exports").textContent = eh.length
+      ? "Exports: " + eh.map((e) => `${e.version} (${e.records})`).join(", ")
+      : "No exports yet.";
+    renderDatasetEntries(await api("/dataset?limit=8", { headers: H }));
+  } catch (e) {
+    console.error("dataset load failed", e);
+  }
+}
+
+$("btn-export").onclick = async () => {
+  if (!session.token) return;
+  try {
+    const r = await api("/dataset/export", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.token}` },
+      body: JSON.stringify({ fmt: "jsonl" }),
+    });
+    alert(`Exported ${r.record_count} records as ${r.dataset_version}`);
+    loadDataset();
+  } catch {
+    alert("Export failed");
+  }
+};
 
 // --- websocket live updates ---
 function connectWS() {
@@ -164,6 +218,7 @@ function connectWS() {
       renderObservation(data);
       addHistory(data);
       bumpCount();
+      loadDataset(); // each observation becomes a dataset entry
     } else if (event === "alert") {
       addAlert(data);
     } else if (event === "node_health") {

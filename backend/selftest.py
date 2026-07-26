@@ -9,6 +9,7 @@ Covers the pieces with real branching, no server needed:
 - rule-based health score
 - observation merge (image + sensors), alert rules, offline detection
 """
+import json
 from datetime import datetime, timedelta
 
 import cv2
@@ -28,6 +29,10 @@ from backend.core.security import (
     verify_password,
 )
 from backend.database import Base
+from backend.dataset.exporter import Exporter
+from backend.dataset.models import EXPORTED, VALIDATED, DatasetEntry
+from backend.dataset.repository import DatasetFilters, DatasetRepository
+from backend.dataset.service import DatasetService
 from backend.models import (
     Alert,
     Conversation,
@@ -272,6 +277,120 @@ def test_voice_loop_grounded() -> None:
     assert db.query(Conversation).count() == 1  # voice turn saved to memory
 
 
+def _complete_obs(fid, nid, oid, **kw):
+    from datetime import datetime as _dt
+    base = dict(image_path=f"{oid}.jpg", gps_lat=12.9, gps_long=77.5,
+                temperature=28.0, humidity=60.0, soil_moisture=45.0,
+                vision_summary="Healthy green foliage dominates the frame.",
+                timestamp=_dt.utcnow())
+    base.update(kw)
+    return Observation(id=oid, farm_id=fid, node_id=nid, **base)
+
+
+def test_dataset_generation_and_quality() -> None:
+    db = _memory_session()
+    farm, node = _farm_with_node(db)
+
+    # Complete observation -> high quality, VALIDATED, healthy label.
+    db.add(_complete_obs(farm.id, node.id, "c1"))
+    db.commit()
+    e1 = DatasetService.build_from_observation(db, db.get(Observation, "c1"))
+    assert e1.quality_score == 100 and e1.status == VALIDATED
+    assert e1.crop_type == "sugarcane"
+    assert "healthy" in e1.labels
+
+    # Idempotent: rebuilding the same observation does not duplicate.
+    DatasetService.build_from_observation(db, db.get(Observation, "c1"))
+    assert db.query(DatasetEntry).count() == 1
+
+    # Sparse observation (no image, no GPS, one sensor) -> lower quality, reasons.
+    db.add(_obs(farm.id, node.id, "c2", datetime(2026, 7, 25, 8, 0),
+               soil_moisture=15.0, vision_summary=None))
+    db.commit()
+    e2 = DatasetService.build_from_observation(db, db.get(Observation, "c2"))
+    assert e2.quality_score < e1.quality_score
+    assert "image missing" in e2.quality_reason and "missing GPS" in e2.quality_reason
+
+
+def test_label_generation() -> None:
+    db = _memory_session()
+    farm, node = _farm_with_node(db)
+    db.add(_obs(farm.id, node.id, "l1", datetime(2026, 7, 25, 8, 0),
+               humidity=90.0, soil_moisture=12.0,
+               vision_summary="Noticeable yellowing, possible pest damage."))
+    db.commit()
+    e = DatasetService.build_from_observation(db, db.get(Observation, "l1"))
+    for label in ("dry_soil", "water_stress", "high_humidity", "possible_disease"):
+        assert label in e.labels, f"expected {label} in {e.labels}"
+
+    # Negation: "No yellowing ... No pest damage" must NOT yield possible_disease.
+    db.add(_obs(farm.id, node.id, "l2", datetime(2026, 7, 25, 9, 0),
+               temperature=28.0, humidity=60.0, soil_moisture=45.0,
+               vision_summary="Healthy green foliage dominates the frame. "
+                              "No significant yellowing observed. No obvious pest damage detected."))
+    db.commit()
+    e2 = DatasetService.build_from_observation(db, db.get(Observation, "l2"))
+    assert "healthy" in e2.labels and "possible_disease" not in e2.labels, e2.labels
+
+
+def test_export_filtering_and_versioning() -> None:
+    import os
+    db = _memory_session()
+    farm, node = _farm_with_node(db)
+    db.add(_complete_obs(farm.id, node.id, "x1"))  # quality 100
+    db.add(_obs(farm.id, node.id, "x2", datetime(2026, 7, 25, 8, 0),
+               soil_moisture=15.0))               # low quality (no image/gps/vision)
+    db.commit()
+    for oid in ("x1", "x2"):
+        DatasetService.build_from_observation(db, db.get(Observation, oid))
+
+    farm_ids = [farm.id]
+    # Filter: only high-quality entries export.
+    exp = Exporter.export(db, farm_ids, DatasetFilters(min_quality=80), "jsonl")
+    try:
+        assert exp.record_count == 1 and exp.dataset_version.startswith("v")
+        assert len(exp.checksum) == 64
+        contents = open(exp.path, encoding="utf-8").read().strip().splitlines()
+        assert len(contents) == 1 and json.loads(contents[0])["observation_id"] == "x1"
+        assert db.query(DatasetEntry).filter(DatasetEntry.observation_id == "x1").one().status == EXPORTED
+    finally:
+        os.remove(exp.path)
+
+    # CSV export of everything.
+    exp2 = Exporter.export(db, farm_ids, DatasetFilters(), "csv")
+    try:
+        assert exp2.record_count == 2
+        assert open(exp2.path, encoding="utf-8").readline().startswith("dataset_id,")
+    finally:
+        os.remove(exp2.path)
+
+
+def test_dataset_stats_and_conversation_linking() -> None:
+    db = _memory_session()
+    farm, node = _farm_with_node(db)
+    db.add(_obs(farm.id, node.id, "s1", datetime(2026, 7, 25, 8, 0),
+               temperature=28.0, humidity=60.0, soil_moisture=45.0,
+               vision_summary="Healthy green foliage."))
+    db.commit()
+    DatasetService.build_from_observation(db, db.get(Observation, "s1"))
+
+    stats = DatasetRepository.stats(db, [farm.id])
+    assert stats["dataset_entries"] == 1
+    assert stats["crop_distribution"].get("sugarcane") == 1
+    assert "daily_rate" in stats
+
+    # Conversation grounded in observation s1 (asked after it) -> linked.
+    db.add(Conversation(farm_id=farm.id, farmer_id=farm.farmer_id,
+                        question="Why are my leaves yellow?", answer="...",
+                        language="en", timestamp=datetime(2026, 7, 25, 9, 0)))
+    db.commit()
+    linked = DatasetService.link_recent_conversations(db, farm.id)
+    assert linked == 1
+    entry = DatasetRepository.get_by_observation(db, "s1")
+    convo = db.query(Conversation).one()
+    assert entry.conversation_reference == convo.id
+
+
 def test_offline_detection() -> None:
     db = _memory_session()
     farm, node = _farm_with_node(db)
@@ -303,6 +422,10 @@ if __name__ == "__main__":
     test_health_score()
     test_speech_provider()
     test_voice_loop_grounded()
+    test_dataset_generation_and_quality()
+    test_label_generation()
+    test_export_filtering_and_versioning()
+    test_dataset_stats_and_conversation_linking()
     test_merge_and_alerts()
     test_offline_detection()
     print("OK — all self-checks passed")

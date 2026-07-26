@@ -15,6 +15,7 @@ from backend.realtime import broadcaster
 from backend.routers import (
     auth,
     chat,
+    dataset,
     farm,
     farm_intel,
     node as node_router,
@@ -36,6 +37,7 @@ app.include_router(node_router.router)
 app.include_router(observation.router)
 app.include_router(chat.router)
 app.include_router(voice.router)
+app.include_router(dataset.router)
 
 
 @app.on_event("startup")

@@ -4,5 +4,6 @@ __pycache__/
 storage/images/*
 !storage/images/.gitkeep
 storage/observations.db
+storage/datasets/
 .venv/
 venv/

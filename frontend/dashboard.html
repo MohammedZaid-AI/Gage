@@ -73,6 +73,23 @@
       <ul id="history-list" class="history-list"><li class="muted">No observations yet.</li></ul>
     </section>
 
+    <!-- Dataset -->
+    <section class="card dataset">
+      <h2>Dataset <span class="muted">(training data)</span></h2>
+      <div class="metrics">
+        <div class="metric"><span class="m-label">Total Records</span><span class="m-val" id="ds-total">0</span></div>
+        <div class="metric"><span class="m-label">Today</span><span class="m-val" id="ds-today">0</span></div>
+        <div class="metric"><span class="m-label">Avg Quality</span><span class="m-val" id="ds-quality">—</span></div>
+        <div class="metric"><span class="m-label">Exported</span><span class="m-val" id="ds-exported">0</span></div>
+      </div>
+      <div class="btn-row">
+        <button id="btn-export" class="btn">Export JSONL</button>
+      </div>
+      <p class="muted" id="ds-quality-dist">Quality: —</p>
+      <ul id="ds-list" class="history-list"><li class="muted">No dataset entries yet.</li></ul>
+      <p class="muted" id="ds-exports">No exports yet.</p>
+    </section>
+
     <!-- Conversation -->
     <section class="card chat">
       <h2>Assistant <span class="muted">(English / ಕನ್ನಡ)</span></h2>

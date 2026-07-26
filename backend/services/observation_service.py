@@ -19,10 +19,20 @@ from sqlalchemy.orm import Session
 
 from backend.ai import describe_image, summarize_observation
 from backend.config import get_settings
+from backend.dataset.service import DatasetService
 from backend.models import Alert, Farm, Observation, SensorReading, _now
 from backend.services import alerts
 
 logger = logging.getLogger("gage.observation_service")
+
+
+def _build_dataset_entry(db: Session, obs: Observation) -> None:
+    """Feed the observation to the Dataset Builder. Best-effort: a dataset hiccup
+    must never break observation ingest."""
+    try:
+        DatasetService.build_from_observation(db, obs)
+    except Exception:
+        logger.exception("dataset entry build failed for observation %s", obs.id)
 
 _IMAGE_DIR = Path(get_settings().image_dir)
 _IMAGE_DIR.mkdir(parents=True, exist_ok=True)
@@ -118,6 +128,7 @@ def ingest_image(
     _finalize(db, obs)
     db.commit()
     db.refresh(obs)
+    _build_dataset_entry(db, obs)
     logger.info("image merged into observation %s (node=%s)", obs.id, node.id)
     return obs
 
@@ -158,6 +169,7 @@ def ingest_sensors(
     db.commit()
     db.refresh(obs)
     db.refresh(reading)
+    _build_dataset_entry(db, obs)
     logger.info("sensors merged into observation %s (node=%s, %d alert(s))",
                 obs.id, node.id, len(raised))
     return obs, reading, raised
