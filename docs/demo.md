@@ -8,7 +8,10 @@ node to grounded farmer response.
 - `.env` present (copy from `.env.example`). For an **offline / keyless demo** set
   `LLM_PROVIDER=mock` and `SPEECH_PROVIDER=mock`. For the **real** assistant set
   `LLM_PROVIDER=groq` + `GROQ_API_KEY`, and (optional voice) `SPEECH_PROVIDER=sarvam` + `SARVAM_API_KEY`.
-- Fresh dev DB after any schema change: stop the server, then `rm storage/observations.db` (re-seeds).
+- Fresh dev DB after any schema change (no Alembic yet — `create_all` adds tables but
+  not columns, so an old DB drifts and 500s like `no such column: farms.crop_type`):
+  **stop the server**, then `python scripts/reset_dev_db.py` (backs up the old DB to
+  `storage/observations.db.bak-*`, recreates the schema, re-seeds), then restart.
 
 ## Live demo checklist
 
