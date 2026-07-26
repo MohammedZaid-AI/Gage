@@ -1,10 +1,17 @@
 """Gage backend entrypoint. Run: uvicorn backend.main:app --reload"""
 import logging
+import mimetypes
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
+# Force correct static MIME types. On some Windows machines the registry maps
+# .css/.js to text/plain, which makes Chrome refuse the stylesheet (strict MIME
+# checking) and render the whole app unstyled. Registering here is machine-independent.
+mimetypes.add_type("text/css", ".css")
+mimetypes.add_type("text/javascript", ".js")
+
+from fastapi import Depends, FastAPI, WebSocket, WebSocketDisconnect  # noqa: E402
+from fastapi.responses import FileResponse  # noqa: E402
+from fastapi.staticfiles import StaticFiles  # noqa: E402
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
