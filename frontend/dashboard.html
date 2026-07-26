@@ -2,105 +2,61 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Gage — Field Assistant</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <meta name="theme-color" content="#1f6b34" />
+  <title>Gage — Farm OS</title>
   <link rel="stylesheet" href="/static/css/style.css" />
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <span class="logo">🌱</span>
-      <div>
+  <div id="app">
+    <!-- Login (shown until authenticated) -->
+    <div id="login" class="login hidden">
+      <div class="brand">
+        <div class="logo">🌱</div>
         <h1>Gage</h1>
-        <p class="tagline">AI agricultural field assistant</p>
+        <p>Your farm's operating system</p>
+      </div>
+      <div class="card">
+        <div class="field">
+          <label>Phone number</label>
+          <input id="lg-phone" type="tel" inputmode="numeric" placeholder="9999999999" value="9999999999" />
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input id="lg-pass" type="password" placeholder="••••••" value="demo1234" />
+        </div>
+        <button id="lg-submit" class="btn block">Enter my farm</button>
+        <p id="lg-msg" class="muted" style="text-align:center;margin:12px 0 0;font-size:13px"></p>
+        <p style="text-align:center;margin:10px 0 0;font-size:13px">
+          <a id="lg-toggle" href="#" style="color:var(--green-600)">New here? Create an account</a>
+        </p>
       </div>
     </div>
-    <div class="badges">
-      <span id="farm-badge" class="badge">Farm: —</span>
-      <span id="node-badge" class="badge">Node: —</span>
+
+    <!-- Main app (shown when authenticated) -->
+    <div id="shell" class="hidden">
+      <header class="appbar">
+        <div class="brand">
+          <span class="logo">🌱</span>
+          <div>
+            <h1 id="ab-farm">Gage</h1>
+            <div class="sub" id="ab-sub">Farm OS</div>
+          </div>
+        </div>
+        <button class="chip" id="ab-node">Node: —</button>
+      </header>
+
+      <main id="view"></main>
+
+      <nav class="nav">
+        <button data-nav="home"><span class="ic">🏠</span>Home</button>
+        <button data-nav="timeline"><span class="ic">🕒</span>Timeline</button>
+        <button data-nav="ask"><span class="ic">🎙️</span>Ask Gage</button>
+        <button data-nav="reports"><span class="ic">📊</span>Reports</button>
+        <button data-nav="settings"><span class="ic">⚙️</span>Settings</button>
+      </nav>
     </div>
-  </header>
-
-  <main class="grid">
-    <!-- Controls -->
-    <section class="card controls">
-      <h2>Node</h2>
-      <p class="muted">Simulate a monitoring node capture: pick an image and the
-        dashboard uploads it with demo sensor readings.</p>
-      <div class="btn-row">
-        <button id="btn-capture" class="btn primary">Capture &amp; Upload</button>
-      </div>
-      <input id="file-input" type="file" accept="image/*" capture="environment" hidden />
-    </section>
-
-    <!-- Camera -->
-    <section class="card camera">
-      <h2>Latest Camera Image</h2>
-      <div class="image-wrap">
-        <img id="latest-image" alt="No image yet" />
-        <p id="no-image" class="muted">Waiting for first capture…</p>
-      </div>
-      <p class="ai-summary" id="latest-summary">—</p>
-    </section>
-
-    <!-- Sensors -->
-    <section class="card sensors">
-      <h2>Field Readings</h2>
-      <div class="metrics">
-        <div class="metric"><span class="m-label">Temperature</span><span class="m-val" id="m-temp">—</span></div>
-        <div class="metric"><span class="m-label">Humidity</span><span class="m-val" id="m-hum">—</span></div>
-        <div class="metric"><span class="m-label">Soil Moisture</span><span class="m-val" id="m-soil">—</span></div>
-        <div class="metric"><span class="m-label">GPS</span><span class="m-val" id="m-gps">—</span></div>
-        <div class="metric"><span class="m-label">Observations</span><span class="m-val" id="m-count">0</span></div>
-      </div>
-    </section>
-
-    <!-- Node Health -->
-    <section class="card nodes">
-      <h2>Node Health</h2>
-      <ul id="node-list" class="node-list"><li class="muted">No nodes yet.</li></ul>
-    </section>
-
-    <!-- Alerts -->
-    <section class="card alerts">
-      <h2>Alerts</h2>
-      <ul id="alert-list" class="alert-list"><li class="muted">No alerts.</li></ul>
-    </section>
-
-    <!-- History -->
-    <section class="card history">
-      <h2>Observation Timeline</h2>
-      <ul id="history-list" class="history-list"><li class="muted">No observations yet.</li></ul>
-    </section>
-
-    <!-- Dataset -->
-    <section class="card dataset">
-      <h2>Dataset <span class="muted">(training data)</span></h2>
-      <div class="metrics">
-        <div class="metric"><span class="m-label">Total Records</span><span class="m-val" id="ds-total">0</span></div>
-        <div class="metric"><span class="m-label">Today</span><span class="m-val" id="ds-today">0</span></div>
-        <div class="metric"><span class="m-label">Avg Quality</span><span class="m-val" id="ds-quality">—</span></div>
-        <div class="metric"><span class="m-label">Exported</span><span class="m-val" id="ds-exported">0</span></div>
-      </div>
-      <div class="btn-row">
-        <button id="btn-export" class="btn">Export JSONL</button>
-      </div>
-      <p class="muted" id="ds-quality-dist">Quality: —</p>
-      <ul id="ds-list" class="history-list"><li class="muted">No dataset entries yet.</li></ul>
-      <p class="muted" id="ds-exports">No exports yet.</p>
-    </section>
-
-    <!-- Conversation -->
-    <section class="card chat">
-      <h2>Assistant <span class="muted">(English / ಕನ್ನಡ)</span></h2>
-      <div id="chat-log" class="chat-log"></div>
-      <form id="chat-form" class="chat-form">
-        <input id="chat-input" type="text" placeholder="Ask about the field… / ಗಿಡ ಹೇಗಿದೆ?" autocomplete="off" />
-        <button id="btn-mic" class="btn" type="button" title="Hold to speak">🎤</button>
-        <button class="btn primary" type="submit">Ask</button>
-      </form>
-    </section>
-  </main>
+  </div>
 
   <script src="/static/js/dashboard.js"></script>
 </body>
