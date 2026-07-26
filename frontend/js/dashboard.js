@@ -21,6 +21,15 @@ const $ = (s, r = document) => r.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const imgUrl = (p) => (p ? "/" + p.replace(/^\/+/, "") : null);
 const fmt = (v, u = "") => (v === null || v === undefined ? "—" : `${(+v).toFixed(1)}${u}`);
+// Soil moisture as a word farmers read at a glance, not a percent.
+function soilLabel(v) {
+  if (v === null || v === undefined) return "—";
+  if (v < 15) return "Very dry";
+  if (v < 30) return "Dry";
+  if (v < 60) return "Moist";
+  if (v < 80) return "Wet";
+  return "Saturated";
+}
 const lazyImg = (src, cls) => `<img class="${cls}" src="${src}" loading="lazy" decoding="async" alt="field"/>`;
 function ago(iso) {
   if (!iso) return "—";
@@ -29,6 +38,11 @@ function ago(iso) {
   if (s < 3600) return `${(s / 60) | 0} min ago`;
   if (s < 86400) return `${(s / 3600) | 0}h ago`;
   return `${(s / 86400) | 0}d ago`;
+}
+const LIVE_WINDOW_MS = 40000; // "live" only if the newest reading/heartbeat is within 40s
+function isLive() {
+  const ls = state.lastSeen;
+  return !!ls && (Date.now() - new Date(ls).getTime()) < LIVE_WINDOW_MS && state.node?.health?.status !== "offline";
 }
 function greeting() {
   const h = new Date().getHours();
@@ -165,7 +179,8 @@ VIEWS.home = async () => {
   const H = s.health, cls = H.status === "Healthy" ? "good" : H.status === "Watch" ? "watch" : "crit";
   const emLabel = H.score >= 90 ? "Excellent" : H.score >= 80 ? "Very good" : H.score >= 60 ? "Fair" : "Needs care";
   state.lastObsTime = o.timestamp || null;
-  const online = (nh.status ? nh.status === "online" : !!o.timestamp);
+  state.lastSeen = nh.last_seen || o.timestamp || null;
+  const online = isLive();
   const chk = (ok, label) => `<li><span class="check ${ok ? "" : "no"}">${ok ? "✓" : "○"}</span><b>${label}</b></li>`;
 
   return `
@@ -173,7 +188,7 @@ VIEWS.home = async () => {
       <div><div class="hello">${greeting()}</div>
         <div class="name">${esc(state.farmer?.name || state.farmName)}</div>
         <div class="date">${dateStr()}</div></div>
-      <span class="status-badge ${online ? "" : "off"}"><span class="dot"></span>${online ? "Monitoring Live" : "Node Offline"}</span>
+      <span class="status-badge ${online ? "" : "off"}" id="live-badge"><span class="dot"></span>${online ? "Monitoring Live" : "Not Monitoring"}</span>
     </div>
     <div class="updated" id="home-updated">Updated ${ago(state.lastObsTime)}</div>
 
@@ -208,7 +223,7 @@ VIEWS.home = async () => {
     <div class="grid">
       <div class="sensor"><div class="top"><span class="ic">🌡️</span>${arrow("temperature")}</div><span class="v">${fmt(snap.temperature)}<small>°C</small></span><span class="l">Temperature</span></div>
       <div class="sensor"><div class="top"><span class="ic">💧</span>${arrow("humidity")}</div><span class="v">${fmt(snap.humidity)}<small>%</small></span><span class="l">Humidity</span></div>
-      <div class="sensor"><div class="top"><span class="ic">🪴</span>${arrow("soil_moisture")}</div><span class="v">${fmt(snap.soil_moisture)}<small>%</small></span><span class="l">Soil moisture</span></div>
+      <div class="sensor"><div class="top"><span class="ic">🪴</span>${arrow("soil_moisture")}</div><span class="v" style="font-size:18px">${soilLabel(snap.soil_moisture)}</span><span class="l">Soil moisture</span></div>
       <div class="sensor"><div class="top"><span class="ic">🔋</span></div><span class="v">${nh.battery != null ? fmt(nh.battery) + "<small>%</small>" : "—"}</span><span class="l">Node battery</span></div>
       <div class="sensor"><div class="top"><span class="ic">📡</span></div><span class="v" style="font-size:16px;color:${online ? "var(--green-600)" : "var(--danger)"}">${online ? "Online" : "Offline"}</span><span class="l">Node status · ${nh.last_seen ? ago(nh.last_seen) : "—"}</span></div>
       <div class="sensor"><div class="top"><span class="ic">📍</span></div><span class="v" style="font-size:14px">${o.gps_lat != null ? (+o.gps_lat).toFixed(3) + "," + (+o.gps_long).toFixed(3) : "—"}</span><span class="l">Location</span></div>
@@ -243,7 +258,7 @@ VIEWS.timeline = async () => {
       ${img ? lazyImg(img, "") : `<div class="thumb">🌿</div>`}
       <div class="body"><div class="when">${new Date(o.timestamp).toLocaleDateString(undefined, { month: "short", day: "numeric" })} · ${ago(o.timestamp)}</div>
         <div class="sum">${esc(o.vision_summary || o.ai_summary || "Observation")}</div>
-        <div class="mini"><span class="health-pill ${h.cls}">${h.label} ${h.score}%</span> · 🪴 ${fmt(o.soil_moisture)}%</div>
+        <div class="mini"><span class="health-pill ${h.cls}">${h.label} ${h.score}%</span> · 🪴 ${soilLabel(o.soil_moisture)}</div>
       </div><span class="go">›</span></div>`;
   }).join("");
 };
@@ -306,7 +321,7 @@ VIEWS.detail = async (id) => {
     <div class="grid">
       <div class="sensor"><span class="ic">🌡️</span><span class="v">${fmt(o.temperature)}°C</span><span class="l">Temperature</span></div>
       <div class="sensor"><span class="ic">💧</span><span class="v">${fmt(o.humidity)}%</span><span class="l">Humidity</span></div>
-      <div class="sensor"><span class="ic">🪴</span><span class="v">${fmt(o.soil_moisture)}%</span><span class="l">Soil moisture</span></div>
+      <div class="sensor"><span class="ic">🪴</span><span class="v" style="font-size:16px">${soilLabel(o.soil_moisture)}</span><span class="l">Soil moisture</span></div>
       <div class="sensor"><span class="ic">📍</span><span class="v" style="font-size:14px">${o.gps_lat != null ? (+o.gps_lat).toFixed(3) + "," + (+o.gps_long).toFixed(3) : "—"}</span><span class="l">Location</span></div>
     </div>
 
@@ -355,7 +370,7 @@ async function askText(q) {
   logBubble(esc(q), "user");
   const pending = logBubble(`<span class="typing"><span></span><span></span><span></span></span>`, "bot");
   try { const r = await jpost("/chat", { farm_id: state.farmId, question: q });
-    pending.innerHTML = docInline(r.answer); voiceOut(r.answer, r.language);
+    pending.innerHTML = docInline(r.answer); attachPlay(pending, r.answer, r.language);
   } catch { pending.textContent = "Sorry, I'm unavailable right now."; }
 }
 function parseDoc(text) {
@@ -385,7 +400,7 @@ function aggregate(obs, days) {
 const repCard = (title, a) => `<div class="card"><div class="head" style="font-weight:800;color:var(--green-700);margin-bottom:10px">${title}</div>
   <div class="grid">
     <div class="sensor"><span class="l">Observations</span><span class="v">${a.count}</span></div>
-    <div class="sensor"><span class="l">Avg soil</span><span class="v">${fmt(a.soil)}%</span></div>
+    <div class="sensor"><span class="l">Avg soil</span><span class="v" style="font-size:16px">${soilLabel(a.soil)}</span></div>
     <div class="sensor"><span class="l">Avg temp</span><span class="v">${fmt(a.temp)}°C</span></div>
     <div class="sensor"><span class="l">Avg humidity</span><span class="v">${fmt(a.hum)}%</span></div>
   </div></div>`;
@@ -492,18 +507,25 @@ function browserSpeak(text, lang) {  // fallback only (needs an OS voice for the
   u.lang = (lang || state.prefs.lang) === "kn" ? "kn-IN" : "en-IN";
   speechSynthesis.cancel(); speechSynthesis.speak(u);
 }
-// Speak an answer: prefer real provider audio (Sarvam); if none, synthesize via the
-// backend (uses the configured provider); browser voice is the last resort.
-async function voiceOut(text, language, audioB64) {
-  if (!state.prefs.speak || !text) return;
-  if (audioB64 && audioB64.length > 200 && playB64(audioB64)) return;
-  try {
-    const r = await jpost("/voice/speak", {
-      text: text.replace(/[#*_`>]/g, " ").slice(0, 900), language,
-    });
-    if (r.audio_base64 && r.audio_base64.length > 200 && playB64(r.audio_base64)) return;
-  } catch { /* fall through to browser voice */ }
-  browserSpeak(text, language);
+// Attach a Play button to an answer bubble — voice only sounds when the user taps it.
+// On tap: prefer real provider audio (Sarvam); else synthesize via the backend
+// (configured provider); browser voice is the last resort.
+function attachPlay(bubble, text, language, audioB64) {
+  if (!state.prefs.speak || !bubble || !text) return;
+  let cached = audioB64 || null;
+  const btn = document.createElement("button");
+  btn.type = "button"; btn.className = "play-btn"; btn.textContent = "🔊 Play";
+  btn.style.cssText = "margin-top:8px;font-size:13px;background:var(--green-50,#eef7f0);color:var(--green-700,#1f6b34);border:1px solid var(--green-200,#cde7d4);border-radius:999px;padding:4px 12px;cursor:pointer";
+  btn.onclick = async () => {
+    btn.disabled = true;
+    if (cached && cached.length > 200 && playB64(cached)) { btn.disabled = false; return; }
+    try {
+      const r = await jpost("/voice/speak", { text: text.replace(/[#*_`>]/g, " ").slice(0, 900), language });
+      if (r.audio_base64 && r.audio_base64.length > 200) { cached = r.audio_base64; playB64(cached); btn.disabled = false; return; }
+    } catch { /* fall through to browser voice */ }
+    browserSpeak(text, language); btn.disabled = false;
+  };
+  bubble.append(btn);
 }
 let recorder = null, chunks = [];
 async function toggleMic() {
@@ -523,7 +545,7 @@ async function toggleMic() {
       const r = await fetch("/voice/ask", { method: "POST", headers: { Authorization: `Bearer ${state.token}` }, body: fd });
       if (!r.ok) throw new Error(); const d = await r.json();
       $("#ask-log").lastChild.textContent = "🎙️ " + d.transcript;
-      logBubble(docInline(d.answer), "bot"); voiceOut(d.answer, d.language, d.audio_base64);
+      attachPlay(logBubble(docInline(d.answer), "bot"), d.answer, d.language, d.audio_base64);
     } catch { $("#ask-log").lastChild.textContent = "🎙️ (couldn't hear that)"; }
     hint.textContent = "Tap to speak — Kannada or English";
   };
@@ -554,7 +576,10 @@ function connectWS() {
 }
 // keep "Updated … ago" fresh without refetching
 function startClock() {
-  setInterval(() => { const el = $("#home-updated"); if (el && state.lastObsTime) el.textContent = "Updated " + ago(state.lastObsTime); }, 10000);
+  setInterval(() => {
+    const el = $("#home-updated"); if (el && state.lastObsTime) el.textContent = "Updated " + ago(state.lastObsTime);
+    const b = $("#live-badge"); if (b) { const on = isLive(); b.classList.toggle("off", !on); b.innerHTML = `<span class="dot"></span>${on ? "Monitoring Live" : "Not Monitoring"}`; }
+  }, 10000);
 }
 
 // ---------- pull to refresh ----------
