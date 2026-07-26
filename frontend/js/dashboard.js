@@ -222,6 +222,62 @@ async function sendImage(fd, keyHeader, coords) {
   }
 }
 
+// --- voice: record -> /voice/ask -> show transcript + answer -> speak answer ---
+function speak(text, language) {
+  if (!("speechSynthesis" in window) || !text) return;
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = language === "kn" ? "kn-IN" : "en-IN"; // browser TTS for demo playback
+  speechSynthesis.cancel();
+  speechSynthesis.speak(u);
+}
+
+let recorder = null;
+let chunks = [];
+async function toggleMic() {
+  const btn = $("btn-mic");
+  if (recorder && recorder.state === "recording") {
+    recorder.stop();
+    return;
+  }
+  if (!navigator.mediaDevices?.getUserMedia) return alert("Microphone not supported.");
+  if (!session.token || !session.farmId) return alert("Session not ready.");
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch {
+    return alert("Microphone permission denied.");
+  }
+  chunks = [];
+  recorder = new MediaRecorder(stream);
+  recorder.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+  recorder.onstop = async () => {
+    stream.getTracks().forEach((t) => t.stop());
+    btn.classList.remove("on");
+    btn.textContent = "🎤";
+    const blob = new Blob(chunks, { type: "audio/webm" });
+    const fd = new FormData();
+    fd.append("farm_id", session.farmId);
+    fd.append("audio", blob, "speech.webm");
+    addChat("🎤 …", "user");
+    try {
+      const r = await api("/voice/ask", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.token}` },
+        body: fd,
+      });
+      $("chat-log").lastChild.textContent = "🎤 " + r.transcript;
+      addChat(r.answer, "bot");
+      speak(r.answer, r.language);
+    } catch {
+      $("chat-log").lastChild.textContent = "🎤 (could not understand)";
+    }
+  };
+  recorder.start();
+  btn.classList.add("on");
+  btn.textContent = "⏺";
+}
+$("btn-mic").onclick = toggleMic;
+
 $("chat-form").onsubmit = async (e) => {
   e.preventDefault();
   const input = $("chat-input");

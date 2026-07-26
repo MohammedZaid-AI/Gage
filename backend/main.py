@@ -19,6 +19,7 @@ from backend.routers import (
     farm_intel,
     node as node_router,
     observation,
+    voice,
 )
 from backend.schemas import AlertOut, NodeHealthOut, ObservationOut
 from backend.seed import seed_demo
@@ -34,6 +35,7 @@ app.include_router(farm_intel.router)
 app.include_router(node_router.router)
 app.include_router(observation.router)
 app.include_router(chat.router)
+app.include_router(voice.router)
 
 
 @app.on_event("startup")

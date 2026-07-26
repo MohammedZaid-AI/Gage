@@ -6,8 +6,8 @@ chat flow in ai/orchestrator.py — this module only owns provider wiring.
 """
 import logging
 
-from backend.ai.base import LLMProvider, VisionProvider
-from backend.ai.mock import MockLLMProvider, MockVisionProvider
+from backend.ai.base import LLMProvider, SpeechProvider, VisionProvider
+from backend.ai.mock import MockLLMProvider, MockSpeechProvider, MockVisionProvider
 from backend.config import get_settings
 
 logger = logging.getLogger("gage.ai")
@@ -34,8 +34,21 @@ def _select_llm() -> LLMProvider:
     return MockLLMProvider()
 
 
+def _select_speech() -> SpeechProvider:
+    """Map SPEECH_PROVIDER to an implementation. Add new speech backends here only."""
+    name = get_settings().speech_provider.lower()
+    if name == "sarvam":
+        from backend.ai.providers.sarvam_provider import SarvamSpeechProvider  # lazy
+
+        return SarvamSpeechProvider()
+    if name != "mock":
+        logger.warning("speech provider %r not implemented yet; using mock", name)
+    return MockSpeechProvider()
+
+
 _vision = _select_vision()
 _llm = _select_llm()
+_speech = _select_speech()
 
 
 def detect_language(text: str) -> str:
@@ -50,6 +63,16 @@ def describe_image(image_bytes: bytes) -> str:
 def complete(question: str, context: str, language: str) -> str:
     """Low-level: send an already-built prompt/context to the active LLM provider."""
     return _llm.answer(question, context, language)
+
+
+def transcribe(audio: bytes, language: str | None = None) -> tuple[str, str]:
+    """Speech -> (transcript, language) via the active speech provider."""
+    return _speech.transcribe(audio, language)
+
+
+def synthesize(text: str, language: str) -> bytes:
+    """Text -> spoken audio bytes via the active speech provider."""
+    return _speech.synthesize(text, language)
 
 
 def summarize_observation(context: str, language: str = "en") -> str:

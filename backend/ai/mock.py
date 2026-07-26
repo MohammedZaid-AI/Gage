@@ -3,12 +3,14 @@
 These run with no API keys and make the full demo work. The vision mock does
 genuine pixel analysis so descriptions vary with the actual image.
 """
+import io
 import logging
+import wave
 
 import cv2
 import numpy as np
 
-from backend.ai.base import LLMProvider, VisionProvider
+from backend.ai.base import LLMProvider, SpeechProvider, VisionProvider
 
 logger = logging.getLogger("gage.ai.mock")
 
@@ -68,3 +70,33 @@ class MockLLMProvider(LLMProvider):
             "The plant looks stable overall. Keep an eye on soil moisture and "
             "leaf colour, and re-inspect if yellowing spreads."
         )
+
+
+def _silent_wav(seconds: float = 1.0, rate: int = 8000) -> bytes:
+    """A valid mono 16-bit WAV of silence — a real, playable audio file."""
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(rate)
+        w.writeframes(b"\x00\x00" * int(rate * seconds))
+    return buf.getvalue()
+
+
+class MockSpeechProvider(SpeechProvider):
+    """Offline stand-in for Sarvam. STT decodes the payload as UTF-8 text so the
+    whole voice loop is testable without a speech model; TTS returns a short
+    silent WAV. Real speech is a config swap to the Sarvam provider."""
+
+    def transcribe(self, audio: bytes, language: str | None = None) -> tuple[str, str]:
+        from backend.ai.service import detect_language  # lazy: avoid import cycle
+
+        try:
+            text = audio.decode("utf-8").strip()
+        except UnicodeDecodeError:
+            text = ""  # real (non-text) audio bytes -> mock can't transcribe
+        text = text or "How is my field?"
+        return text, language or detect_language(text)
+
+    def synthesize(self, text: str, language: str) -> bytes:
+        return _silent_wav(seconds=min(4.0, max(1.0, len(text) / 25)))

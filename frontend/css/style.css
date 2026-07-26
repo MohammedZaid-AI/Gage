@@ -41,6 +41,7 @@ body {
 .badge.on { background: var(--green-300); color: var(--green-900); }
 .badge.off { background: rgba(255, 255, 255, .15); }
 .badge.warn { background: #f6c85f; color: #4a3b00; }
+.btn.on { background: #b3261e; color: #fff; }  /* mic recording */
 
 /* Node health + alerts panels */
 .node-list, .alert-list { list-style: none; margin: 0; padding: 0; max-height: 260px; overflow-y: auto; }

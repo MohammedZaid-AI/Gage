@@ -17,9 +17,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from backend.ai import knowledge, prompt_builder
-from backend.ai.mock import MockLLMProvider, MockVisionProvider
+from backend.ai.mock import MockLLMProvider, MockSpeechProvider, MockVisionProvider
 from backend.ai.orchestrator import AIOrchestrator
-from backend.ai.service import detect_language
+from backend.ai.service import detect_language, synthesize, transcribe
 from backend.core.security import (
     create_access_token,
     decode_access_token,
@@ -239,6 +239,39 @@ def test_merge_and_alerts() -> None:
     assert db.query(Alert).filter(Alert.type == "soil_low").count() == 1
 
 
+def test_speech_provider() -> None:
+    sp = MockSpeechProvider()
+    # STT: mock decodes the payload as text and detects language.
+    text, lang = sp.transcribe("How is my crop?".encode())
+    assert text == "How is my crop?" and lang == "en"
+    _, kn = sp.transcribe("ಈ ಗಿಡ ಹೇಗಿದೆ?".encode())
+    assert kn == "kn"
+    # non-text audio -> mock falls back to a default question, never crashes.
+    txt2, _ = sp.transcribe(b"\x00\x01\x02not-text")
+    assert txt2
+
+    # TTS returns a real, playable WAV.
+    wav = sp.synthesize("Continue monitoring the field.", "en")
+    assert wav[:4] == b"RIFF" and wav[8:12] == b"WAVE"
+
+
+def test_voice_loop_grounded() -> None:
+    """speech -> orchestrator -> speech, grounded in the farm's own data."""
+    db = _memory_session()
+    farm, node = _farm_with_node(db)
+    db.add(_obs(farm.id, node.id, "v1", datetime(2026, 7, 25, 8, 0),
+               temperature=29.0, humidity=60.0, soil_moisture=19.0,
+               vision_summary="Healthy green foliage."))
+    db.commit()
+
+    transcript, _lang = transcribe("Should I irrigate my field?".encode())
+    answer, language = AIOrchestrator.answer(db, farm, transcript)
+    assert "19.0" in answer          # grounded in this farm's soil moisture
+    audio = synthesize(answer, language)
+    assert audio[:4] == b"RIFF"      # spoken answer is valid audio
+    assert db.query(Conversation).count() == 1  # voice turn saved to memory
+
+
 def test_offline_detection() -> None:
     db = _memory_session()
     farm, node = _farm_with_node(db)
@@ -268,6 +301,8 @@ if __name__ == "__main__":
     test_knowledge_retrieval()
     test_orchestrator_and_memory()
     test_health_score()
+    test_speech_provider()
+    test_voice_loop_grounded()
     test_merge_and_alerts()
     test_offline_detection()
     print("OK — all self-checks passed")

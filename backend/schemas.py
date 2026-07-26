@@ -153,6 +153,24 @@ class ChatResponse(BaseModel):
     language: str
 
 
+# --- voice ---
+class VoiceAnswer(BaseModel):
+    transcript: str
+    answer: str
+    language: str
+    audio_base64: str  # spoken answer (WAV); empty if TTS unavailable
+
+
+class SpeakRequest(BaseModel):
+    text: str
+    language: str | None = None
+
+
+class SpeakResponse(BaseModel):
+    language: str
+    audio_base64: str
+
+
 # --- farm intelligence ---
 class HealthOut(BaseModel):
     score: int
