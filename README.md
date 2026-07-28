@@ -1,5 +1,4 @@
 # 🌱 Gage
-
 **AI-powered multilingual agricultural field assistant.** Gage guides farmers
 during field inspections while automatically collecting structured agricultural
 data for future AI models.
