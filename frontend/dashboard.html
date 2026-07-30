@@ -3,32 +3,32 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-  <meta name="theme-color" content="#1f6b34" />
+  <meta name="theme-color" content="#155e39" />
   <title>Gage — Farm OS</title>
-  <link rel="stylesheet" href="/static/css/style.css?v=11" />
+  <link rel="stylesheet" href="/static/css/style.css?v=20" />
 </head>
 <body>
   <div id="app">
     <!-- Login (shown until authenticated) -->
     <div id="login" class="login hidden">
       <div class="brand">
-        <div class="logo">🌱</div>
+        <div class="logo" data-icon="leaf"></div>
         <h1>Gage</h1>
         <p>Your farm's operating system</p>
       </div>
       <div class="card">
         <div class="field">
-          <label>Phone number</label>
-          <input id="lg-phone" type="tel" inputmode="numeric" placeholder="9999999999" value="9999999999" />
+          <label for="lg-phone">Phone number</label>
+          <input id="lg-phone" type="tel" inputmode="numeric" autocomplete="tel" placeholder="9999999999" value="9999999999" />
         </div>
         <div class="field">
-          <label>Password</label>
-          <input id="lg-pass" type="password" placeholder="••••••" value="demo1234" />
+          <label for="lg-pass">Password</label>
+          <input id="lg-pass" type="password" autocomplete="current-password" placeholder="••••••" value="demo1234" />
         </div>
         <button id="lg-submit" class="btn block">Enter my farm</button>
         <p id="lg-msg" class="muted" style="text-align:center;margin:12px 0 0;font-size:13px"></p>
-        <p style="text-align:center;margin:10px 0 0;font-size:13px">
-          <a id="lg-toggle" href="#" style="color:var(--green-600)">New here? Create an account</a>
+        <p style="text-align:center;margin:12px 0 0;font-size:13.5px">
+          <a id="lg-toggle" href="#">New here? Create an account</a>
         </p>
       </div>
     </div>
@@ -37,30 +37,30 @@
     <div id="shell" class="hidden">
       <header class="appbar">
         <div class="brand">
-          <span class="logo">🌱</span>
-          <div>
+          <span class="logo" data-icon="leaf"></span>
+          <div style="min-width:0">
             <h1 id="ab-farm">Gage</h1>
             <div class="sub" id="ab-sub">Farm OS</div>
           </div>
         </div>
-        <button class="chip" id="ab-node">Node: —</button>
+        <button class="chip" id="ab-node"><span data-icon="pin"></span><span>—</span></button>
       </header>
 
       <div class="ptr" id="ptr"><div class="sp"></div></div>
       <main id="view"></main>
 
-      <button class="fab" id="fab" title="Ask Gage">🤖</button>
+      <button class="fab" id="fab" title="Ask Gage" aria-label="Ask Gage" data-icon="sparkle"></button>
 
       <nav class="nav">
-        <button data-nav="home"><span class="ic">🏠</span>Home</button>
-        <button data-nav="timeline"><span class="ic">🕒</span>Timeline</button>
-        <button data-nav="ask"><span class="ic">🎙️</span>Ask Gage</button>
-        <button data-nav="reports"><span class="ic">📊</span>Reports</button>
-        <button data-nav="settings"><span class="ic">⚙️</span>Settings</button>
+        <button data-nav="home" data-icon="home">Home</button>
+        <button data-nav="timeline" data-icon="clock">Timeline</button>
+        <button data-nav="ask" data-icon="mic">Ask</button>
+        <button data-nav="reports" data-icon="chart">Reports</button>
+        <button data-nav="settings" data-icon="settings">Settings</button>
       </nav>
     </div>
   </div>
 
-  <script src="/static/js/dashboard.js?v=11"></script>
+  <script src="/static/js/dashboard.js?v=20"></script>
 </body>
 </html>

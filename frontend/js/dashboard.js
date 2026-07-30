@@ -16,6 +16,54 @@ const savePrefs = () => localStorage.setItem("gage_prefs", JSON.stringify(state.
 function applyTheme() { document.documentElement.dataset.theme = state.prefs.theme || "light"; }
 applyTheme();
 
+// ---------- icons ----------
+// Stroke-based inline SVG (no emoji: emoji render differently per OS and read as amateur).
+// Single 24x24 grid, currentColor, so any icon inherits the surrounding text color.
+const ICONS = {
+  leaf: '<path d="M11 20A7 7 0 0 1 4 13c0-5 4-9 16-9 0 10-4 14-9 14Z"/><path d="M4 20c2-6 6-9 11-11"/>',
+  home: '<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9.5 21v-6h5v6"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3.5 2"/>',
+  mic: '<rect x="9" y="2.5" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0"/><path d="M12 18v3.5"/>',
+  chart: '<path d="M3.5 20.5h17"/><path d="M7 20.5v-7"/><path d="M12 20.5V6"/><path d="M17 20.5v-10"/>',
+  settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2 2 2 0 1 1-4 0 1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 3 15a2 2 0 1 1 0-4 1.7 1.7 0 0 0 1.4-2.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 10 4a2 2 0 1 1 4 0 1.7 1.7 0 0 0 2.9 1.4l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1A1.7 1.7 0 0 0 21 11a2 2 0 1 1 0 4Z"/>',
+  thermometer: '<path d="M14 14.8V5a2 2 0 1 0-4 0v9.8a4.5 4.5 0 1 0 4 0Z"/>',
+  droplet: '<path d="M12 3s5.5 5.6 5.5 9.5a5.5 5.5 0 0 1-11 0C6.5 8.6 12 3 12 3Z"/>',
+  sprout: '<path d="M12 21v-8"/><path d="M12 13C12 8.5 9 6 4.5 6c0 4.5 3 7 7.5 7Z"/><path d="M12 13c0-3.6 2.4-6 6-6 0 3.6-2.4 6-6 6Z"/>',
+  battery: '<rect x="2.5" y="8" width="16" height="8" rx="2.5"/><path d="M21 11v2"/><path d="M6 11v2"/><path d="M9.5 11v2"/>',
+  pin: '<path d="M20 10.5c0 5.5-8 11-8 11s-8-5.5-8-11a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10.5" r="2.8"/>',
+  camera: '<path d="M3 8.5A2 2 0 0 1 5 6.5h1.8l1.2-2h8l1.2 2H19a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><circle cx="12" cy="13" r="3.5"/>',
+  sparkle: '<path d="M12 3l1.9 5.6L19.5 10l-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.4Z"/><path d="M18.5 16.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8Z"/>',
+  chevron: '<path d="M9.5 5.5 16 12l-6.5 6.5"/>',
+  volume: '<path d="M11 5 6.5 9H3v6h3.5L11 19Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/>',
+  warning: '<path d="M10.3 3.9 2.5 17.4A2 2 0 0 0 4.2 20.5h15.6a2 2 0 0 0 1.7-3.1L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4"/><path d="M12 16.5h.01"/>',
+  check: '<path d="M4.5 12.5 9 17 19.5 6.5"/>',
+  brain: '<path d="M9.5 4.5a3 3 0 0 0-3 3 3 3 0 0 0-1 5.8V15a3 3 0 0 0 4.5 2.6"/><path d="M14.5 4.5a3 3 0 0 1 3 3 3 3 0 0 1 1 5.8V15a3 3 0 0 1-4.5 2.6"/><path d="M12 4.5v15"/>',
+  refresh: '<path d="M20 11a8 8 0 0 0-13.6-4.6L3.5 9"/><path d="M4 13a8 8 0 0 0 13.6 4.6L20.5 15"/><path d="M3.5 4.5V9H8"/><path d="M20.5 19.5V15H16"/>',
+  arrowUp: '<path d="M12 19V5"/><path d="M6 11l6-6 6 6"/>',
+  arrowDown: '<path d="M12 5v14"/><path d="M18 13l-6 6-6-6"/>',
+  minus: '<path d="M5 12h14"/>',
+  image: '<rect x="3" y="4.5" width="18" height="15" rx="2.5"/><circle cx="8.5" cy="10" r="1.8"/><path d="M21 15.5 16 11l-9 8.5"/>',
+  sun: '<circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M19.1 4.9l-1.8 1.8M6.7 17.3l-1.8 1.8"/>',
+  moon: '<path d="M20 14.5A8.5 8.5 0 0 1 9.5 4A8.5 8.5 0 1 0 20 14.5Z"/>',
+  doc: '<path d="M14 3.5H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8.5Z"/><path d="M14 3.5v5h5"/><path d="M8.5 13h7M8.5 16.5h4"/>',
+  stop: '<rect x="7" y="7" width="10" height="10" rx="2.5"/>',
+  logout: '<path d="M14.5 3.5H6a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h8.5"/><path d="M16 12h5.5"/><path d="M18.5 8.5 22 12l-3.5 3.5"/>',
+};
+function icon(name, cls = "") {
+  const p = ICONS[name] || "";
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"${cls ? ` class="${cls}"` : ""}>${p}</svg>`;
+}
+window.icon = icon;
+// Hydrate static markup: any [data-icon] in the shell gets its SVG prepended, so the
+// icon set stays the single source of truth (HTML just names the icon it wants).
+function hydrateIcons(root = document) {
+  root.querySelectorAll("[data-icon]").forEach((el) => {
+    el.insertAdjacentHTML("afterbegin", icon(el.dataset.icon));
+    el.removeAttribute("data-icon");
+  });
+}
+
 // ---------- helpers ----------
 const $ = (s, r = document) => r.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -32,23 +80,28 @@ function soilLabel(v) {
 }
 const lazyImg = (src, cls) => `<img class="${cls}" src="${src}" loading="lazy" decoding="async" alt="field"/>`;
 function ago(iso) {
-  if (!iso) return "—";
-  const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
-  if (s < 45) return `${s | 0} seconds ago`;
+  const ms = tsMs(iso);
+  if (ms == null) return "—";
+  const s = Math.max(0, (Date.now() - ms) / 1000);
+  if (s < 60) return `${s | 0} seconds ago`;
   if (s < 3600) return `${(s / 60) | 0} min ago`;
   if (s < 86400) return `${(s / 3600) | 0}h ago`;
   return `${(s / 86400) | 0}d ago`;
 }
-const LIVE_WINDOW_MS = 40000; // "live" only if the newest reading/heartbeat is within 40s
-function isLive() {
-  const ls = state.lastSeen;
-  return !!ls && (Date.now() - new Date(ls).getTime()) < LIVE_WINDOW_MS && state.node?.health?.status !== "offline";
+// Epoch ms for a timestamp. Server datetimes are naive UTC ("…T10:00:00"); with no tz
+// marker the browser would read them as LOCAL time. Treat a marker-less string as UTC.
+function tsMs(t) {
+  if (t == null) return null;
+  if (typeof t === "number") return t;
+  const s = /[zZ]|[+-]\d\d:?\d\d$/.test(t) ? t : t + "Z";
+  const ms = Date.parse(s);
+  return Number.isNaN(ms) ? null : ms;
 }
 function greeting() {
   const h = new Date().getHours();
-  if (h < 12) return "Good Morning 🌾";
-  if (h < 17) return "Good Afternoon ☀️";
-  return "Good Evening 🌙";
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  return "Good evening";
 }
 const dateStr = () => new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
 function toast(msg) {
@@ -93,9 +146,10 @@ function clientHealth(o, alerts = []) {
   const cls = s >= 80 ? "good" : s >= 60 ? "watch" : "crit";
   return { score: s, label, cls };
 }
-function stars(score) {
+// Five segments beat five stars: stars imply a rating, segments imply a measurement.
+function meter(score, cls) {
   const n = Math.max(1, Math.round(score / 20));
-  return `<div class="stars">${"★".repeat(n)}<span class="off">${"★".repeat(5 - n)}</span></div>`;
+  return `<div class="meter ${cls}">${Array.from({ length: 5 }, (_, i) => `<i class="${i < n ? "on" : ""}"></i>`).join("")}</div>`;
 }
 
 // ---------- auth ----------
@@ -117,6 +171,12 @@ $("#lg-submit").onclick = async () => {
   } catch { $("#lg-msg").textContent = registerMode ? "Could not register (phone may exist)." : "Invalid phone or password."; }
 };
 
+// Node chip label lives in its own span so updating text never wipes the icon.
+function setNodeChip() {
+  const el = $("#ab-node")?.lastElementChild;
+  if (el) el.textContent = state.node ? state.node.id : "No node";
+}
+
 // ---------- boot ----------
 async function boot() {
   try {
@@ -131,8 +191,8 @@ async function boot() {
   }
   $("#login").classList.add("hidden"); $("#shell").classList.remove("hidden");
   $("#ab-farm").textContent = state.farmName;
-  $("#ab-sub").textContent = state.farmer?.name ? `Hello, ${state.farmer.name}` : "Farm OS";
-  $("#ab-node").textContent = state.node ? `Node: ${state.node.id}` : "No node";
+  $("#ab-sub").textContent = state.farmer?.name ? state.farmer.name : "Farm OS";
+  setNodeChip();
   go("home"); connectWS(); startClock();
 }
 
@@ -145,7 +205,10 @@ async function go(name, arg) {
   state.view = name; state.viewArg = arg; setNav(name);
   $("#fab").style.display = name === "ask" ? "none" : "";
   const host = $("#view");
-  host.innerHTML = `<div class="view"><div class="card skeleton" style="height:150px"></div><div class="card skeleton" style="height:120px"></div><div class="card skeleton" style="height:120px"></div></div>`;
+  host.innerHTML = `<div class="view"><div class="skeleton" style="height:26px;width:52%;margin:4px 0 18px"></div>
+    <div class="skeleton" style="height:112px;margin-bottom:12px"></div>
+    <div class="skeleton" style="height:74px;margin-bottom:12px"></div>
+    <div class="skeleton" style="height:180px"></div></div>`;
   try {
     host.innerHTML = `<div class="view">${await VIEWS[name](arg)}</div>`;
     if (WIRE[name]) WIRE[name](arg);
@@ -157,88 +220,105 @@ async function go(name, arg) {
 window.go = go;
 
 // ---------- HOME ----------
+// A 240° open arc reads as an instrument dial; a full ring reads as a loading spinner.
+// Sweeps 210° (lower-left) through 90° (top) to -30° (lower-right) — gap at the bottom.
+const GAUGE = { r: 42, cx: 58, cy: 52, a0: 210, a1: -30 };
+function gaugeArc() {
+  const { r, cx, cy, a0, a1 } = GAUGE;
+  const pt = (deg) => [cx + r * Math.cos((deg * Math.PI) / 180), cy - r * Math.sin((deg * Math.PI) / 180)];
+  const [sx, sy] = pt(a0), [ex, ey] = pt(a1);
+  // large-arc-flag=1 (240° > 180°), sweep-flag=1 (clockwise in screen coords)
+  const d = `M ${sx.toFixed(1)} ${sy.toFixed(1)} A ${r} ${r} 0 1 1 ${ex.toFixed(1)} ${ey.toFixed(1)}`;
+  return { d, len: ((a0 - a1) / 360) * 2 * Math.PI * r };
+}
 function gauge(score, cls) {
-  const r = 52, c = 2 * Math.PI * r, off = c * (1 - Math.max(0, Math.min(100, score)) / 100);
-  const col = cls === "good" ? "#2e7d32" : cls === "watch" ? "#b8860b" : "#c0392b";
-  return `<div class="gauge"><svg width="118" height="118" viewBox="0 0 118 118">
-    <circle class="track" cx="59" cy="59" r="${r}" fill="none" stroke-width="13"/>
-    <circle class="val" cx="59" cy="59" r="${r}" fill="none" stroke="${col}" stroke-width="13"
-      stroke-dasharray="${c}" stroke-dashoffset="${c}" data-off="${off}"/></svg>
-    <div class="num"><b>${score}%</b><span>health</span></div></div>`;
+  const pct = Math.max(0, Math.min(100, score)) / 100;
+  const { d, len } = gaugeArc();
+  const col = cls === "good" ? "var(--g-500)" : cls === "watch" ? "var(--warn)" : "var(--danger)";
+  return `<div class="gauge"><svg viewBox="0 0 116 80">
+      <path class="track" d="${d}" fill="none" stroke-width="9" stroke-linecap="round"/>
+      <path class="val" d="${d}" fill="none" stroke="${col}" stroke-width="9"
+        stroke-dasharray="${len.toFixed(1)}" stroke-dashoffset="${len.toFixed(1)}"
+        data-off="${(len * (1 - pct)).toFixed(1)}"/>
+    </svg><div class="num"><b>${score}</b><span>health</span></div></div>`;
 }
 VIEWS.home = async () => {
-  if (!state.farmId) return `<div class="card"><h2>Welcome 🌱</h2><p class="muted">Add your first farm in Settings to begin monitoring.</p><button class="btn" onclick="go('settings')">Go to Settings</button></div>`;
+  if (!state.farmId) return `<div class="card" style="text-align:center;padding:32px 20px">
+    <div class="qa" style="display:block"><span class="ic" style="margin:0 auto 14px">${icon("leaf")}</span></div>
+    <h2 style="font-size:19px">Welcome to Gage</h2>
+    <p class="muted" style="margin:6px 0 16px;font-size:14px">Add your first farm to begin monitoring.</p>
+    <button class="btn" onclick="go('settings')">Set up my farm</button></div>`;
   const s = await cachedGet(`/farm/${state.farmId}/summary`);
   const nodes = await cachedGet(`/farms/${state.farmId}/nodes`).catch(() => state.nodes);
   state.lastSummary = s; state.node = nodes[0] || state.node;
   const nh = state.node?.health || {};
   const snap = s.sensor_snapshot || {}, o = s.latest_observation || {};
   const trend = {}; (s.trends || []).forEach((t) => (trend[t.metric] = t));
-  const arrow = (m) => trend[m] ? `<span class="trend ${trend[m].direction}">${trend[m].direction === "up" ? "▲" : trend[m].direction === "down" ? "▼" : "—"} ${Math.abs(trend[m].delta)}${trend[m].unit}</span>` : "";
+  const arrow = (m) => trend[m] ? `<span class="trend ${trend[m].direction}">${icon(trend[m].direction === "up" ? "arrowUp" : trend[m].direction === "down" ? "arrowDown" : "minus")}${Math.abs(trend[m].delta)}${trend[m].unit}</span>` : "";
   const img = imgUrl(o.image_path);
   const H = s.health, cls = H.status === "Healthy" ? "good" : H.status === "Watch" ? "watch" : "crit";
   const emLabel = H.score >= 90 ? "Excellent" : H.score >= 80 ? "Very good" : H.score >= 60 ? "Fair" : "Needs care";
   state.lastObsTime = o.timestamp || null;
-  state.lastSeen = nh.last_seen || o.timestamp || null;
-  const online = isLive();
-  const chk = (ok, label) => `<li><span class="check ${ok ? "" : "no"}">${ok ? "✓" : "○"}</span><b>${label}</b></li>`;
+  const chk = (ok, label) => `<li class="${ok ? "" : "off"}"><span class="check ${ok ? "" : "no"}">${ok ? icon("check") : ""}</span>${label}</li>`;
 
   return `
     <div class="greet">
-      <div><div class="hello">${greeting()}</div>
-        <div class="name">${esc(state.farmer?.name || state.farmName)}</div>
-        <div class="date">${dateStr()}</div></div>
-      <span class="status-badge ${online ? "" : "off"}" id="live-badge"><span class="dot"></span>${online ? "Monitoring Live" : "Not Monitoring"}</span>
+      <div class="hello">${greeting()}</div>
+      <div class="name">${esc(state.farmer?.name || state.farmName)}</div>
+      <div class="date">${dateStr()}</div>
     </div>
-    <div class="updated" id="home-updated">Updated ${ago(state.lastObsTime)}</div>
 
     <div class="card hero" id="health-card">
       ${gauge(H.score, cls)}
-      <div style="flex:1"><div class="status ${cls}">${esc(emLabel)}</div>
-        ${stars(H.score)}
-        <div class="label-em ${cls}">${esc(H.status)}</div></div>
+      <div class="info">
+        <div class="status ${cls}">${esc(emLabel)}</div>
+        <div class="label-em">${esc(H.status)} · updated <span id="home-updated">${ago(state.lastObsTime)}</span></div>
+        ${meter(H.score, cls)}
+      </div>
     </div>
-    <div class="card">
-      <div class="calc-title">Health calculated from</div>
+
+    <div class="card flat">
+      <div class="calc-title">Calculated from</div>
       <ul class="checklist">
         ${chk(!!o.image_path, "Latest image")}
         ${chk(snap.soil_moisture != null, "Soil moisture")}
         ${chk(snap.temperature != null, "Temperature")}
         ${chk(snap.humidity != null, "Humidity")}
-        ${chk(true, `Active alerts (${(s.active_alerts || []).length})`)}
+        ${chk(true, `${(s.active_alerts || []).length} active alert(s)`)}
       </ul>
     </div>
 
     <div class="section-title">Latest scan</div>
     <div class="card tap" style="padding:12px" onclick="${o.id ? `go('detail','${o.id}')` : ""}">
-      ${img ? `<div class="scan-wrap">${lazyImg(img, "obs-image")}<span class="scan-tag">📷 Latest Scan</span><span class="scan-time">${o.timestamp ? ago(o.timestamp) : ""}</span></div>`
-            : `<div class="img-empty">No scan yet — tap Scan Crop below</div>`}
+      ${img ? `<div class="scan-wrap">${lazyImg(img, "obs-image")}
+                 <span class="scan-tag">${icon("camera")}Latest scan</span>
+                 <span class="scan-time">${o.timestamp ? ago(o.timestamp) : ""}</span></div>`
+            : `<div class="img-empty">${icon("image")}<span>No scan yet — tap Scan crop below</span></div>`}
     </div>
 
-    <div class="section-title">🤖 Today's farm report</div>
-    <div class="card ai-card"><div class="head">Today at ${esc(state.farmName)}</div>
+    <div class="section-title">Today's report</div>
+    <div class="card ai-card"><div class="head">${icon("sparkle")}Gage · ${esc(state.farmName)}</div>
       <p>${esc(s.ai_summary || "Capture a scan and I'll summarise your field — health, moisture trend, and what to do next.")}</p></div>
 
-    <div class="section-title">Live conditions</div>
+    <div class="section-title">Conditions</div>
     <div class="grid">
-      <div class="sensor"><div class="top"><span class="ic">🌡️</span>${arrow("temperature")}</div><span class="v">${fmt(snap.temperature)}<small>°C</small></span><span class="l">Temperature</span></div>
-      <div class="sensor"><div class="top"><span class="ic">💧</span>${arrow("humidity")}</div><span class="v">${fmt(snap.humidity)}<small>%</small></span><span class="l">Humidity</span></div>
-      <div class="sensor"><div class="top"><span class="ic">🪴</span>${arrow("soil_moisture")}</div><span class="v" style="font-size:18px">${soilLabel(snap.soil_moisture)}</span><span class="l">Soil moisture</span></div>
-      <div class="sensor"><div class="top"><span class="ic">🔋</span></div><span class="v">${nh.battery != null ? fmt(nh.battery) + "<small>%</small>" : "—"}</span><span class="l">Node battery</span></div>
-      <div class="sensor"><div class="top"><span class="ic">📡</span></div><span class="v" style="font-size:16px;color:${online ? "var(--green-600)" : "var(--danger)"}">${online ? "Online" : "Offline"}</span><span class="l">Node status · ${nh.last_seen ? ago(nh.last_seen) : "—"}</span></div>
-      <div class="sensor"><div class="top"><span class="ic">📍</span></div><span class="v" style="font-size:14px">${o.gps_lat != null ? (+o.gps_lat).toFixed(3) + "," + (+o.gps_long).toFixed(3) : "—"}</span><span class="l">Location</span></div>
+      <div class="sensor m-temp"><div class="top"><span class="ic">${icon("thermometer")}</span>${arrow("temperature")}</div><span class="v">${fmt(snap.temperature)}<small>°C</small></span><span class="l">Temperature</span></div>
+      <div class="sensor m-hum"><div class="top"><span class="ic">${icon("droplet")}</span>${arrow("humidity")}</div><span class="v">${fmt(snap.humidity)}<small>%</small></span><span class="l">Humidity</span></div>
+      <div class="sensor m-soil"><div class="top"><span class="ic">${icon("sprout")}</span>${arrow("soil_moisture")}</div><span class="v word">${soilLabel(snap.soil_moisture)}</span><span class="l">Soil moisture</span></div>
+      <div class="sensor m-batt"><div class="top"><span class="ic">${icon("battery")}</span></div><span class="v">${nh.battery != null ? fmt(nh.battery) + "<small>%</small>" : "—"}</span><span class="l">Node battery</span></div>
+      ${o.gps_lat != null ? `<div class="sensor wide"><div class="top"><span class="ic">${icon("pin")}</span></div><span class="v word">${(+o.gps_lat).toFixed(4)}, ${(+o.gps_long).toFixed(4)}</span><span class="l">Last scan location</span></div>` : ""}
     </div>
 
     ${(s.active_alerts || []).length ? `<div class="section-title">Active alerts</div>${[...s.active_alerts].sort((a, b) => (b.severity === "critical") - (a.severity === "critical")).map((a) => `
-      <div class="alert ${a.severity === "critical" ? "crit" : ""}"><span class="ic">${a.severity === "critical" ? "🔴" : "⚠️"}</span>
+      <div class="alert ${a.severity === "critical" ? "crit" : ""}"><span class="ic">${icon("warning")}</span>
       <div><div class="sev">${esc(a.severity)}</div><div class="msg">${esc(a.message)}</div></div></div>`).join("")}` : ""}
 
     <div class="section-title">Quick actions</div>
     <div class="qa">
-      <button onclick="go('ask')"><span class="ic">🎤</span>Ask Gage</button>
-      <button id="qa-scan"><span class="ic">📷</span>Scan Crop</button>
-      <button onclick="go('timeline')"><span class="ic">📈</span>Timeline</button>
-      <button onclick="go('reports')"><span class="ic">📄</span>Reports</button>
+      <button onclick="go('ask')"><span class="ic">${icon("mic")}</span>Ask Gage</button>
+      <button id="qa-scan"><span class="ic">${icon("camera")}</span>Scan crop</button>
+      <button onclick="go('timeline')"><span class="ic">${icon("clock")}</span>Timeline</button>
+      <button onclick="go('reports')"><span class="ic">${icon("doc")}</span>Reports</button>
     </div>`;
 };
 WIRE.home = () => {
@@ -251,15 +331,17 @@ VIEWS.timeline = async () => {
   if (!state.farmId) return `<div class="card"><p class="muted">Add a farm first.</p></div>`;
   const obs = await cachedGet(`/farm/${state.farmId}/timeline?limit=50`);
   obs.forEach((o) => (state.obsCache[o.id] = o));
-  if (!obs.length) return `<div class="card"><h2>No observations yet</h2><p class="muted">Your monitoring node's captures appear here as a living timeline.</p></div>`;
+  if (!obs.length) return `<div class="card" style="text-align:center;padding:30px 20px">
+    <div class="img-empty" style="border:none;background:none;aspect-ratio:auto">${icon("clock")}<span>No observations yet</span></div>
+    <p class="muted" style="font-size:13.5px;margin:0">Your node's captures appear here as a living timeline.</p></div>`;
   return `<div class="section-title">Observation timeline</div>` + obs.map((o) => {
     const img = imgUrl(o.image_path), h = clientHealth(o);
     return `<div class="card tl tap" onclick="go('detail','${o.id}')">
-      ${img ? lazyImg(img, "") : `<div class="thumb">🌿</div>`}
+      ${img ? lazyImg(img, "") : `<div class="thumb">${icon("leaf")}</div>`}
       <div class="body"><div class="when">${new Date(o.timestamp).toLocaleDateString(undefined, { month: "short", day: "numeric" })} · ${ago(o.timestamp)}</div>
         <div class="sum">${esc(o.vision_summary || o.ai_summary || "Observation")}</div>
-        <div class="mini"><span class="health-pill ${h.cls}">${h.label} ${h.score}%</span> · 🪴 ${soilLabel(o.soil_moisture)}</div>
-      </div><span class="go">›</span></div>`;
+        <div class="mini"><span class="health-pill ${h.cls}">${h.label} ${h.score}</span><span>${icon("sprout")}${soilLabel(o.soil_moisture)}</span></div>
+      </div><span class="go">${icon("chevron")}</span></div>`;
   }).join("");
 };
 
@@ -307,51 +389,51 @@ VIEWS.detail = async (id) => {
   const whyText = `Based on the ${o.image_path ? "latest image, " : ""}sensor readings, and active alerts: ` +
     (a.why.length ? a.why.join("; ") + "." : "all monitored indicators are within the normal range.");
   return `
-    <button class="btn ghost sm" onclick="go('timeline')">‹ Back to timeline</button>
-    <div class="card tap" style="padding:12px;margin-top:12px">
-      ${img ? `<div class="scan-wrap">${lazyImg(img, "obs-image")}<span class="scan-tag">📷 Scan</span></div>` : `<div class="img-empty">No image</div>`}
-      <div class="when muted" style="margin-top:8px">${new Date(o.timestamp).toLocaleString()} · node ${esc(o.node_id)}</div>
+    <button class="btn ghost sm" onclick="go('timeline')">${icon("chevron", "flip")} Back</button>
+    <div class="card" style="padding:12px;margin-top:12px">
+      ${img ? `<div class="scan-wrap">${lazyImg(img, "obs-image")}<span class="scan-tag">${icon("camera")}Scan</span></div>` : `<div class="img-empty">${icon("image")}<span>No image</span></div>`}
+      <div class="when muted" style="margin-top:9px;font-size:12.5px">${new Date(o.timestamp).toLocaleString()} · node ${esc(o.node_id)}</div>
     </div>
 
-    <div class="card hero" style="padding:14px">
+    <div class="card hero">
       ${gauge(h.score, h.cls)}
-      <div><div class="status ${h.cls}">${h.label}</div>${stars(h.score)}<div class="label-em ${h.cls}">Observation health</div></div>
+      <div class="info"><div class="status ${h.cls}">${h.label}</div>
+        <div class="label-em">Observation health</div>${meter(h.score, h.cls)}</div>
     </div>
 
     <div class="grid">
-      <div class="sensor"><span class="ic">🌡️</span><span class="v">${fmt(o.temperature)}°C</span><span class="l">Temperature</span></div>
-      <div class="sensor"><span class="ic">💧</span><span class="v">${fmt(o.humidity)}%</span><span class="l">Humidity</span></div>
-      <div class="sensor"><span class="ic">🪴</span><span class="v" style="font-size:16px">${soilLabel(o.soil_moisture)}</span><span class="l">Soil moisture</span></div>
-      <div class="sensor"><span class="ic">📍</span><span class="v" style="font-size:14px">${o.gps_lat != null ? (+o.gps_lat).toFixed(3) + "," + (+o.gps_long).toFixed(3) : "—"}</span><span class="l">Location</span></div>
+      <div class="sensor m-temp"><div class="top"><span class="ic">${icon("thermometer")}</span></div><span class="v">${fmt(o.temperature)}<small>°C</small></span><span class="l">Temperature</span></div>
+      <div class="sensor m-hum"><div class="top"><span class="ic">${icon("droplet")}</span></div><span class="v">${fmt(o.humidity)}<small>%</small></span><span class="l">Humidity</span></div>
+      <div class="sensor m-soil"><div class="top"><span class="ic">${icon("sprout")}</span></div><span class="v word">${soilLabel(o.soil_moisture)}</span><span class="l">Soil moisture</span></div>
+      <div class="sensor"><div class="top"><span class="ic">${icon("pin")}</span></div><span class="v word">${o.gps_lat != null ? (+o.gps_lat).toFixed(3) + ", " + (+o.gps_long).toFixed(3) : "—"}</span><span class="l">Location</span></div>
     </div>
 
     <div class="section-title">Vision summary</div>
-    <div class="card"><p>${esc(o.vision_summary || "No image was analysed for this observation.")}</p></div>
+    <div class="card"><p style="margin:0;font-size:14.5px;line-height:1.6;color:var(--ink-2)">${esc(o.vision_summary || "No image was analysed for this observation.")}</p></div>
 
-    ${o.ai_summary ? `<div class="section-title">AI summary</div><div class="card ai-card"><div class="head">🤖 Gage</div><p>${esc(o.ai_summary)}</p></div>` : ""}
+    ${o.ai_summary ? `<div class="section-title">AI summary</div><div class="card ai-card"><div class="head">${icon("sparkle")}Gage</div><p>${esc(o.ai_summary)}</p></div>` : ""}
 
     <div class="section-title">Recommendations</div>
-    <div class="card ai-card"><div class="doc-section rec"><div class="lab">What to do</div>
+    <div class="card ai-card"><div class="doc-section rec" style="margin-top:0"><div class="lab">What to do</div>
       <ul>${a.recs.map((r) => `<li>${esc(r)}</li>`).join("")}</ul></div>
       <div class="doc-section"><span class="conf ${a.conf.toLowerCase()}">Confidence: ${a.conf}</span></div>
     </div>
 
     <div class="section-title">Why Gage said this</div>
-    <div class="card"><div class="why"><b>🧠 Reasoning</b><p style="margin:6px 0 0">${esc(whyText)}</p></div></div>`;
+    <div class="why"><b>${icon("brain")}Reasoning</b><p style="margin:6px 0 0">${esc(whyText)}</p></div>`;
 };
 
 // ---------- ASK GAGE ----------
 const SUGGESTIONS = ["Should I irrigate?", "How is my crop?", "Any disease?", "Is soil moisture okay?", "ನನ್ನ ಬೆಳೆ ಹೇಗಿದೆ?"];
 VIEWS.ask = async () => `
-  <div class="section-title">Ask Gage</div>
-  <div class="card glass" style="text-align:center">
-    <div class="mic-wrap"><button class="mic" id="mic">🎙️</button>
+  <div class="card">
+    <div class="mic-wrap"><button class="mic" id="mic" aria-label="Record a question">${icon("mic")}</button>
       <div class="mic-hint" id="mic-hint">Tap to speak — Kannada or English</div></div>
   </div>
   <div class="section-title">Try asking</div>
   <div class="chips" id="chips">${SUGGESTIONS.map((q) => `<button class="chip-btn">${esc(q)}</button>`).join("")}</div>
-  <div id="ask-log" style="margin-top:16px"></div>
-  <div class="card" style="position:sticky;bottom:calc(var(--nav-h) + 10px);z-index:5">
+  <div id="ask-log" style="margin-top:18px"></div>
+  <div class="card glass" style="position:sticky;bottom:calc(var(--nav-h) + 10px);z-index:5;padding:12px">
     <div class="row"><input id="ask-input" placeholder="Type your question…" />
       <button class="btn" id="ask-send" style="flex:0 0 auto">Ask</button></div>
   </div>`;
@@ -397,12 +479,12 @@ function aggregate(obs, days) {
   const avg = (k) => { const v = r.map((o) => o[k]).filter((x) => x != null); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
   return { count: r.length, temp: avg("temperature"), hum: avg("humidity"), soil: avg("soil_moisture") };
 }
-const repCard = (title, a) => `<div class="card"><div class="head" style="font-weight:800;color:var(--green-700);margin-bottom:10px">${title}</div>
+const repCard = (title, a) => `<div class="card"><div class="calc-title" style="margin-bottom:12px">${title}</div>
   <div class="grid">
-    <div class="sensor"><span class="l">Observations</span><span class="v">${a.count}</span></div>
-    <div class="sensor"><span class="l">Avg soil</span><span class="v" style="font-size:16px">${soilLabel(a.soil)}</span></div>
-    <div class="sensor"><span class="l">Avg temp</span><span class="v">${fmt(a.temp)}°C</span></div>
-    <div class="sensor"><span class="l">Avg humidity</span><span class="v">${fmt(a.hum)}%</span></div>
+    <div class="sensor flat" style="box-shadow:none;background:var(--surface-2)"><span class="v">${a.count}</span><span class="l">Observations</span></div>
+    <div class="sensor flat" style="box-shadow:none;background:var(--surface-2)"><span class="v word">${soilLabel(a.soil)}</span><span class="l">Avg soil</span></div>
+    <div class="sensor flat" style="box-shadow:none;background:var(--surface-2)"><span class="v">${fmt(a.temp)}<small>°C</small></span><span class="l">Avg temp</span></div>
+    <div class="sensor flat" style="box-shadow:none;background:var(--surface-2)"><span class="v">${fmt(a.hum)}<small>%</small></span><span class="l">Avg humidity</span></div>
   </div></div>`;
 VIEWS.reports = async () => {
   if (!state.farmId) return `<div class="card"><p class="muted">Add a farm first.</p></div>`;
@@ -412,20 +494,24 @@ VIEWS.reports = async () => {
   const max = Math.max(1, ...bars.map(([, n]) => n));
   const soils = obs.slice(0, 12).reverse().map((o) => o.soil_moisture).filter((x) => x != null);
   const smax = Math.max(1, ...soils);
+  const pts = soils.map((v, i) => `${((i / (soils.length - 1)) * 296 + 2).toFixed(1)},${(84 - (v / smax) * 74).toFixed(1)}`);
   return `
     <div class="section-title">Daily</div>${repCard("Today & last 24 hours", aggregate(obs, 1))}
     <div class="section-title">Weekly</div>${repCard("Last 7 days", aggregate(obs, 7))}
     <div class="section-title">Monthly</div>${repCard("Last 30 days", aggregate(obs, 30))}
-    ${soils.length > 1 ? `<div class="section-title">Recent soil moisture trend</div>
-    <div class="card"><svg viewBox="0 0 300 90" width="100%" height="90" preserveAspectRatio="none">
-      <polyline fill="none" stroke="#43a047" stroke-width="3" stroke-linejoin="round" points="${soils.map((v, i) => `${(i / (soils.length - 1)) * 300},${88 - (v / smax) * 78}`).join(" ")}"/>
-    </svg><p class="muted" style="font-size:12px;margin:6px 0 0">Last ${soils.length} readings (%)</p></div>` : ""}
-    ${bars.length ? `<div class="section-title">Data collection (7 days)</div>
-    <div class="card"><div style="display:flex;align-items:flex-end;gap:8px;height:110px">
-      ${bars.map(([d, n]) => `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;justify-content:flex-end;height:100%">
-        <div style="width:100%;background:linear-gradient(180deg,var(--green-400),var(--green-600));border-radius:6px 6px 0 0;height:${(n / max) * 80 + 4}px"></div>
-        <span style="font-size:10px;color:var(--muted)">${d.slice(5)}</span></div>`).join("")}
-    </div><p class="muted" style="margin:10px 0 0;font-size:12px">${stats.dataset_entries} records · avg quality ${stats.average_quality}</p></div>` : ""}`;
+    ${soils.length > 1 ? `<div class="section-title">Soil moisture trend</div>
+    <div class="card chart-card"><svg class="spark" viewBox="0 0 300 92" preserveAspectRatio="none">
+      <defs><linearGradient id="sg" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="var(--g-500)" stop-opacity=".26"/>
+        <stop offset="100%" stop-color="var(--g-500)" stop-opacity="0"/></linearGradient></defs>
+      <polygon fill="url(#sg)" points="2,88 ${pts.join(" ")} 298,88"/>
+      <polyline fill="none" stroke="var(--g-500)" stroke-width="2.5" stroke-linecap="round"
+        stroke-linejoin="round" points="${pts.join(" ")}" vector-effect="non-scaling-stroke"/>
+    </svg><p class="muted" style="font-size:12px;margin:8px 0 0">Last ${soils.length} readings</p></div>` : ""}
+    ${bars.length ? `<div class="section-title">Data collection</div>
+    <div class="card chart-card"><div class="bars">
+      ${bars.map(([d, n]) => `<div class="b"><i style="height:${((n / max) * 82 + 3).toFixed(0)}px"></i><span>${d.slice(5)}</span></div>`).join("")}
+    </div><p class="muted" style="margin:12px 0 0;font-size:12px">${stats.dataset_entries} records · avg quality ${stats.average_quality}</p></div>` : ""}`;
 };
 
 // ---------- SETTINGS ----------
@@ -454,10 +540,10 @@ VIEWS.settings = async () => {
 
     <div class="section-title">Theme</div>
     <div class="card"><div class="list-item"><span>Appearance</span>
-      <div class="pill-toggle" id="theme-toggle"><button data-theme="light" class="${on(state.prefs.theme !== "dark")}">☀️ Light</button><button data-theme="dark" class="${on(state.prefs.theme === "dark")}">🌙 Dark</button></div></div></div>
+      <div class="pill-toggle" id="theme-toggle"><button data-theme="light" class="${on(state.prefs.theme !== "dark")}">Light</button><button data-theme="dark" class="${on(state.prefs.theme === "dark")}">Dark</button></div></div></div>
 
-    <div class="card"><button class="btn ghost block" id="logout-btn">Sign out</button></div>
-    <p class="muted" style="text-align:center;font-size:11px">Gage Farm OS · ${esc(state.farmer?.phone || "")}</p>`;
+    <button class="btn ghost block" id="logout-btn" style="margin-top:6px">Sign out</button>
+    <p class="muted" style="text-align:center;font-size:11.5px;margin-top:18px">Gage Farm OS · ${esc(state.farmer?.phone || "")}</p>`;
 };
 WIRE.settings = () => {
   const af = $("#add-farm"); if (af) af.onclick = async () => { const name = $("#nf-name").value.trim(); if (!name) return; await jpost("/farms", { name }); invalidate(); toast("Farm added"); go("settings"); };
@@ -471,7 +557,7 @@ window.switchFarm = async (id) => {
   const farms = await api("/farms"); const f = farms.find((x) => x.id === id);
   state.farmId = id; state.farmName = f.name; invalidate();
   state.nodes = await api(`/farms/${id}/nodes`).catch(() => []); state.node = state.nodes[0] || null;
-  $("#ab-farm").textContent = f.name; $("#ab-node").textContent = state.node ? `Node: ${state.node.id}` : "No node";
+  $("#ab-farm").textContent = f.name; setNodeChip();
   toast(`Switched to ${f.name}`); go("home");
 };
 
@@ -492,7 +578,7 @@ function capture() {
 }
 async function sendCapture(fd, key, coords) {
   if (coords) { fd.append("gps_lat", coords.latitude); fd.append("gps_long", coords.longitude); }
-  try { await fetch("/node/image", { method: "POST", headers: key, body: fd }); invalidate(); toast("Scan captured ✓"); }
+  try { await fetch("/node/image", { method: "POST", headers: key, body: fd }); invalidate(); toast("Scan captured"); }
   catch { toast("Upload failed"); }
 }
 
@@ -514,8 +600,8 @@ function attachPlay(bubble, text, language, audioB64) {
   if (!state.prefs.speak || !bubble || !text) return;
   let cached = audioB64 || null;
   const btn = document.createElement("button");
-  btn.type = "button"; btn.className = "play-btn"; btn.textContent = "🔊 Play";
-  btn.style.cssText = "margin-top:8px;font-size:13px;background:var(--green-50,#eef7f0);color:var(--green-700,#1f6b34);border:1px solid var(--green-200,#cde7d4);border-radius:999px;padding:4px 12px;cursor:pointer";
+  btn.type = "button"; btn.className = "play-btn";
+  btn.innerHTML = `${icon("volume")}<span>Play</span>`;
   btn.onclick = async () => {
     btn.disabled = true;
     if (cached && cached.length > 200 && playB64(cached)) { btn.disabled = false; return; }
@@ -531,32 +617,36 @@ let recorder = null, chunks = [];
 async function toggleMic() {
   const mic = $("#mic"), hint = $("#mic-hint");
   if (recorder && recorder.state === "recording") return recorder.stop();
-  if (!navigator.mediaDevices?.getUserMedia) return toast("Microphone not supported");
+  if (!navigator.mediaDevices?.getUserMedia) {
+    return toast(window.isSecureContext
+      ? "Microphone not supported by this browser"
+      : "Voice needs a secure page — open Gage at localhost on your PC, or over an https:// link on your phone");
+  }
   let stream; try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch { return toast("Microphone permission denied"); }
   chunks = []; recorder = new MediaRecorder(stream);
   recorder.ondataavailable = (e) => e.data.size && chunks.push(e.data);
   recorder.onstop = async () => {
     stream.getTracks().forEach((t) => t.stop());
-    mic.classList.remove("rec"); mic.textContent = "🎙️"; hint.textContent = "Sending…";
+    mic.classList.remove("rec"); mic.innerHTML = icon("mic"); hint.textContent = "Sending…";
     const fd = new FormData(); fd.append("farm_id", state.farmId);
     fd.append("audio", new Blob(chunks, { type: "audio/webm" }), "speech.webm");
-    logBubble("🎙️ …", "user");
+    logBubble("Transcribing…", "user");
     try {
       const r = await fetch("/voice/ask", { method: "POST", headers: { Authorization: `Bearer ${state.token}` }, body: fd });
       if (!r.ok) throw new Error(); const d = await r.json();
-      $("#ask-log").lastChild.textContent = "🎙️ " + d.transcript;
+      $("#ask-log").lastChild.textContent = d.transcript;
       attachPlay(logBubble(docInline(d.answer), "bot"), d.answer, d.language, d.audio_base64);
-    } catch { $("#ask-log").lastChild.textContent = "🎙️ (couldn't hear that)"; }
+    } catch { $("#ask-log").lastChild.textContent = "Couldn't hear that — try again"; }
     hint.textContent = "Tap to speak — Kannada or English";
   };
-  recorder.start(); mic.classList.add("rec"); mic.textContent = "⏹"; hint.textContent = "Listening… tap to stop";
+  recorder.start(); mic.classList.add("rec"); mic.innerHTML = icon("stop"); hint.textContent = "Listening… tap to stop";
 }
 
 // ---------- live updates ----------
 function showAnalyzing() {
   if ($("#analyzing")) return;
   const b = document.createElement("div"); b.id = "analyzing"; b.className = "analyzing";
-  b.innerHTML = `<span class="sp"></span> Analyzing latest observation…`;
+  b.innerHTML = `<span class="sp"></span>Analyzing latest observation…`;
   $("#view").prepend(b);
 }
 function connectWS() {
@@ -569,17 +659,16 @@ function connectWS() {
       if (state.view === "home") {
         showAnalyzing();
         setTimeout(async () => { await go("home"); ["#health-card"].forEach((s) => $(s)?.classList.add("flash")); document.querySelectorAll(".sensor").forEach((el) => el.classList.add("flash")); }, 1100);
-      } else toast("🌿 New observation captured");
+      } else toast("New observation captured");
     } else if (m.event === "alert" && state.view === "home") { invalidate(); go("home"); }
   };
   ws.onclose = () => setTimeout(connectWS, 4000);
 }
 // keep "Updated … ago" fresh without refetching
+let clockTimer = null;
 function startClock() {
-  setInterval(() => {
-    const el = $("#home-updated"); if (el && state.lastObsTime) el.textContent = "Updated " + ago(state.lastObsTime);
-    const b = $("#live-badge"); if (b) { const on = isLive(); b.classList.toggle("off", !on); b.innerHTML = `<span class="dot"></span>${on ? "Monitoring Live" : "Not Monitoring"}`; }
-  }, 10000);
+  if (clockTimer) clearInterval(clockTimer); // no duplicate ticker after re-login
+  clockTimer = setInterval(() => { const el = $("#home-updated"); if (el && state.lastObsTime) el.textContent = ago(state.lastObsTime); }, 10000);
 }
 
 // ---------- pull to refresh ----------
@@ -599,4 +688,5 @@ function startClock() {
 })();
 
 // ---------- start ----------
+hydrateIcons();
 if (state.token) boot().catch(showLogin); else showLogin();
