@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     # Speech (STT + TTS). mock | sarvam. Sarvam handles Kannada/English voice.
     speech_provider: str = "mock"
     sarvam_api_key: str = ""
-    sarvam_stt_model: str = "saarika:v2"
+    sarvam_stt_model: str = "saarika:v2.5"
     sarvam_tts_model: str = "bulbul:v2"
     sarvam_speaker: str = "anushka"
 
