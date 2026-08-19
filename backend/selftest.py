@@ -56,13 +56,16 @@ def test_vision_reads_the_image() -> None:
 
     green = np.zeros((80, 80, 3), np.uint8)
     green[:] = (40, 180, 40)  # BGR green
-    assert "green foliage" in vision.describe(_encode(green)).lower()
+    assert "green foliage" in vision.analyze(_encode(green)).description.lower()
 
     yellow = np.zeros((80, 80, 3), np.uint8)
     yellow[:] = (30, 200, 220)  # BGR yellow
-    assert "yellow" in vision.describe(_encode(yellow)).lower()
+    assert "yellow" in vision.analyze(_encode(yellow)).description.lower()
 
-    assert "could not be decoded" in vision.describe(b"not an image")
+    assert "could not be decoded" in vision.analyze(b"not an image").description
+    # A colour heuristic must never present itself as a diagnosis.
+    assert vision.analyze(_encode(green)).usable is False
+    assert vision.analyze(_encode(green)).label is None
 
 
 def test_language_detection_and_routing() -> None:
@@ -329,13 +332,27 @@ def test_dataset_generation_and_quality() -> None:
     db.add(_complete_obs(farm.id, node.id, "c1"))
     db.commit()
     e1 = DatasetService.build_from_observation(db, db.get(Observation, "c1"))
-    assert e1.quality_score == 100 and e1.status == VALIDATED
+    # Prose-only vision: no classifier label => weaker supervision, so 90 not 100.
+    assert e1.quality_score == 90 and e1.status == VALIDATED
+    assert "no classifier label" in e1.quality_reason
     assert e1.crop_type == "sugarcane"
     assert "healthy" in e1.labels
+
 
     # Idempotent: rebuilding the same observation does not duplicate.
     DatasetService.build_from_observation(db, db.get(Observation, "c1"))
     assert db.query(DatasetEntry).count() == 1
+
+    # A confident classifier verdict is worth the full 20 vision points, and the
+    # label is taken from the model rather than re-derived from its prose.
+    db.add(_complete_obs(farm.id, node.id, "c1b",
+                         vision_summary="Lesions with dark margins on the midrib.",
+                         vision_label="red_rot", vision_confidence=0.91))
+    db.commit()
+    e1b = DatasetService.build_from_observation(db, db.get(Observation, "c1b"))
+    assert e1b.quality_score == 100 and e1b.status == VALIDATED
+    assert "red_rot" in e1b.labels
+
 
     # Sparse observation (no image, no GPS, one sensor) -> lower quality, reasons.
     db.add(_obs(farm.id, node.id, "c2", datetime(2026, 7, 25, 8, 0),

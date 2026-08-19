@@ -17,7 +17,7 @@ from pathlib import Path
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from backend.ai import describe_image, summarize_observation
+from backend.ai import analyze_image, summarize_observation
 from backend.config import get_settings
 from backend.dataset.service import DatasetService
 from backend.models import Alert, Farm, Observation, SensorReading, _now
@@ -121,8 +121,15 @@ def ingest_image(
     if gps_long is not None:
         obs.gps_long = gps_long
     try:
-        obs.vision_summary = describe_image(image_bytes)
-        logger.info("vision completed for observation %s", obs.id)
+        v = analyze_image(image_bytes)
+        obs.vision_summary = v.description
+        # Only a usable verdict is persisted; an abstention leaves the columns NULL
+        # so nothing downstream can mistake "unknown" for "healthy".
+        obs.vision_label = v.label if v.usable else None
+        obs.vision_confidence = v.confidence if v.usable else None
+        logger.info("vision completed for observation %s (label=%s conf=%s%s)",
+                    obs.id, obs.vision_label, obs.vision_confidence,
+                    f", abstained: {v.reason}" if v.abstained else "")
     except Exception:  # never let a vision hiccup drop the observation
         logger.exception("vision analysis failed for %s", obs.id)
         obs.vision_summary = "Automatic analysis unavailable."

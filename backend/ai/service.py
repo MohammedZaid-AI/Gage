@@ -6,7 +6,7 @@ chat flow in ai/orchestrator.py — this module only owns provider wiring.
 """
 import logging
 
-from backend.ai.base import LLMProvider, SpeechProvider, VisionProvider
+from backend.ai.base import VisionResult, LLMProvider, SpeechProvider, VisionProvider
 from backend.ai.mock import MockLLMProvider, MockSpeechProvider, MockVisionProvider
 from backend.config import get_settings
 
@@ -56,8 +56,9 @@ def detect_language(text: str) -> str:
     return "kn" if any("ಀ" <= ch <= "೿" for ch in text) else "en"
 
 
-def describe_image(image_bytes: bytes) -> str:
-    return _vision.describe(image_bytes)
+def analyze_image(image_bytes: bytes) -> VisionResult:
+    """Vision finding for one image: prose + (label, confidence, abstained)."""
+    return _vision.analyze(image_bytes)
 
 
 def complete(question: str, context: str, language: str) -> str:

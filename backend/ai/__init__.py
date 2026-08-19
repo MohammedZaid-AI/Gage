@@ -8,7 +8,7 @@ a change in `service` / `providers` only.
 from backend.ai.base import LLMProvider, SpeechProvider, VisionProvider
 from backend.ai.service import (
     complete,
-    describe_image,
+    analyze_image,
     detect_language,
     summarize_observation,
     synthesize,
@@ -20,7 +20,7 @@ __all__ = [
     "SpeechProvider",
     "VisionProvider",
     "complete",
-    "describe_image",
+    "analyze_image",
     "detect_language",
     "summarize_observation",
     "synthesize",

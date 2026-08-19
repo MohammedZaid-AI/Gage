@@ -46,8 +46,11 @@ class QualityScorer:
             reasons.append(f"{3 - present} sensor value(s) missing")
 
         vision = (obs.vision_summary or "").strip().lower()
-        if vision and "unavailable" not in vision:
-            score += 20
+        if obs.vision_label:
+            score += 20          # a real, non-abstained classification
+        elif vision and "unavailable" not in vision:
+            score += 10          # prose only: usable context, weak supervision
+            reasons.append("no classifier label (description only)")
         else:
             reasons.append("no valid vision summary")
 

@@ -149,6 +149,10 @@ class Observation(Base):
     humidity: Mapped[float | None] = mapped_column(Float, nullable=True)
     soil_moisture: Mapped[float | None] = mapped_column(Float, nullable=True)
     vision_summary: Mapped[str | None] = mapped_column(Text, nullable=True)  # per-image
+    # Structured classifier verdict. NULL label => no diagnosis was made
+    # (heuristic provider, or the model abstained on this image).
+    vision_label: Mapped[str | None] = mapped_column(String, nullable=True)
+    vision_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
     ai_summary: Mapped[str | None] = mapped_column(Text, nullable=True)  # LLM, on merge
 
     farm: Mapped[Farm] = relationship(back_populates="observations")

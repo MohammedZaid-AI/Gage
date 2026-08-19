@@ -23,6 +23,17 @@ _VISION_LABELS = {
     "wilt": "water_stress",
 }
 
+# Classifier class -> dataset label. Identity today, but the seam matters: the
+# model's vocabulary and the dataset's vocabulary are allowed to diverge.
+_CLASS_LABELS = {
+    "healthy": "healthy",
+    "red_rot": "red_rot",
+    "rust": "rust",
+    "yellow_leaf": "yellow_leaf",
+    "mosaic": "mosaic",
+    "leaf_spot": "leaf_spot",
+}
+
 # Alert type -> label.
 _ALERT_LABELS = {
     "soil_low": "dry_soil",
@@ -37,13 +48,19 @@ class LabelGenerator:
         s = get_settings()
         labels: set[str] = set()
 
-        # Evaluate vision keywords per clause, skipping negated clauses.
-        for clause in re.split(r"[.;\n]", (obs.vision_summary or "").lower()):
-            if any(neg in clause for neg in _NEGATIONS):
-                continue
-            for kw, label in _VISION_LABELS.items():
-                if kw in clause:
-                    labels.add(label)
+        # A trained classifier's verdict is authoritative — never re-derive it by
+        # grepping the prose it produced. Keyword matching is the fallback used
+        # only when no model made a call (heuristic provider, or it abstained).
+        if obs.vision_label:
+            labels.add(_CLASS_LABELS.get(obs.vision_label, obs.vision_label))
+        else:
+            # Evaluate vision keywords per clause, skipping negated clauses.
+            for clause in re.split(r"[.;\n]", (obs.vision_summary or "").lower()):
+                if any(neg in clause for neg in _NEGATIONS):
+                    continue
+                for kw, label in _VISION_LABELS.items():
+                    if kw in clause:
+                        labels.add(label)
 
         if obs.soil_moisture is not None and obs.soil_moisture < s.soil_moisture_min:
             labels.update({"dry_soil", "water_stress"})

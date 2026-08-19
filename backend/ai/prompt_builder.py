@@ -36,6 +36,7 @@ _RESPONSE_CONTRACT = (
     "- If there are active alerts, address them FIRST.\n"
     "- If the vision summary and the sensor readings disagree, state the "
     "uncertainty explicitly rather than picking one.\n"
+    "- If 'Image diagnosis' is NONE, you MUST NOT name any disease from the image. Say the image could not be identified, and reason from sensors only.\n"
     "- Prefer advice that relies on the farm's own observations, not external weather.\n"
     "- Reply in the farmer's language: Kannada if they wrote Kannada, else English."
 )
@@ -83,12 +84,27 @@ def _fmt(v: float | None, unit: str) -> str:
     return f"{v}{unit}" if v is not None else "n/a"
 
 
+def _diagnosis_line(obs: Observation) -> str:
+    """The classifier verdict as a citable fact — or an explicit statement that
+    no diagnosis exists, which the contract forbids the model from filling in.
+    """
+    if not obs.image_path:
+        return "no image was captured"
+    if not obs.vision_label:
+        return ("NONE - the image was not classified (no trained model, or the "
+                "model abstained). Do not diagnose from the image.")
+    conf = (f"{obs.vision_confidence * 100:.0f}%"
+            if obs.vision_confidence is not None else "unknown")
+    return f"{obs.vision_label.replace('_', ' ')} (model confidence {conf})"
+
+
 def _observation_block(obs: Observation | None) -> str:
     if obs is None:
         return "No observation recorded yet."
     return (
         f"- Time: {obs.timestamp:%Y-%m-%d %H:%M} UTC (node {obs.node_id})\n"
         f"- Vision: {obs.vision_summary or 'no image analysed'}\n"
+        f"- Image diagnosis: {_diagnosis_line(obs)}\n"
         f"- Temperature: {_fmt(obs.temperature, ' C')}\n"
         f"- Humidity: {_fmt(obs.humidity, ' %')}\n"
         f"- Soil moisture: {_fmt(obs.soil_moisture, ' %')}\n"
@@ -128,8 +144,8 @@ def _consistency_note(ctx: FarmContext) -> str:
     if obs is None:
         return ""
     s = get_settings()
-    vision = (obs.vision_summary or "").lower()
-    looks_healthy = "healthy" in vision
+    looks_healthy = (obs.vision_label == "healthy" if obs.vision_label
+                     else "healthy" in (obs.vision_summary or "").lower())
     sensor_stress = (
         (obs.soil_moisture is not None and obs.soil_moisture < s.soil_moisture_min)
         or (obs.humidity is not None and obs.humidity > s.humidity_max)

@@ -10,16 +10,24 @@ import wave
 import cv2
 import numpy as np
 
-from backend.ai.base import LLMProvider, SpeechProvider, VisionProvider
+from backend.ai.base import LLMProvider, SpeechProvider, VisionProvider, VisionResult
 
 logger = logging.getLogger("gage.ai.mock")
 
 
 class MockVisionProvider(VisionProvider):
-    def describe(self, image_bytes: bytes) -> str:
+    """Colour-statistics fallback. Deliberately reports NO label and NO confidence:
+    counting green pixels cannot tell sugarcane from a bottle, so it must never
+    produce a diagnosis. A trained classifier fills those fields; until then the
+    prompt layer sees `usable == False` and declines to diagnose from the image."""
+
+    def analyze(self, image_bytes: bytes) -> VisionResult:
         img = cv2.imdecode(np.frombuffer(image_bytes, np.uint8), cv2.IMREAD_COLOR)
         if img is None:
-            return "Image could not be decoded; no visual analysis available."
+            return VisionResult(
+                description="Image could not be decoded; no visual analysis available.",
+                abstained=True, reason="unreadable image",
+            )
 
         h, w = img.shape[:2]
         hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
@@ -47,7 +55,11 @@ class MockVisionProvider(VisionProvider):
 
         parts.append("No obvious pest damage detected." if brightness > 0.25
                      else "Low light; inspect again in better lighting.")
-        return " ".join(parts)
+        return VisionResult(
+            description=" ".join(parts),
+            abstained=True,               # colour stats are not a diagnosis
+            reason="no trained crop classifier is loaded",
+        )
 
 
 # Fact lines the mock lifts out of the built prompt so its answer stays grounded.
