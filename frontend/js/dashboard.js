@@ -587,11 +587,29 @@ function playB64(b64) {
   try { new Audio("data:audio/wav;base64," + b64).play().catch(() => {}); return true; }
   catch { return false; }
 }
-function browserSpeak(text, lang) {  // fallback only (needs an OS voice for the language)
-  if (!("speechSynthesis" in window) || !text) return;
+// Browser voices load asynchronously; cache them and refresh when the list arrives.
+let _voices = [];
+function refreshVoices() { try { _voices = speechSynthesis.getVoices() || []; } catch { _voices = []; } }
+if ("speechSynthesis" in window) {
+  refreshVoices();
+  speechSynthesis.addEventListener("voiceschanged", refreshVoices);
+}
+// A voice whose language actually matches. Windows ships no Kannada voice, and
+// speaking Kannada text through an en-US voice produces confident gibberish --
+// worse than silence, so we return null and let the caller say so plainly.
+function voiceFor(lang) {
+  const want = (lang || state.prefs.lang) === "kn" ? "kn" : "en";
+  if (!_voices.length) refreshVoices();
+  return _voices.find((v) => (v.lang || "").toLowerCase().startsWith(want)) || null;
+}
+function browserSpeak(text, lang) {
+  if (!("speechSynthesis" in window) || !text) return false;
+  const voice = voiceFor(lang);
+  if (!voice) return false;                 // never mispronounce; caller reports it
   const u = new SpeechSynthesisUtterance(text.replace(/[#*_`>-]/g, " "));
-  u.lang = (lang || state.prefs.lang) === "kn" ? "kn-IN" : "en-IN";
+  u.voice = voice; u.lang = voice.lang;
   speechSynthesis.cancel(); speechSynthesis.speak(u);
+  return true;
 }
 // Attach a Play button to an answer bubble — voice only sounds when the user taps it.
 // On tap: prefer real provider audio (Sarvam); else synthesize via the backend
@@ -608,8 +626,13 @@ function attachPlay(bubble, text, language, audioB64) {
     try {
       const r = await jpost("/voice/speak", { text: text.replace(/[#*_`>]/g, " ").slice(0, 900), language });
       if (r.audio_base64 && r.audio_base64.length > 200) { cached = r.audio_base64; playB64(cached); btn.disabled = false; return; }
-    } catch { /* fall through to browser voice */ }
-    browserSpeak(text, language); btn.disabled = false;
+    } catch { /* provider unavailable -> try an on-device voice below */ }
+    if (!browserSpeak(text, language)) {
+      toast((language || state.prefs.lang) === "kn"
+        ? "Kannada speech is unavailable right now"
+        : "Speech is unavailable right now");
+    }
+    btn.disabled = false;
   };
   bubble.append(btn);
 }
