@@ -26,7 +26,13 @@ class AIOrchestrator:
         ctx = farm_context.build(db, farm)
 
         prior = "\n".join(c.question + " " + c.answer for c in ctx.conversation)
-        docs = knowledge.retrieve(question, prior, k=3)
+        # A confident classifier verdict is retrieval evidence: it pulls in that
+        # disease's agronomy even when the farmer never named it (and even when
+        # they asked in Kannada, which the ASCII tokeniser cannot match on).
+        # `vision_label` is NULL whenever the model abstained, so an unidentified
+        # image can never retrieve disease-specific treatment advice.
+        vision = (ctx.latest.vision_label or "") if ctx.latest else ""
+        docs = knowledge.retrieve(question, prior + " " + vision.replace("_", " "), k=3)
 
         prompt = prompt_builder.build(ctx, docs, question)
         answer = service.complete(question, prompt, language)

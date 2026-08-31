@@ -14,11 +14,21 @@ logger = logging.getLogger("gage.ai")
 
 
 def _select_vision() -> VisionProvider:
-    s = get_settings()
-    if s.vision_provider != "mock":
-        # ponytail: real providers (gemini/openai/qwen) plug in here; fall back
-        # to mock until one is wired + keyed so the demo never breaks.
-        logger.warning("vision provider %r not implemented yet; using mock", s.vision_provider)
+    """Map VISION_PROVIDER to an implementation. The model is loaded exactly once,
+    here, at import time — never per request."""
+    name = get_settings().vision_provider.lower()
+    if name == "tflite":
+        from backend.ai.providers.tflite_vision import TFLiteVisionProvider  # lazy
+
+        try:
+            return TFLiteVisionProvider()
+        except Exception:
+            # A missing model file or runtime must not take the API down; the
+            # mock abstains from every diagnosis, so nothing downstream guesses.
+            logger.exception("tflite vision provider failed to load; falling back to mock")
+            return MockVisionProvider()
+    if name != "mock":
+        logger.warning("vision provider %r not implemented yet; using mock", name)
     return MockVisionProvider()
 
 

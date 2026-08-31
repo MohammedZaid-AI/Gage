@@ -36,7 +36,13 @@ _RESPONSE_CONTRACT = (
     "- If there are active alerts, address them FIRST.\n"
     "- If the vision summary and the sensor readings disagree, state the "
     "uncertainty explicitly rather than picking one.\n"
-    "- If 'Image diagnosis' is NONE, you MUST NOT name any disease from the image. Say the image could not be identified, and reason from sensors only.\n"
+    "- If VISION EVIDENCE says NOT IDENTIFIED or NO IMAGE, you MUST NOT name any "
+    "disease from the image. Say the image could not be confidently identified, and "
+    "reason from sensors only.\n"
+    "- A classification is evidence, not ground truth. Write \"the image was "
+    "classified as X (N% confidence)\" or \"resembles X\" — never \"the crop has X\". "
+    "Do not estimate severity or spread from one photo, and do not prescribe "
+    "treatment on the classifier alone.\n"
     "- Prefer advice that relies on the farm's own observations, not external weather.\n"
     "- Reply in the farmer's language: Kannada if they wrote Kannada, else English."
 )
@@ -61,8 +67,11 @@ _INTENT_TEMPLATES = {
 }
 
 _INTENT_KEYWORDS = {
+    # Includes the classifier's own class names, so a farmer who repeats the
+    # verdict back ("is this smut?") lands on the disease template.
     "disease": ("disease", "red rot", "smut", "rust", "fungus", "infect", "lesion",
-                "spot", "rot", "ರೋಗ"),
+                "spot", "rot", "pokkah", "boeng", "chlorosis", "grassy", "whip",
+                "mosaic", "viral", "ರೋಗ"),
     "irrigation": ("irrigat", "water", "moisture", "dry", "drought", "ನೀರು"),
     "fertilizer": ("fertil", "nutrient", "urea", "nitrogen", "manure", "npk", "ಗೊಬ್ಬರ"),
     "pest": ("pest", "insect", "borer", "worm", "aphid", "caterpillar", "ಕೀಟ"),
@@ -84,18 +93,36 @@ def _fmt(v: float | None, unit: str) -> str:
     return f"{v}{unit}" if v is not None else "n/a"
 
 
-def _diagnosis_line(obs: Observation) -> str:
-    """The classifier verdict as a citable fact — or an explicit statement that
-    no diagnosis exists, which the contract forbids the model from filling in.
+def _vision_block(obs: Observation | None) -> str:
+    """The classifier verdict as structured, citable evidence — or an explicit
+    statement that no diagnosis exists, which the contract forbids the model from
+    filling in. `vision_label` is NULL whenever the model abstained.
     """
-    if not obs.image_path:
-        return "no image was captured"
+    if obs is None or not obs.image_path:
+        return ("- Status: NO IMAGE — no photo was captured for this observation.\n"
+                "- Rule: do not describe or diagnose anything visual. Use sensors only.")
     if not obs.vision_label:
-        return ("NONE - the image was not classified (no trained model, or the "
-                "model abstained). Do not diagnose from the image.")
-    conf = (f"{obs.vision_confidence * 100:.0f}%"
+        return (
+            "- Classification: NONE\n"
+            "- Status: NOT IDENTIFIED — the image was not classified (the model "
+            "abstained, or no classifier is loaded).\n"
+            "- Rule: you MUST NOT name any disease or condition from this image. Say "
+            "plainly that the image could not be confidently identified, and reason "
+            "from the sensor readings only."
+        )
+    conf = (f"{obs.vision_confidence:.2f} ({obs.vision_confidence * 100:.0f}%)"
             if obs.vision_confidence is not None else "unknown")
-    return f"{obs.vision_label.replace('_', ' ')} (model confidence {conf})"
+    return (
+        f"- Classification: {obs.vision_label.replace('_', ' ')}\n"
+        f"- Confidence: {conf}\n"
+        "- Model: Gage sugarcane image classifier (11 classes, single-image, "
+        "trained on leaf/cane photographs)\n"
+        "- Status: classified\n"
+        "- Rule: this is what the image RESEMBLES, not a confirmed diagnosis. State "
+        "it as a classification with its confidence, never as established fact. The "
+        "model sees one photo: it cannot judge severity, how far the problem has "
+        "spread, or the state of the rest of the field."
+    )
 
 
 def _observation_block(obs: Observation | None) -> str:
@@ -104,12 +131,51 @@ def _observation_block(obs: Observation | None) -> str:
     return (
         f"- Time: {obs.timestamp:%Y-%m-%d %H:%M} UTC (node {obs.node_id})\n"
         f"- Vision: {obs.vision_summary or 'no image analysed'}\n"
-        f"- Image diagnosis: {_diagnosis_line(obs)}\n"
         f"- Temperature: {_fmt(obs.temperature, ' C')}\n"
         f"- Humidity: {_fmt(obs.humidity, ' %')}\n"
         f"- Soil moisture: {_fmt(obs.soil_moisture, ' %')}\n"
         f"- GPS: {_fmt(obs.gps_lat, '')}, {_fmt(obs.gps_long, '')}"
     )
+
+
+def _sensor_source(ctx: FarmContext) -> Observation | None:
+    """Where the freshest sensor values live — the SensorReading log, not ctx.latest.
+
+    An Observation only carries sensor columns when a reading merged into it
+    inside the merge window, so an image-only newest observation reports n/a
+    while a fresh reading sits unused. Falls back to the observation's own merged
+    values when the farm has no SensorReading rows (directly seeded or imported
+    data), and returns None when there is genuinely nothing to report.
+
+    Both types expose temperature/humidity/soil_moisture/timestamp, so callers
+    read the result the same way either way.
+    """
+    if ctx.latest_reading is not None:
+        return ctx.latest_reading
+    obs = ctx.latest
+    if obs is not None and any(v is not None for v in
+                               (obs.temperature, obs.humidity, obs.soil_moisture)):
+        return obs
+    return None
+
+
+def _sensor_block(ctx: FarmContext) -> str:
+    src = _sensor_source(ctx)
+    if src is None:
+        return "No sensor reading recorded yet for this farm."
+    lines = [
+        f"- Taken: {src.timestamp:%Y-%m-%d %H:%M} UTC",
+        f"- Temperature: {_fmt(src.temperature, ' C')}",
+        f"- Humidity: {_fmt(src.humidity, ' %')}",
+        f"- Soil moisture: {_fmt(src.soil_moisture, ' %')}",
+    ]
+    # Say so when the readings and the image are separate events, so the model
+    # cannot present them as one moment in the field.
+    obs = ctx.latest
+    if obs is not None and getattr(src, "observation_id", obs.id) != obs.id:
+        lines.append("- Note: these readings come from a separate capture, not from "
+                     "the same moment as the observation above.")
+    return "\n".join(lines)
 
 
 def _trend_line(t: Trend) -> str:
@@ -146,10 +212,15 @@ def _consistency_note(ctx: FarmContext) -> str:
     s = get_settings()
     looks_healthy = (obs.vision_label == "healthy" if obs.vision_label
                      else "healthy" in (obs.vision_summary or "").lower())
-    sensor_stress = (
-        (obs.soil_moisture is not None and obs.soil_moisture < s.soil_moisture_min)
-        or (obs.humidity is not None and obs.humidity > s.humidity_max)
-        or (obs.temperature is not None and obs.temperature > s.temperature_max)
+    # Sensors come from the same source as the SENSOR READINGS block, not from
+    # the observation: an image-only observation carries no sensor columns, which
+    # would silently disable this check in exactly the case it exists for — a
+    # photo and a reading arriving as separate captures.
+    src = _sensor_source(ctx)
+    sensor_stress = src is not None and (
+        (src.soil_moisture is not None and src.soil_moisture < s.soil_moisture_min)
+        or (src.humidity is not None and src.humidity > s.humidity_max)
+        or (src.temperature is not None and src.temperature > s.temperature_max)
     )
     if looks_healthy and sensor_stress:
         return ("\n\n# SIGNAL CHECK\nVision suggests healthy foliage, but sensor "
@@ -183,10 +254,8 @@ def build(ctx: FarmContext, docs: list[KnowledgeDoc], question: str) -> str:
         f"Location: {ctx.location}\n"
         f"Farmer: {ctx.farmer.name or 'unknown'}\n\n"
         f"# CURRENT OBSERVATION\n{_observation_block(latest)}\n\n"
-        f"# SENSOR READINGS (latest)\n"
-        f"- Temperature: {_fmt(latest.temperature if latest else None, ' C')}\n"
-        f"- Humidity: {_fmt(latest.humidity if latest else None, ' %')}\n"
-        f"- Soil moisture: {_fmt(latest.soil_moisture if latest else None, ' %')}\n\n"
+        f"# VISION EVIDENCE (image classifier)\n{_vision_block(latest)}\n\n"
+        f"# SENSOR READINGS (latest)\n{_sensor_block(ctx)}\n\n"
         f"# RECENT HISTORY\n{_history_block(ctx)}\n\n"
         f"# ACTIVE ALERTS\n{_alerts_block(ctx)}\n\n"
         f"# AGRICULTURAL KNOWLEDGE\n{_knowledge_block(docs)}"
