@@ -5,6 +5,9 @@ pydantic>=2.10
 pydantic-settings>=2.7
 python-multipart>=0.0.20
 opencv-python-headless>=4.10
+# LiteRT: Google's standalone TFLite runtime (~40MB) for the sugarcane
+# classifier. Full tensorflow is not needed and has no wheel for py3.14.
+ai-edge-litert>=1.2
 python-dotenv>=1.0
 openai>=1.50
 bcrypt>=4.1

@@ -13,6 +13,19 @@ class Settings(BaseSettings):
     vision_provider: str = "mock"
     llm_provider: str = "mock"
 
+    # Vision classifier (VISION_PROVIDER=tflite). Teachable Machine export:
+    # a float32 224x224x3 MobileNet + a labels.txt of "<index> <name>" lines.
+    vision_model_path: str = "./models/sugarcane/model_unquant.tflite"
+    vision_labels_path: str = "./models/sugarcane/labels.txt"
+    # Below this top-1 probability we refuse to name a class.
+    vision_confidence_threshold: float = 0.70
+    # Top-1 must also beat top-2 by this much; catches a two-way coin flip that
+    # still clears the threshold.
+    vision_margin_min: float = 0.15
+    # Input sanity gates (see providers/tflite_vision.py for what these cannot do).
+    vision_min_image_px: int = 64      # shorter side, in pixels
+    vision_min_detail: float = 60.0    # Laplacian variance; blank/flat frames score ~0
+
     gemini_api_key: str = ""
     openai_api_key: str = ""
 
