@@ -11,9 +11,11 @@ import base64
 import logging
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 
 from backend import ai
+from backend.ai.base import LLMError
 from backend.ai.orchestrator import AIOrchestrator
 from backend.database import get_db
 from backend.dependencies import get_current_farmer, owned_farm
@@ -34,18 +36,26 @@ async def voice_ask(
     farm = owned_farm(db, farmer, farm_id)
     raw = await audio.read()
 
+    # STT, generation and TTS all block (network / model inference), so each runs
+    # in a worker thread; the event loop stays free for sensor ingest and others.
     try:
-        transcript, _lang = ai.transcribe(raw)
+        transcript, _lang = await run_in_threadpool(ai.transcribe, raw)
     except Exception:
         logger.exception("speech-to-text failed")
         raise HTTPException(502, "Speech recognition is unavailable")
     if not transcript.strip():
         raise HTTPException(422, "Could not understand the audio")
 
-    answer, language = AIOrchestrator.answer(db, farm, transcript)
+    try:
+        result = await run_in_threadpool(AIOrchestrator.answer, db, farm, transcript)
+    except LLMError as exc:
+        raise HTTPException(503, f"The assistant could not answer right now: {exc}") from exc
+    answer, language = result.answer, result.language
 
     try:
-        audio_out = ai.synthesize(answer, language)
+        # The final answer the farmer receives (model text + any caveat) is
+        # exactly what gets spoken.
+        audio_out = await run_in_threadpool(ai.synthesize, answer, language)
     except Exception:  # text answer still valuable if TTS hiccups
         logger.exception("text-to-speech failed")
         audio_out = b""
