@@ -86,25 +86,20 @@ Re-flash. Now 0 % = dry air, 100 % = water.
 
 ---
 
-## Step 5 — The phone (image + GPS)
+## Step 5 — The phone
 
-There is no separate native app yet — the phone participates through the **web app**:
-1. On the phone's browser open `http://192.168.1.42:8000` and log in.
-2. On **Home**, tap **📷 Scan Crop** → allow camera + location → it captures a photo
-   and posts it (with GPS) to `/node/image` using the node's key.
+Photo-based disease detection is not part of this build, and the web app has no
+photo-capture button. The phone is used to open the web app (dashboard + Ask Gage).
 
-The backend merges that image with the ESP32's most recent sensor reading (within
-60 s) into one observation, runs vision on the image, and updates the dashboard.
-
-> Note: Scan Crop currently also sends *demo* sensor values (so it works with no
-> ESP32). Once your ESP32 is sending **real** sensors, tell me and I'll switch Scan
-> Crop to send the image only — a one-line change — so the real readings are used.
+`POST /node/image` still accepts a photo + GPS from any client holding the node's
+key. The backend stores it and merges it with the ESP32's most recent sensor
+reading (within 60 s) into one observation; the image is kept as a record and is
+not analysed.
 
 > **Secure-context caveat (important):** over plain `http://<LAN-ip>:8000`, mobile
-> browsers **block the microphone and GPS** (those need HTTPS or localhost). So on
-> the phone: the **camera photo works**, but **GPS is skipped** and **voice (mic)
-> won't record**. Sensors/image/AI/dashboard all work fine over HTTP. To get mic +
-> GPS on the phone, serve over HTTPS — easiest is a tunnel like `cloudflared`/`ngrok`
+> browsers **block the microphone** (it needs HTTPS or localhost), so **voice (mic)
+> won't record**. Sensors/AI/dashboard all work fine over HTTP. To get the mic on
+> the phone, serve over HTTPS — easiest is a tunnel like `cloudflared`/`ngrok`
 > (gives an https URL), or run the browser on the PC at `localhost` where they work.
 > The ESP32 is unaffected (it's not a browser; plain HTTP is fine).
 
@@ -116,13 +111,12 @@ Watch the server log — you'll see each stage:
 ```
 node connected: heartbeat from demo-node-1 ...
 sensors merged into observation <id> ...
-vision completed for observation <id>
 AI summary generated for observation <id>
 dataset entry for obs <id> ...
 dashboard updated: broadcast 'observation' -> N client(s)
 ```
 On the dashboard: Home shows the live sensor cards + node **Online** + battery,
-Timeline shows the new scan, and the health score updates. Ask Gage will now be
+Timeline shows the new observation, and the health score updates. Ask Gage will now be
 grounded in your real field data.
 
 ### Troubleshooting
@@ -131,5 +125,3 @@ grounded in your real field data.
 - **401 from the node** → wrong/missing `X-Node-Key`.
 - **404 unknown node** → the node id/key isn't registered (do Step 2).
 - **Readings look wrong** → recalibrate the soil probe (Step 4); check DHT22 wiring.
-- **No image analysis** → the phone image didn't upload; check the phone can reach the
-  backend URL and that location/camera permissions were granted.

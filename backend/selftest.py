@@ -1,7 +1,7 @@
 """Smoke test for Gage's core logic. Run: python -m backend.selftest
 
 Covers the pieces with real branching, no server needed:
-- OpenCV image analysis and language detection/routing
+- language detection/routing
 - password hashing + JWT round-trip
 - Farm Context Engine (grounding + tenant isolation) + trend detection
 - structured prompt builder + grounding rules
@@ -12,13 +12,11 @@ Covers the pieces with real branching, no server needed:
 import json
 from datetime import datetime, timedelta
 
-import cv2
-import numpy as np
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from backend.ai import knowledge, prompt_builder
-from backend.ai.mock import MockLLMProvider, MockSpeechProvider, MockVisionProvider
+from backend.ai.mock import MockLLMProvider, MockSpeechProvider
 from backend.ai.orchestrator import AIOrchestrator
 from backend.ai.service import detect_language, synthesize, transcribe
 from backend.core.security import (
@@ -43,29 +41,6 @@ from backend.models import (
     Observation,
 )
 from backend.services import alerts, farm_context, health_score, observation_service
-
-
-def _encode(bgr: np.ndarray) -> bytes:
-    ok, buf = cv2.imencode(".jpg", bgr)
-    assert ok
-    return buf.tobytes()
-
-
-def test_vision_reads_the_image() -> None:
-    vision = MockVisionProvider()
-
-    green = np.zeros((80, 80, 3), np.uint8)
-    green[:] = (40, 180, 40)  # BGR green
-    assert "green foliage" in vision.analyze(_encode(green)).description.lower()
-
-    yellow = np.zeros((80, 80, 3), np.uint8)
-    yellow[:] = (30, 200, 220)  # BGR yellow
-    assert "yellow" in vision.analyze(_encode(yellow)).description.lower()
-
-    assert "could not be decoded" in vision.analyze(b"not an image").description
-    # A colour heuristic must never present itself as a diagnosis.
-    assert vision.analyze(_encode(green)).usable is False
-    assert vision.analyze(_encode(green)).label is None
 
 
 def test_language_detection_and_routing() -> None:
@@ -116,10 +91,8 @@ def test_context_engine_and_prompt() -> None:
     db.flush()
     t0 = datetime(2026, 7, 24, 8, 0)
     t1 = datetime(2026, 7, 25, 8, 0)
-    db.add(_obs(a.id, "na", "o0", t0, temperature=28.0, humidity=60.0, soil_moisture=54.0,
-                vision_summary="Healthy green foliage."))
-    db.add(_obs(a.id, "na", "o1", t1, temperature=29.0, humidity=88.0, soil_moisture=42.0,
-                vision_summary="Slight yellowing on some leaves."))
+    db.add(_obs(a.id, "na", "o0", t0, temperature=28.0, humidity=60.0, soil_moisture=54.0))
+    db.add(_obs(a.id, "na", "o1", t1, temperature=29.0, humidity=88.0, soil_moisture=42.0))
     db.add(Alert(farm_id=a.id, node_id="na", type="humidity_high", severity="warning",
                  message="High humidity 88% (disease risk)", value=88.0))
     db.commit()
@@ -136,7 +109,7 @@ def test_context_engine_and_prompt() -> None:
     assert trends["humidity"].direction == "up"
 
     # Prompt builder: structured sections + grounded facts + trend + alert + rules.
-    docs = knowledge.retrieve("irrigation and humidity", "", k=3)
+    docs = knowledge.retrieve("How much water and how often should I irrigate?", k=3).docs
     prompt = prompt_builder.build(ctx, docs, "How is my field?")
     for section in ("# FARM", "# CURRENT OBSERVATION", "# SENSOR READINGS",
                     "# RECENT HISTORY", "# ACTIVE ALERTS", "# AGRICULTURAL KNOWLEDGE",
@@ -166,13 +139,11 @@ def test_crop_doctor_prompt_and_intents() -> None:
 
     db = _memory_session()
     farm, node = _farm_with_node(db)
-    # Two observations 3 days apart; vision says healthy but sensors show stress.
+    # Two observations 3 days apart; sensors show stress.
     db.add(_obs(farm.id, node.id, "d0", datetime(2026, 7, 22, 8, 0),
-               temperature=28.0, humidity=60.0, soil_moisture=50.0,
-               vision_summary="Healthy green foliage."))
+               temperature=28.0, humidity=60.0, soil_moisture=50.0))
     db.add(_obs(farm.id, node.id, "d1", datetime(2026, 7, 25, 8, 0),
-               temperature=29.0, humidity=90.0, soil_moisture=15.0,
-               vision_summary="Healthy green foliage dominates the frame."))
+               temperature=29.0, humidity=90.0, soil_moisture=15.0))
     db.add(Alert(farm_id=farm.id, node_id=node.id, type="soil_low", severity="warning",
                  message="Low soil moisture 15% (water stress)", value=15.0))
     db.commit()
@@ -185,27 +156,128 @@ def test_crop_doctor_prompt_and_intents() -> None:
     assert "Observed Facts" in prompt and "Inference" in prompt  # facts vs inference
     assert "# FOCUS FOR THIS QUESTION (irrigation)" in prompt    # intent template
     assert "Address these FIRST" in prompt                       # alert prioritization
-    assert "# SIGNAL CHECK" in prompt                            # vision vs sensor conflict
+    assert "VISION" not in prompt                                # no image evidence section
     assert "compared to 3 days ago" in prompt                    # multi-observation comparison
 
 
+def _offline_translation():
+    """Make query translation unavailable, so these checks need no network."""
+    from backend.ai import query_translation as qt
+
+    def unavailable(_text):
+        raise qt.TranslationUnavailable("offline selftest")
+    qt.kannada_to_english = unavailable
+    qt.romanized_kannada_to_english = unavailable
+
+
 def test_knowledge_retrieval() -> None:
-    # "irrigate?" must match the "irrigation" doc despite the word/punctuation gap.
-    hits = knowledge.retrieve("How is my crop and should I irrigate?", "", k=2)
-    assert hits and any("irrigation" in d.title.lower() for d in hits)
-    assert knowledge.retrieve("xyzzy unrelated gibberish", "", k=3) == []  # never guess
+    _offline_translation()
+    # Real retrieval over knowledge_base/: an English question lands on the right
+    # document by meaning (no shared keyword needed).
+    hits = knowledge.retrieve("How deep should each irrigation be for sugarcane?", k=3).docs
+    assert hits and hits[0].source.startswith("irrigation/"), [h.source for h in hits]
+    chl = knowledge.retrieve("Leaves turning yellow with green veins in my ratoon crop, "
+                             "which nutrient is deficient?", k=3).docs
+    assert any(h.source.startswith("nutrient_deficiency/") for h in chl), [h.source for h in chl]
+    # Unrelated question -> nothing above the relevance floor (never guess).
+    assert knowledge.retrieve("Who won the cricket world cup in 2011?", k=3).docs == []
+
+
+def test_claim_check() -> None:
+    from backend.ai import claim_check
+
+    ctx = "Foliar spray of 2% FeSO4 with 0.5% MnSO4 and 2% urea, 2-3 times. Iron chlorosis."
+    ok = claim_check.check("Spray 2% FeSO4 and 2% urea for iron chlorosis.", ctx)
+    assert ok.unsupported == [] and ok.answer.startswith("Spray")
+    bad = claim_check.check("This is calcium deficiency; apply 75 kg/ha in March.", ctx)
+    assert set(bad.unsupported) == {"calcium", "75", "March"}, bad.unsupported
+    assert bad.answer.startswith("Please double-check")      # caveat, not stated as fact
+    # Invented people are flagged; a person named in the context is not.
+    vksa = "VKSA was launched by Union Agriculture Minister Shri Shivraj Singh Chouhan."
+    made_up = claim_check.check("Launched by Agriculture Minister Ramesh Kumar Gowda, "
+                                "on advice from Dr. Raghupathy Srinivasan.", vksa)
+    assert {"name: Ramesh Kumar Gowda", "name: Raghupathy Srinivasan"} <= set(made_up.unsupported)
+    assert claim_check.check("It was launched by Shivraj Singh Chouhan, Union Minister.",
+                             vksa).unsupported == []
+    kn = claim_check.check("ಹೆಕ್ಟೇರ್‌ಗೆ ೭೫ kg ಕ್ಯಾಲ್ಸಿಯಂ ಹಾಕಿ.", ctx, "kn")
+    assert {"75", "calcium"} <= set(kn.unsupported) and kn.answer.startswith("ದಯವಿಟ್ಟು")
+
+
+def test_llm_failure_is_not_saved() -> None:
+    """A failing model must raise, and nothing may be stored as an answer."""
+    from backend.ai import service
+    from backend.ai.base import LLMError, LLMProvider
+
+    class Broken(LLMProvider):
+        def answer(self, question, context, language):
+            raise LLMError("model offline")
+
+    db = _memory_session()
+    farm, _node = _farm_with_node(db)
+    real, service._llm = service._llm, Broken()
+    try:
+        try:
+            AIOrchestrator.answer(db, farm, "Should I irrigate?")
+            raise AssertionError("LLMError was swallowed")
+        except LLMError:
+            pass
+        assert db.query(Conversation).count() == 0
+    finally:
+        service._llm = real
+
+
+def test_compact_prompt_for_finetuned_model() -> None:
+    from backend.ai.providers.sarvam_llm import SYSTEM_PROMPT, build_prompt
+
+    db = _memory_session()
+    farm, node = _farm_with_node(db)
+    db.add(_obs(farm.id, node.id, "cp1", datetime(2026, 7, 25, 8, 0),
+               temperature=29.0, humidity=60.0, soil_moisture=19.0))
+    db.commit()
+    docs = [knowledge.KnowledgeDoc("T", "Irrigate at 7-8 cm depth.", "irrigation/x.md")]
+    ctx, farmer = prompt_builder.build_compact(docs, "Should I irrigate?")
+    # Knowledge only, and the farmer's own words only: no sensor data at all.
+    assert ctx == "Irrigate at 7-8 cm depth." and farmer == "Should I irrigate?"
+
+    # End to end: what a compact-style model actually receives via the orchestrator
+    # must not contain the farm's readings (19.0 / 29.0 / 60.0).
+    from backend.ai import service
+    from backend.ai.base import LLMProvider
+
+    seen = {}
+
+    class Capture(LLMProvider):
+        prompt_style = "compact"
+
+        def answer(self, question, context, language):
+            seen.update(question=question, context=context)
+            return "Irrigate at 7-8 cm."
+
+    _offline_translation()
+    real, service._llm = service._llm, Capture()
+    try:
+        AIOrchestrator.answer(db, farm, "How deep should each irrigation be for sugarcane?")
+    finally:
+        service._llm = real
+    model_input = seen["question"] + seen["context"]
+    assert not any(v in model_input for v in ("19.0", "29.0", "60.0")), model_input
+    assert seen["question"] == "How deep should each irrigation be for sugarcane?"
+
+    prompt = build_prompt(farmer, ctx)
+    # Exactly the training template from Gage_Sarvam_Finetune_Colab.ipynb.
+    assert prompt == (f"### System\n{SYSTEM_PROMPT}\n\n### Context\n{ctx}\n\n"
+                      f"### Farmer\n{farmer}\n\n### Assistant\n")
 
 
 def test_orchestrator_and_memory() -> None:
     db = _memory_session()
     farm, node = _farm_with_node(db)
     db.add(_obs(farm.id, node.id, "o1", datetime(2026, 7, 25, 8, 0),
-               temperature=29.0, humidity=60.0, soil_moisture=42.0,
-               vision_summary="Healthy green foliage."))
+               temperature=29.0, humidity=60.0, soil_moisture=42.0))
     db.commit()
 
-    ans1, lang1 = AIOrchestrator.answer(db, farm, "How is my crop?")
-    assert ans1 and lang1 == "en"
+    r1 = AIOrchestrator.answer(db, farm, "How is my crop?")
+    assert r1.answer and r1.language == "en"
     assert db.query(Conversation).count() == 1  # turn persisted (memory)
 
     # Second turn: prior conversation is in context (memory works).
@@ -221,16 +293,14 @@ def test_health_score() -> None:
 
     # Healthy snapshot -> high score.
     db.add(_obs(farm.id, node.id, "h1", datetime(2026, 7, 25, 8, 0),
-               temperature=28.0, humidity=60.0, soil_moisture=45.0,
-               vision_summary="Healthy green foliage dominates the frame."))
+               temperature=28.0, humidity=60.0, soil_moisture=45.0))
     db.commit()
     good = health_score.compute(farm_context.build(db, farm))
     assert good.score >= 80 and good.status == "Healthy"
 
-    # Stressed snapshot: dry soil + high humidity + vision anomaly + alert -> low score.
+    # Stressed snapshot: dry soil + high humidity + heat + alert -> low score.
     db.add(_obs(farm.id, node.id, "h2", datetime(2026, 7, 25, 9, 0),
-               temperature=42.0, humidity=90.0, soil_moisture=12.0,
-               vision_summary="Noticeable yellowing, possible disease."))
+               temperature=42.0, humidity=90.0, soil_moisture=12.0))
     db.add(Alert(farm_id=farm.id, node_id=node.id, type="soil_low",
                  severity="warning", message="Low soil moisture", value=12.0))
     db.commit()
@@ -262,18 +332,26 @@ def test_merge_and_alerts() -> None:
         battery=95.0, timestamp=None,
     )
     assert reading.observation_id == obs1.id
-    assert obs1.image_path is None and obs1.ai_summary is None  # not complete yet
+    assert obs1.image_path is None and obs1.ai_summary is None  # summaries run later
     assert any(a.type == "soil_low" for a in raised)
 
-    # Phone pushes an image within the window -> merges into the SAME observation,
-    # runs vision, and (now complete) generates the AI summary.
-    green = np.zeros((60, 60, 3), np.uint8)
-    green[:] = (40, 180, 40)
+    # Summary trigger: a new alert makes a summary due; it runs as a background
+    # task with its own session, not inside the sensor request.
+    assert observation_service.summary_due(db, obs1, raised)
+    factory = sessionmaker(bind=db.get_bind())
+    observation_service.generate_summary(obs1.id, session_factory=factory)
+    db.expire_all()
+    assert db.get(Observation, obs1.id).ai_summary
+    # Right after a summary, an alert-free reading is NOT due (no per-reading AI).
+    assert not observation_service.summary_due(db, db.get(Observation, obs1.id), [])
+
+    # Phone pushes an image within the window -> merges into the SAME observation.
+    # The bytes are stored, not decoded.
     obs2 = observation_service.ingest_image(
-        db, node, _encode(green), "f.jpg", 12.9, 77.5, None,
+        db, node, b"\xff\xd8\xff stored-not-analysed", "f.jpg", 12.9, 77.5, None,
     )
     assert obs2.id == obs1.id, "image must merge into the open sensor observation"
-    assert obs2.image_path and obs2.vision_summary and obs2.ai_summary
+    assert obs2.image_path
     assert db.query(Observation).count() == 1  # one merged observation, not two
 
     # De-dup: a second dry reading must not raise a second open soil_low alert.
@@ -302,12 +380,12 @@ def test_voice_loop_grounded() -> None:
     db = _memory_session()
     farm, node = _farm_with_node(db)
     db.add(_obs(farm.id, node.id, "v1", datetime(2026, 7, 25, 8, 0),
-               temperature=29.0, humidity=60.0, soil_moisture=19.0,
-               vision_summary="Healthy green foliage."))
+               temperature=29.0, humidity=60.0, soil_moisture=19.0))
     db.commit()
 
     transcript, _lang = transcribe("Should I irrigate my field?".encode())
-    answer, language = AIOrchestrator.answer(db, farm, transcript)
+    result = AIOrchestrator.answer(db, farm, transcript)
+    answer, language = result.answer, result.language
     assert "19.0" in answer          # grounded in this farm's soil moisture
     audio = synthesize(answer, language)
     assert audio[:4] == b"RIFF"      # spoken answer is valid audio
@@ -318,7 +396,6 @@ def _complete_obs(fid, nid, oid, **kw):
     from datetime import datetime as _dt
     base = dict(image_path=f"{oid}.jpg", gps_lat=12.9, gps_long=77.5,
                 temperature=28.0, humidity=60.0, soil_moisture=45.0,
-                vision_summary="Healthy green foliage dominates the frame.",
                 timestamp=_dt.utcnow())
     base.update(kw)
     return Observation(id=oid, farm_id=fid, node_id=nid, **base)
@@ -328,35 +405,22 @@ def test_dataset_generation_and_quality() -> None:
     db = _memory_session()
     farm, node = _farm_with_node(db)
 
-    # Complete observation -> high quality, VALIDATED, healthy label.
+    # Complete observation -> high quality, VALIDATED, neutral label.
     db.add(_complete_obs(farm.id, node.id, "c1"))
     db.commit()
     e1 = DatasetService.build_from_observation(db, db.get(Observation, "c1"))
-    # Prose-only vision: no classifier label => weaker supervision, so 90 not 100.
-    assert e1.quality_score == 90 and e1.status == VALIDATED
-    assert "no classifier label" in e1.quality_reason
+    assert e1.quality_score == 80 and e1.status == VALIDATED
+    assert e1.quality_reason == "complete"
     assert e1.crop_type == "sugarcane"
-    assert "healthy" in e1.labels
-
+    assert e1.labels == ["normal_growth"]
 
     # Idempotent: rebuilding the same observation does not duplicate.
     DatasetService.build_from_observation(db, db.get(Observation, "c1"))
     assert db.query(DatasetEntry).count() == 1
 
-    # A confident classifier verdict is worth the full 20 vision points, and the
-    # label is taken from the model rather than re-derived from its prose.
-    db.add(_complete_obs(farm.id, node.id, "c1b",
-                         vision_summary="Lesions with dark margins on the midrib.",
-                         vision_label="red_rot", vision_confidence=0.91))
-    db.commit()
-    e1b = DatasetService.build_from_observation(db, db.get(Observation, "c1b"))
-    assert e1b.quality_score == 100 and e1b.status == VALIDATED
-    assert "red_rot" in e1b.labels
-
-
     # Sparse observation (no image, no GPS, one sensor) -> lower quality, reasons.
     db.add(_obs(farm.id, node.id, "c2", datetime(2026, 7, 25, 8, 0),
-               soil_moisture=15.0, vision_summary=None))
+               soil_moisture=15.0))
     db.commit()
     e2 = DatasetService.build_from_observation(db, db.get(Observation, "c2"))
     assert e2.quality_score < e1.quality_score
@@ -367,37 +431,34 @@ def test_label_generation() -> None:
     db = _memory_session()
     farm, node = _farm_with_node(db)
     db.add(_obs(farm.id, node.id, "l1", datetime(2026, 7, 25, 8, 0),
-               humidity=90.0, soil_moisture=12.0,
-               vision_summary="Noticeable yellowing, possible pest damage."))
+               humidity=90.0, soil_moisture=12.0))
     db.commit()
     e = DatasetService.build_from_observation(db, db.get(Observation, "l1"))
-    for label in ("dry_soil", "water_stress", "high_humidity", "possible_disease"):
+    for label in ("dry_soil", "water_stress", "high_humidity"):
         assert label in e.labels, f"expected {label} in {e.labels}"
 
-    # Negation: "No yellowing ... No pest damage" must NOT yield possible_disease.
+    # In-range sensors and no alerts -> the neutral label only.
     db.add(_obs(farm.id, node.id, "l2", datetime(2026, 7, 25, 9, 0),
-               temperature=28.0, humidity=60.0, soil_moisture=45.0,
-               vision_summary="Healthy green foliage dominates the frame. "
-                              "No significant yellowing observed. No obvious pest damage detected."))
+               temperature=28.0, humidity=60.0, soil_moisture=45.0))
     db.commit()
     e2 = DatasetService.build_from_observation(db, db.get(Observation, "l2"))
-    assert "healthy" in e2.labels and "possible_disease" not in e2.labels, e2.labels
+    assert e2.labels == ["normal_growth"], e2.labels
 
 
 def test_export_filtering_and_versioning() -> None:
     import os
     db = _memory_session()
     farm, node = _farm_with_node(db)
-    db.add(_complete_obs(farm.id, node.id, "x1"))  # quality 100
+    db.add(_complete_obs(farm.id, node.id, "x1"))  # quality 80
     db.add(_obs(farm.id, node.id, "x2", datetime(2026, 7, 25, 8, 0),
-               soil_moisture=15.0))               # low quality (no image/gps/vision)
+               soil_moisture=15.0))               # low quality (no image/gps)
     db.commit()
     for oid in ("x1", "x2"):
         DatasetService.build_from_observation(db, db.get(Observation, oid))
 
     farm_ids = [farm.id]
     # Filter: only high-quality entries export.
-    exp = Exporter.export(db, farm_ids, DatasetFilters(min_quality=80), "jsonl")
+    exp = Exporter.export(db, farm.farmer_id, farm_ids, DatasetFilters(min_quality=80), "jsonl")
     try:
         assert exp.record_count == 1 and exp.dataset_version.startswith("v")
         assert len(exp.checksum) == 64
@@ -408,7 +469,7 @@ def test_export_filtering_and_versioning() -> None:
         os.remove(exp.path)
 
     # CSV export of everything.
-    exp2 = Exporter.export(db, farm_ids, DatasetFilters(), "csv")
+    exp2 = Exporter.export(db, farm.farmer_id, farm_ids, DatasetFilters(), "csv")
     try:
         assert exp2.record_count == 2
         assert open(exp2.path, encoding="utf-8").readline().startswith("dataset_id,")
@@ -420,12 +481,11 @@ def test_dataset_stats_and_conversation_linking() -> None:
     db = _memory_session()
     farm, node = _farm_with_node(db)
     db.add(_obs(farm.id, node.id, "s1", datetime(2026, 7, 25, 8, 0),
-               temperature=28.0, humidity=60.0, soil_moisture=45.0,
-               vision_summary="Healthy green foliage."))
+               temperature=28.0, humidity=60.0, soil_moisture=45.0))
     db.commit()
     DatasetService.build_from_observation(db, db.get(Observation, "s1"))
 
-    stats = DatasetRepository.stats(db, [farm.id])
+    stats = DatasetRepository.stats(db, farm.farmer_id, [farm.id])
     assert stats["dataset_entries"] == 1
     assert stats["crop_distribution"].get("sugarcane") == 1
     assert "daily_rate" in stats
@@ -464,12 +524,14 @@ def test_offline_detection() -> None:
 
 
 if __name__ == "__main__":
-    test_vision_reads_the_image()
     test_language_detection_and_routing()
     test_password_and_token()
     test_context_engine_and_prompt()
     test_crop_doctor_prompt_and_intents()
     test_knowledge_retrieval()
+    test_claim_check()
+    test_llm_failure_is_not_saved()
+    test_compact_prompt_for_finetuned_model()
     test_orchestrator_and_memory()
     test_health_score()
     test_speech_provider()

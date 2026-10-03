@@ -27,10 +27,8 @@ try:
 except Exception:
     pass
 
-import cv2
 import httpx
 import jwt
-import numpy as np
 
 RESULTS: list[dict] = []
 TIMINGS: dict[str, float] = {}
@@ -50,9 +48,9 @@ def timed(label: str, fn):
     return out
 
 
-def jpeg(color=(40, 170, 60)) -> bytes:
-    img = np.zeros((80, 80, 3), np.uint8); img[:] = color
-    return cv2.imencode(".jpg", img)[1].tobytes()
+def jpeg() -> bytes:
+    """Placeholder photo bytes. The backend stores images without decoding them."""
+    return b"\xff\xd8\xff\xe0 gage-validator-photo \xff\xd9"
 
 
 def ws_listen(url: str):
@@ -122,7 +120,6 @@ def main() -> int:
     record("pipeline", "Merged into ONE observation (image + sensors)",
            bool(obs.get("image_path")) and obs.get("soil_moisture") == 16,
            f"soil={obs.get('soil_moisture')} img={'yes' if obs.get('image_path') else 'no'}")
-    record("pipeline", "Vision analysis present", bool(obs.get("vision_summary")), obs.get("vision_summary", "")[:40])
     record("pipeline", "AI summary generated", bool(obs.get("ai_summary")), "present" if obs.get("ai_summary") else "missing")
     # dataset
     ds = c.get("/dataset?limit=5", headers=auth).json()

@@ -20,18 +20,16 @@ node to grounded farmer response.
 | 1 | **Backend running** | `python -m uvicorn backend.main:app --reload` → open http://127.0.0.1:8000 | ☐ |
 | 2 | **Farmer login** | Dashboard login (demo: phone `9999999999` / `demo1234`) → lands on Home | ☐ |
 | 3 | **ESP32 connected** | Power the node; it POSTs `/node/heartbeat`. Home shows Node **Online** + battery | ☐ |
-| 4 | **Phone connected** | Open the app on the phone; camera + GPS permission granted | ☐ |
+| 4 | **Phone connected** | Open the app on the phone and log in | ☐ |
 | 5 | **Sensors working** | ESP32 POSTs `/node/sensors`; values appear in Live Conditions | ☐ |
-| 6 | **Image upload working** | Tap **Scan Crop** (or phone auto-capture) → `/node/image` 200 | ☐ |
-| 7 | **Observation merge working** | Sensors + image within 60s become **one** observation (Timeline shows a single card) | ☐ |
-| 8 | **Vision working** | Observation detail shows a Vision Summary | ☐ |
-| 9 | **Dashboard updated** | Home health/sensors/latest-scan refresh (WebSocket "Analyzing…" banner) | ☐ |
-| 10 | **Voice working** | Ask Gage → tap mic, speak Kannada/English → spoken answer | ☐ |
-| 11 | **AI answer grounded** | Answer references *this* farm's readings (Observation/Analysis/Confidence/Recommendations) — never generic | ☐ |
-| 12 | **Health score updated** | Home gauge reflects soil/humidity/temp/alerts | ☐ |
-| 13 | **Dataset entry created** | Settings/Reports show record count increasing; `/dataset/stats` grows | ☐ |
-| 14 | **WebSocket working** | New capture animates Home without a manual refresh | ☐ |
-| 15 | **End-to-end demo passed** | Node → merge → vision → AI → voice → dashboard, all observed | ☐ |
+| 6 | **Observation created** | Each sensor push appears as a Timeline card | ☐ |
+| 7 | **Dashboard updated** | Home health/sensors refresh (WebSocket "Analyzing…" banner) | ☐ |
+| 8 | **Voice working** | Ask Gage → tap mic, speak Kannada/English → spoken answer | ☐ |
+| 9 | **AI answer grounded** | Answer references *this* farm's readings (Observation/Analysis/Confidence/Recommendations) — never generic | ☐ |
+| 10 | **Health score updated** | Home gauge reflects soil/humidity/temp/alerts | ☐ |
+| 11 | **Dataset entry created** | Settings/Reports show record count increasing; `/dataset/stats` grows | ☐ |
+| 12 | **WebSocket working** | New capture animates Home without a manual refresh | ☐ |
+| 13 | **End-to-end demo passed** | Node → observation → AI → voice → dashboard, all observed | ☐ |
 
 ## One-command pipeline validation (no hardware)
 Reproduces exactly what the ESP32 + phone send and checks every stage, AI
@@ -49,4 +47,4 @@ Exit code `0` = all checks passed. See `docs/validation_report.md` for a capture
 1. In **Settings → Monitoring nodes**, register a node id; copy its **api_key**.
 2. Flash `firmware/esp32_node.ino` with your Wi-Fi creds, backend URL, and that `NODE_KEY`.
 3. Calibrate the soil probe once (`SOIL_DRY` / `SOIL_WET` in the sketch).
-4. The phone app posts images to `/node/image` with the same node key.
+4. Open the web app on the phone to view the dashboard and Ask Gage.
