@@ -4,11 +4,23 @@ sqlalchemy>=2.0.36
 pydantic>=2.10
 pydantic-settings>=2.7
 python-multipart>=0.0.20
-opencv-python-headless>=4.10
-# LiteRT: Google's standalone TFLite runtime (~40MB) for the sugarcane
-# classifier. Full tensorflow is not needed and has no wheel for py3.14.
-ai-edge-litert>=1.2
 python-dotenv>=1.0
 openai>=1.50
+httpx>=0.27
 bcrypt>=4.1
 PyJWT>=2.9
+# Verify TLS against the OS certificate store (needed behind antivirus HTTPS
+# scanning such as Avast Web Shield; see backend/main.py).
+truststore>=0.10
+# Retrieval: multilingual embeddings over knowledge_base/.
+numpy>=1.26
+sentence-transformers>=3.0
+# Fine-tuned Sarvam-1 (LLM_PROVIDER=sarvam_finetuned): base model + LoRA adapter.
+# GPU: the default PyPI torch wheel is CPU-only (~1.6 s/token here vs 0.15 s/token
+# on the RTX 3050). Install the CUDA build matching your driver, e.g.
+#   pip install torch==2.12.0+cu130 --index-url https://download.pytorch.org/whl/cu130
+torch>=2.4
+bitsandbytes>=0.45   # 4-bit NF4 loading on GPU, as in training (SARVAM_QUANTIZATION=4bit)
+transformers>=4.45
+peft>=0.13
+accelerate>=0.34

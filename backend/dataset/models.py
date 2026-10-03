@@ -5,7 +5,7 @@ dataset layer stays decoupled from the domain models.
 """
 from datetime import datetime, timezone
 
-from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import JSON, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.database import Base
@@ -23,8 +23,8 @@ def _now() -> datetime:
 
 class DatasetEntry(Base):
     """One structured training record per observation (upserted as the
-    observation completes). This is the raw material for future fine-tuning,
-    vision training, and research."""
+    observation completes). This is the raw material for future fine-tuning
+    and research."""
 
     __tablename__ = "dataset_entries"
 
@@ -43,7 +43,6 @@ class DatasetEntry(Base):
     humidity: Mapped[float | None] = mapped_column(Float, nullable=True)
     soil_moisture: Mapped[float | None] = mapped_column(Float, nullable=True)
 
-    vision_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     ai_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     image_path: Mapped[str | None] = mapped_column(String, nullable=True)
 
@@ -68,6 +67,11 @@ class DatasetExport(Base):
     __tablename__ = "dataset_exports"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    # Who ran the export. Export history is only ever shown to this farmer;
+    # NULL on rows created before ownership was recorded (shown to nobody).
+    farmer_id: Mapped[int | None] = mapped_column(
+        ForeignKey("farmers.id"), nullable=True, index=True
+    )
     dataset_version: Mapped[str] = mapped_column(String, unique=True, index=True)
     fmt: Mapped[str] = mapped_column(String)                 # jsonl | csv | parquet
     record_count: Mapped[int] = mapped_column(Integer)

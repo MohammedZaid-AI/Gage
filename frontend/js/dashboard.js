@@ -38,23 +38,17 @@ const ICONS = {
   warning: '<path d="M10.3 3.9 2.5 17.4A2 2 0 0 0 4.2 20.5h15.6a2 2 0 0 0 1.7-3.1L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4"/><path d="M12 16.5h.01"/>',
   check: '<path d="M4.5 12.5 9 17 19.5 6.5"/>',
   brain: '<path d="M9.5 4.5a3 3 0 0 0-3 3 3 3 0 0 0-1 5.8V15a3 3 0 0 0 4.5 2.6"/><path d="M14.5 4.5a3 3 0 0 1 3 3 3 3 0 0 1 1 5.8V15a3 3 0 0 1-4.5 2.6"/><path d="M12 4.5v15"/>',
-  refresh: '<path d="M20 11a8 8 0 0 0-13.6-4.6L3.5 9"/><path d="M4 13a8 8 0 0 0 13.6 4.6L20.5 15"/><path d="M3.5 4.5V9H8"/><path d="M20.5 19.5V15H16"/>',
   arrowUp: '<path d="M12 19V5"/><path d="M6 11l6-6 6 6"/>',
   arrowDown: '<path d="M12 5v14"/><path d="M18 13l-6 6-6-6"/>',
   minus: '<path d="M5 12h14"/>',
-  image: '<rect x="3" y="4.5" width="18" height="15" rx="2.5"/><circle cx="8.5" cy="10" r="1.8"/><path d="M21 15.5 16 11l-9 8.5"/>',
-  sun: '<circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M19.1 4.9l-1.8 1.8M6.7 17.3l-1.8 1.8"/>',
-  moon: '<path d="M20 14.5A8.5 8.5 0 0 1 9.5 4A8.5 8.5 0 1 0 20 14.5Z"/>',
   doc: '<path d="M14 3.5H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8.5Z"/><path d="M14 3.5v5h5"/><path d="M8.5 13h7M8.5 16.5h4"/>',
   stop: '<rect x="7" y="7" width="10" height="10" rx="2.5"/>',
-  logout: '<path d="M14.5 3.5H6a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h8.5"/><path d="M16 12h5.5"/><path d="M18.5 8.5 22 12l-3.5 3.5"/>',
 };
 function icon(name, cls = "") {
   const p = ICONS[name] || "";
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"${cls ? ` class="${cls}"` : ""}>${p}</svg>`;
 }
-window.icon = icon;
 // Hydrate static markup: any [data-icon] in the shell gets its SVG prepended, so the
 // icon set stays the single source of truth (HTML just names the icon it wants).
 function hydrateIcons(root = document) {
@@ -78,7 +72,21 @@ function soilLabel(v) {
   if (v < 80) return "Wet";
   return "Saturated";
 }
-const lazyImg = (src, cls) => `<img class="${cls}" src="${src}" loading="lazy" decoding="async" alt="field"/>`;
+// Photos require auth, and <img src> cannot send an Authorization header, so images
+// render with data-src and loadImages() fetches them with the token as blob URLs.
+const lazyImg = (src, cls) => `<img class="${cls}" data-src="${esc(src)}" decoding="async" alt="field"/>`;
+const blobUrls = [];
+async function loadImages(root) {
+  while (blobUrls.length) URL.revokeObjectURL(blobUrls.pop()); // free the previous view's images
+  for (const img of root.querySelectorAll("img[data-src]")) {
+    try {
+      const r = await fetch(img.dataset.src, { headers: { Authorization: `Bearer ${state.token}` } });
+      if (!r.ok) continue;
+      const url = URL.createObjectURL(await r.blob());
+      blobUrls.push(url); img.src = url;
+    } catch { /* leave the placeholder background */ }
+  }
+}
 function ago(iso) {
   const ms = tsMs(iso);
   if (ms == null) return "—";
@@ -129,17 +137,11 @@ const jpost = (path, body) => api(path, { method: "POST", headers: { "Content-Ty
 
 // ---------- health helpers (client-side, mirrors backend thresholds) ----------
 const TH = { soilMin: 20, humMax: 85, tempMax: 40 };
-// Negation-aware: a clause counts only if it is NOT negated ("no yellowing" is fine).
-function visionAnomaly(text) {
-  return (text || "").toLowerCase().split(/[.;\n]/).some(
-    (cl) => !/\bno\b|\bnot\b|without|free of/.test(cl) && /(yellow|disease|pest|wilt|sparse)/.test(cl));
-}
 function clientHealth(o, alerts = []) {
   let s = 100;
   if (o.soil_moisture != null && o.soil_moisture < TH.soilMin) s -= 20;
   if (o.humidity != null && o.humidity > TH.humMax) s -= 15;
   if (o.temperature != null && o.temperature > TH.tempMax) s -= 15;
-  if (visionAnomaly(o.vision_summary)) s -= 15;
   s -= Math.min(alerts.length * 5, 25);
   s = Math.max(0, Math.min(100, s));
   const label = s >= 90 ? "Excellent" : s >= 80 ? "Healthy" : s >= 60 ? "Fair" : "Needs care";
@@ -211,6 +213,7 @@ async function go(name, arg) {
     <div class="skeleton" style="height:180px"></div></div>`;
   try {
     host.innerHTML = `<div class="view">${await VIEWS[name](arg)}</div>`;
+    loadImages(host);
     if (WIRE[name]) WIRE[name](arg);
   } catch (e) {
     host.innerHTML = `<div class="view"><div class="card"><p class="muted">Could not load this page. ${esc(e.message || "")}</p><button class="btn" onclick="go('${name}')">Retry</button></div></div>`;
@@ -255,7 +258,6 @@ VIEWS.home = async () => {
   const snap = s.sensor_snapshot || {}, o = s.latest_observation || {};
   const trend = {}; (s.trends || []).forEach((t) => (trend[t.metric] = t));
   const arrow = (m) => trend[m] ? `<span class="trend ${trend[m].direction}">${icon(trend[m].direction === "up" ? "arrowUp" : trend[m].direction === "down" ? "arrowDown" : "minus")}${Math.abs(trend[m].delta)}${trend[m].unit}</span>` : "";
-  const img = imgUrl(o.image_path);
   const H = s.health, cls = H.status === "Healthy" ? "good" : H.status === "Watch" ? "watch" : "crit";
   const emLabel = H.score >= 90 ? "Excellent" : H.score >= 80 ? "Very good" : H.score >= 60 ? "Fair" : "Needs care";
   state.lastObsTime = o.timestamp || null;
@@ -280,7 +282,6 @@ VIEWS.home = async () => {
     <div class="card flat">
       <div class="calc-title">Calculated from</div>
       <ul class="checklist">
-        ${chk(!!o.image_path, "Latest image")}
         ${chk(snap.soil_moisture != null, "Soil moisture")}
         ${chk(snap.temperature != null, "Temperature")}
         ${chk(snap.humidity != null, "Humidity")}
@@ -288,17 +289,9 @@ VIEWS.home = async () => {
       </ul>
     </div>
 
-    <div class="section-title">Latest scan</div>
-    <div class="card tap" style="padding:12px" onclick="${o.id ? `go('detail','${o.id}')` : ""}">
-      ${img ? `<div class="scan-wrap">${lazyImg(img, "obs-image")}
-                 <span class="scan-tag">${icon("camera")}Latest scan</span>
-                 <span class="scan-time">${o.timestamp ? ago(o.timestamp) : ""}</span></div>`
-            : `<div class="img-empty">${icon("image")}<span>No scan yet — tap Scan crop below</span></div>`}
-    </div>
-
     <div class="section-title">Today's report</div>
     <div class="card ai-card"><div class="head">${icon("sparkle")}Gage · ${esc(state.farmName)}</div>
-      <p>${esc(s.ai_summary || "Capture a scan and I'll summarise your field — health, moisture trend, and what to do next.")}</p></div>
+      <p>${esc(s.ai_summary || "No field summary yet. Ask Gage about your field any time.")}</p></div>
 
     <div class="section-title">Conditions</div>
     <div class="grid">
@@ -306,7 +299,7 @@ VIEWS.home = async () => {
       <div class="sensor m-hum"><div class="top"><span class="ic">${icon("droplet")}</span>${arrow("humidity")}</div><span class="v">${fmt(snap.humidity)}<small>%</small></span><span class="l">Humidity</span></div>
       <div class="sensor m-soil"><div class="top"><span class="ic">${icon("sprout")}</span>${arrow("soil_moisture")}</div><span class="v word">${soilLabel(snap.soil_moisture)}</span><span class="l">Soil moisture</span></div>
       <div class="sensor m-batt"><div class="top"><span class="ic">${icon("battery")}</span></div><span class="v">${nh.battery != null ? fmt(nh.battery) + "<small>%</small>" : "—"}</span><span class="l">Node battery</span></div>
-      ${o.gps_lat != null ? `<div class="sensor wide"><div class="top"><span class="ic">${icon("pin")}</span></div><span class="v word">${(+o.gps_lat).toFixed(4)}, ${(+o.gps_long).toFixed(4)}</span><span class="l">Last scan location</span></div>` : ""}
+      ${o.gps_lat != null ? `<div class="sensor wide"><div class="top"><span class="ic">${icon("pin")}</span></div><span class="v word">${(+o.gps_lat).toFixed(4)}, ${(+o.gps_long).toFixed(4)}</span><span class="l">Last capture location</span></div>` : ""}
     </div>
 
     ${(s.active_alerts || []).length ? `<div class="section-title">Active alerts</div>${[...s.active_alerts].sort((a, b) => (b.severity === "critical") - (a.severity === "critical")).map((a) => `
@@ -316,14 +309,12 @@ VIEWS.home = async () => {
     <div class="section-title">Quick actions</div>
     <div class="qa">
       <button onclick="go('ask')"><span class="ic">${icon("mic")}</span>Ask Gage</button>
-      <button id="qa-scan"><span class="ic">${icon("camera")}</span>Scan crop</button>
       <button onclick="go('timeline')"><span class="ic">${icon("clock")}</span>Timeline</button>
       <button onclick="go('reports')"><span class="ic">${icon("doc")}</span>Reports</button>
     </div>`;
 };
 WIRE.home = () => {
   requestAnimationFrame(() => { const v = $(".gauge .val"); if (v) v.style.strokeDashoffset = v.dataset.off; });
-  const b = $("#qa-scan"); if (b) b.onclick = capture;
 };
 
 // ---------- TIMELINE ----------
@@ -339,7 +330,7 @@ VIEWS.timeline = async () => {
     return `<div class="card tl tap" onclick="go('detail','${o.id}')">
       ${img ? lazyImg(img, "") : `<div class="thumb">${icon("leaf")}</div>`}
       <div class="body"><div class="when">${new Date(o.timestamp).toLocaleDateString(undefined, { month: "short", day: "numeric" })} · ${ago(o.timestamp)}</div>
-        <div class="sum">${esc(o.vision_summary || o.ai_summary || "Observation")}</div>
+        <div class="sum">${esc(o.ai_summary || "Observation")}</div>
         <div class="mini"><span class="health-pill ${h.cls}">${h.label} ${h.score}</span><span>${icon("sprout")}${soilLabel(o.soil_moisture)}</span></div>
       </div><span class="go">${icon("chevron")}</span></div>`;
   }).join("");
@@ -347,13 +338,6 @@ VIEWS.timeline = async () => {
 
 // ---------- OBSERVATION DETAIL (stored data only — no /chat) ----------
 function buildAnalysis(o, alerts) {
-  const facts = [];
-  if (o.vision_summary) facts.push(`Image: ${o.vision_summary}`);
-  if (o.temperature != null) facts.push(`Temperature ${o.temperature}°C`);
-  if (o.humidity != null) facts.push(`Humidity ${o.humidity}%`);
-  if (o.soil_moisture != null) facts.push(`Soil moisture ${o.soil_moisture}%`);
-  alerts.forEach((a) => facts.push(`Alert: ${a.message}`));
-
   const recs = [], why = [];
   if (o.soil_moisture != null && o.soil_moisture < TH.soilMin) {
     recs.push("Irrigate within the next 24 hours — soil moisture is low.");
@@ -370,29 +354,25 @@ function buildAnalysis(o, alerts) {
     recs.push("Protect against heat stress and keep the soil moist.");
     why.push(`temperature is ${o.temperature}°C (above ${TH.tempMax}°C)`);
   }
-  if (visionAnomaly(o.vision_summary)) {
-    recs.push("Inspect leaves closely — the image shows possible disease or pest signs.");
-    why.push("the image shows possible leaf discoloration or damage");
-  }
   if (alerts.length) why.push(`${alerts.length} active alert(s) on this farm`);
   if (!recs.length) recs.push("Continue regular monitoring — conditions look within the healthy range.");
 
-  const present = [o.image_path, o.temperature, o.humidity, o.soil_moisture].filter((x) => x != null).length;
-  const conf = present >= 4 ? "High" : present >= 2 ? "Medium" : "Low";
-  return { facts, recs, why, conf };
+  const present = [o.temperature, o.humidity, o.soil_moisture].filter((x) => x != null).length;
+  const conf = present >= 3 ? "High" : present >= 2 ? "Medium" : "Low";
+  return { recs, why, conf };
 }
 VIEWS.detail = async (id) => {
   const o = state.obsCache[id];
   if (!o) return `<div class="card"><p class="muted">Observation not found.</p><button class="btn" onclick="go('timeline')">Back</button></div>`;
   const alerts = (state.lastSummary && state.lastSummary.active_alerts) || [];
   const img = imgUrl(o.image_path), h = clientHealth(o, alerts), a = buildAnalysis(o, alerts);
-  const whyText = `Based on the ${o.image_path ? "latest image, " : ""}sensor readings, and active alerts: ` +
+  const whyText = "Based on the sensor readings and active alerts: " +
     (a.why.length ? a.why.join("; ") + "." : "all monitored indicators are within the normal range.");
   return `
     <button class="btn ghost sm" onclick="go('timeline')">${icon("chevron", "flip")} Back</button>
     <div class="card" style="padding:12px;margin-top:12px">
-      ${img ? `<div class="scan-wrap">${lazyImg(img, "obs-image")}<span class="scan-tag">${icon("camera")}Scan</span></div>` : `<div class="img-empty">${icon("image")}<span>No image</span></div>`}
-      <div class="when muted" style="margin-top:9px;font-size:12.5px">${new Date(o.timestamp).toLocaleString()} · node ${esc(o.node_id)}</div>
+      ${img ? `<div class="scan-wrap" style="margin-bottom:9px">${lazyImg(img, "obs-image")}<span class="scan-tag">${icon("camera")}Photo</span></div>` : ""}
+      <div class="when muted" style="font-size:12.5px">${new Date(o.timestamp).toLocaleString()} · node ${esc(o.node_id)}</div>
     </div>
 
     <div class="card hero">
@@ -407,9 +387,6 @@ VIEWS.detail = async (id) => {
       <div class="sensor m-soil"><div class="top"><span class="ic">${icon("sprout")}</span></div><span class="v word">${soilLabel(o.soil_moisture)}</span><span class="l">Soil moisture</span></div>
       <div class="sensor"><div class="top"><span class="ic">${icon("pin")}</span></div><span class="v word">${o.gps_lat != null ? (+o.gps_lat).toFixed(3) + ", " + (+o.gps_long).toFixed(3) : "—"}</span><span class="l">Location</span></div>
     </div>
-
-    <div class="section-title">Vision summary</div>
-    <div class="card"><p style="margin:0;font-size:14.5px;line-height:1.6;color:var(--ink-2)">${esc(o.vision_summary || "No image was analysed for this observation.")}</p></div>
 
     ${o.ai_summary ? `<div class="section-title">AI summary</div><div class="card ai-card"><div class="head">${icon("sparkle")}Gage</div><p>${esc(o.ai_summary)}</p></div>` : ""}
 
@@ -467,7 +444,12 @@ const confClass = (c) => /high/i.test(c) ? "high" : /low/i.test(c) ? "low" : "me
 function bullets(t) { const i = t.split("\n").map((l) => l.replace(/^[-•]\s*/, "").trim()).filter(Boolean); return i.length <= 1 ? `<p>${esc(t || "—")}</p>` : `<ul>${i.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`; }
 function docInline(answer) {
   const d = parseDoc(answer); if (!d.structured) return esc(answer);
-  return `${d.observation ? `<b>Observation</b>${bullets(d.observation)}` : ""}
+  // Anything before the first section is the grounding caveat (claims the server
+  // could not find in its sources). It must stay visible, never be dropped.
+  const first = answer.search(/\**\s*(Observation|Analysis|Confidence|Recommendations)\b/i);
+  const pre = first > 0 ? answer.slice(0, first).trim() : "";
+  return `${pre ? `<p class="caveat">${esc(pre)}</p>` : ""}
+    ${d.observation ? `<b>Observation</b>${bullets(d.observation)}` : ""}
     ${d.analysis ? `<b>Analysis</b><p>${esc(d.analysis)}</p>` : ""}
     ${d.confidence ? `<span class="conf ${confClass(d.confidence)}">Confidence: ${esc((d.confidence.match(/high|medium|low/i) || ["Medium"])[0])}</span>` : ""}
     ${d.recommendations ? `<b style="display:block;margin-top:8px">Recommendations</b>${bullets(d.recommendations)}` : ""}`;
@@ -561,27 +543,6 @@ window.switchFarm = async (id) => {
   toast(`Switched to ${f.name}`); go("home");
 };
 
-// ---------- capture (reuses node ingest API) ----------
-function capture() {
-  if (!state.node) return toast("Register a monitoring node in Settings first");
-  const input = document.createElement("input");
-  input.type = "file"; input.accept = "image/*"; input.capture = "environment";
-  input.onchange = async () => {
-    const file = input.files[0]; if (!file) return;
-    const key = { "X-Node-Key": state.node.api_key }; toast("Uploading scan…");
-    await fetch("/node/sensors", { method: "POST", headers: { "Content-Type": "application/json", ...key },
-      body: JSON.stringify({ temperature: +(24 + Math.random() * 6).toFixed(1), humidity: +(55 + Math.random() * 20).toFixed(1), soil_moisture: +(30 + Math.random() * 25).toFixed(1), battery: 95 }) }).catch(() => {});
-    const fd = new FormData(); fd.append("image", file);
-    navigator.geolocation?.getCurrentPosition((p) => sendCapture(fd, key, p.coords), () => sendCapture(fd, key, null));
-  };
-  input.click();
-}
-async function sendCapture(fd, key, coords) {
-  if (coords) { fd.append("gps_lat", coords.latitude); fd.append("gps_long", coords.longitude); }
-  try { await fetch("/node/image", { method: "POST", headers: key, body: fd }); invalidate(); toast("Scan captured"); }
-  catch { toast("Upload failed"); }
-}
-
 // ---------- voice output ----------
 function playB64(b64) {
   try { new Audio("data:audio/wav;base64," + b64).play().catch(() => {}); return true; }
@@ -674,7 +635,8 @@ function showAnalyzing() {
 }
 function connectWS() {
   const proto = location.protocol === "https:" ? "wss" : "ws";
-  let ws; try { ws = new WebSocket(`${proto}://${location.host}/ws`); } catch { return; }
+  if (!state.token) return; // the socket requires a login
+  let ws; try { ws = new WebSocket(`${proto}://${location.host}/ws?token=${encodeURIComponent(state.token)}`); } catch { return; }
   ws.onmessage = async (ev) => {
     let m; try { m = JSON.parse(ev.data); } catch { return; }
     if (m.event === "observation") {
@@ -685,7 +647,7 @@ function connectWS() {
       } else toast("New observation captured");
     } else if (m.event === "alert" && state.view === "home") { invalidate(); go("home"); }
   };
-  ws.onclose = () => setTimeout(connectWS, 4000);
+  ws.onclose = () => { if (state.token) setTimeout(connectWS, 4000); };
 }
 // keep "Updated … ago" fresh without refetching
 let clockTimer = null;

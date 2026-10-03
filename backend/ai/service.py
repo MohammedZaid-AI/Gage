@@ -6,35 +6,22 @@ chat flow in ai/orchestrator.py — this module only owns provider wiring.
 """
 import logging
 
-from backend.ai.base import VisionResult, LLMProvider, SpeechProvider, VisionProvider
-from backend.ai.mock import MockLLMProvider, MockSpeechProvider, MockVisionProvider
+from backend.ai.base import LLMProvider, SpeechProvider
+from backend.ai.mock import MockLLMProvider, MockSpeechProvider
 from backend.config import get_settings
 
 logger = logging.getLogger("gage.ai")
 
 
-def _select_vision() -> VisionProvider:
-    """Map VISION_PROVIDER to an implementation. The model is loaded exactly once,
-    here, at import time — never per request."""
-    name = get_settings().vision_provider.lower()
-    if name == "tflite":
-        from backend.ai.providers.tflite_vision import TFLiteVisionProvider  # lazy
-
-        try:
-            return TFLiteVisionProvider()
-        except Exception:
-            # A missing model file or runtime must not take the API down; the
-            # mock abstains from every diagnosis, so nothing downstream guesses.
-            logger.exception("tflite vision provider failed to load; falling back to mock")
-            return MockVisionProvider()
-    if name != "mock":
-        logger.warning("vision provider %r not implemented yet; using mock", name)
-    return MockVisionProvider()
-
-
 def _select_llm() -> LLMProvider:
     """Map LLM_PROVIDER to an implementation. Add gemini/ollama/openai here only."""
     name = get_settings().llm_provider.lower()
+    if name == "sarvam_finetuned":
+        # Deliberately no fallback: if the configured model cannot load, startup
+        # fails loudly instead of silently answering farmers with the mock.
+        from backend.ai.providers.sarvam_llm import SarvamFinetunedLLMProvider  # lazy: torch/peft
+
+        return SarvamFinetunedLLMProvider()
     if name == "groq":
         from backend.ai.providers.groq_provider import GroqLLMProvider  # lazy: only import SDK when used
 
@@ -56,7 +43,6 @@ def _select_speech() -> SpeechProvider:
     return MockSpeechProvider()
 
 
-_vision = _select_vision()
 _llm = _select_llm()
 _speech = _select_speech()
 
@@ -66,14 +52,16 @@ def detect_language(text: str) -> str:
     return "kn" if any("ಀ" <= ch <= "೿" for ch in text) else "en"
 
 
-def analyze_image(image_bytes: bytes) -> VisionResult:
-    """Vision finding for one image: prose + (label, confidence, abstained)."""
-    return _vision.analyze(image_bytes)
-
-
 def complete(question: str, context: str, language: str) -> str:
-    """Low-level: send an already-built prompt/context to the active LLM provider."""
+    """Low-level: send an already-built prompt/context to the active LLM provider.
+    Raises LLMError if the model could not answer. Blocking: call it off the
+    event loop."""
     return _llm.answer(question, context, language)
+
+
+def prompt_style() -> str:
+    """'structured' or 'compact' — which prompt the active LLM expects."""
+    return _llm.prompt_style
 
 
 def transcribe(audio: bytes, language: str | None = None) -> tuple[str, str]:

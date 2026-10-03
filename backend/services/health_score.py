@@ -5,11 +5,8 @@ on a FarmContext snapshot so it sees the same data the AI does.
 """
 from dataclasses import dataclass
 
-from backend.ai.base import DISEASED
 from backend.config import get_settings
 from backend.services.farm_context import FarmContext
-
-_ANOMALY_WORDS = ("yellow", "disease", "stress", "sparse", "pest", "wilt", "brown")
 
 
 @dataclass(frozen=True)
@@ -45,21 +42,6 @@ def compute(ctx: FarmContext) -> HealthScore:
     if obs.temperature is not None and obs.temperature > s.temperature_max:
         score -= 15
         reasons.append(f"High temperature ({obs.temperature:.0f}C).")
-
-    # A classifier verdict outranks keyword matching on its own prose. Deduct in
-    # proportion to confidence so a hesitant call cannot tank the score outright.
-    if obs.vision_label:
-        if obs.vision_label in DISEASED:
-            conf = obs.vision_confidence if obs.vision_confidence is not None else 1.0
-            score -= round(20 * conf)
-            reasons.append(f"Vision: {obs.vision_label.replace('_', ' ')} "
-                           f"({conf * 100:.0f}% confidence).")
-    else:
-        vision = (obs.vision_summary or "").lower()
-        hits = [w for w in _ANOMALY_WORDS if w in vision]
-        if hits:
-            score -= 15
-            reasons.append(f"Vision anomaly ({', '.join(hits)}).")
 
     if ctx.active_alerts:
         penalty = min(len(ctx.active_alerts) * 5, 25)

@@ -10,24 +10,27 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./storage/observations.db"
     image_dir: str = "./storage/images"
 
-    vision_provider: str = "mock"
-    llm_provider: str = "mock"
+    llm_provider: str = "mock"  # mock | groq | sarvam_finetuned
 
-    # Vision classifier (VISION_PROVIDER=tflite). Teachable Machine export:
-    # a float32 224x224x3 MobileNet + a labels.txt of "<index> <name>" lines.
-    vision_model_path: str = "./models/sugarcane/model_unquant.tflite"
-    vision_labels_path: str = "./models/sugarcane/labels.txt"
-    # Below this top-1 probability we refuse to name a class.
-    vision_confidence_threshold: float = 0.70
-    # Top-1 must also beat top-2 by this much; catches a two-way coin flip that
-    # still clears the threshold.
-    vision_margin_min: float = 0.15
-    # Input sanity gates (see providers/tflite_vision.py for what these cannot do).
-    vision_min_image_px: int = 64      # shorter side, in pixels
-    vision_min_detail: float = 60.0    # Laplacian variance; blank/flat frames score ~0
+    # Fine-tuned Sarvam-1 (LLM_PROVIDER=sarvam_finetuned): a LoRA adapter applied
+    # with PEFT on top of the base model, loaded once at startup.
+    sarvam_base_model: str = "sarvamai/sarvam-1"
+    sarvam_adapter_path: str = "./models/sarvam_agri_final"
+    sarvam_device: str = "auto"          # auto | cpu | cuda (cuda fails loudly if unavailable)
+    # Matches training (QLoRA, 4-bit NF4). 4bit | 8bit | none. Quantization needs CUDA.
+    sarvam_quantization: str = "4bit"
+    sarvam_max_new_tokens: int = 256
 
-    gemini_api_key: str = ""
-    openai_api_key: str = ""
+    # Retrieval (RAG) over the curated knowledge base documents.
+    knowledge_base_dir: str = "./knowledge_base"
+    embedding_model: str = "intfloat/multilingual-e5-small"
+    # Cosine floor for a chunk to count as relevant. Measured on this corpus:
+    # on-topic questions (English, or translated Kannada) scored >= 0.87, off-topic
+    # ones <= 0.81. Below the floor a question retrieves nothing rather than noise.
+    retrieval_min_score: float = 0.83
+    # Latin-script questions whose best direct match is below this are retried as
+    # romanized Kannada (transliterate -> translate).
+    retrieval_romanized_trigger: float = 0.86
 
     # Groq (OpenAI-compatible). Model is configurable; defaults to GPT-OSS 120B.
     groq_api_key: str = ""
@@ -38,11 +41,12 @@ class Settings(BaseSettings):
     speech_provider: str = "mock"
     sarvam_api_key: str = ""
     sarvam_stt_model: str = "saarika:v2.5"
-    sarvam_tts_model: str = "bulbul:v2"
-    sarvam_speaker: str = "anushka"
+    sarvam_tts_model: str = "bulbul:v3"  # v2 was deprecated by Sarvam (HTTP 400)
+    sarvam_speaker: str = "kavitha"     # must be a bulbul:v3 voice
 
-    # Auth. jwt_secret MUST be overridden in production via the environment.
-    jwt_secret: str = "dev-insecure-change-me"
+    # Auth. No usable default: the app refuses to start until JWT_SECRET is set
+    # (see require_secure_settings).
+    jwt_secret: str = ""
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60 * 24 * 7  # 7 days
 
@@ -53,6 +57,10 @@ class Settings(BaseSettings):
     # Observation merge: an image and a sensor reading from the same node within
     # this window are merged into one observation.
     merge_window_seconds: int = 60
+
+    # AI farm summary from sensor data: on a new alert, or when the newest summary
+    # is older than this. Never per reading (the ESP32 posts every 30 s).
+    summary_interval_minutes: int = 60
 
     # A node is considered offline if its last heartbeat is older than this.
     offline_seconds: int = 180
@@ -68,3 +76,22 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
+
+
+# Values that have been published (in this repo's history or docs) and so must
+# never sign real tokens: anyone who knows them can forge a login for any farmer.
+_KNOWN_PUBLIC_JWT_SECRETS = frozenset({"", "dev-insecure-change-me", "change-me", "secret"})
+_MIN_JWT_SECRET_LEN = 32
+
+
+def require_secure_settings() -> None:
+    """Refuse to run with a forgeable JWT secret. Raises RuntimeError, so
+    `uvicorn backend.main:app` fails at startup instead of serving insecurely."""
+    secret = get_settings().jwt_secret
+    if secret in _KNOWN_PUBLIC_JWT_SECRETS or len(secret) < _MIN_JWT_SECRET_LEN:
+        raise RuntimeError(
+            "JWT_SECRET is missing, a known public default, or shorter than "
+            f"{_MIN_JWT_SECRET_LEN} characters. Refusing to start. Generate one with:\n"
+            '  python -c "import secrets; print(secrets.token_urlsafe(48))"\n'
+            "and set it as JWT_SECRET in .env or the environment."
+        )

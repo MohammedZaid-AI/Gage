@@ -1,69 +1,14 @@
-"""Offline mock providers. Real image analysis via OpenCV, templated LLM answers.
+"""Offline mock providers: templated LLM answers and a text-in/silence-out speech loop.
 
-These run with no API keys and make the full demo work. The vision mock does
-genuine pixel analysis so descriptions vary with the actual image.
+These run with no API keys and make the full demo work.
 """
 import io
-import logging
 import wave
 
-import cv2
-import numpy as np
-
-from backend.ai.base import LLMProvider, SpeechProvider, VisionProvider, VisionResult
-
-logger = logging.getLogger("gage.ai.mock")
-
-
-class MockVisionProvider(VisionProvider):
-    """Colour-statistics fallback. Deliberately reports NO label and NO confidence:
-    counting green pixels cannot tell sugarcane from a bottle, so it must never
-    produce a diagnosis. A trained classifier fills those fields; until then the
-    prompt layer sees `usable == False` and declines to diagnose from the image."""
-
-    def analyze(self, image_bytes: bytes) -> VisionResult:
-        img = cv2.imdecode(np.frombuffer(image_bytes, np.uint8), cv2.IMREAD_COLOR)
-        if img is None:
-            return VisionResult(
-                description="Image could not be decoded; no visual analysis available.",
-                abstained=True, reason="unreadable image",
-            )
-
-        h, w = img.shape[:2]
-        hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-        total = float(h * w)
-
-        # HSV masks: green foliage, yellowing, dark/brown regions.
-        green = cv2.inRange(hsv, (35, 40, 40), (85, 255, 255)).sum() / 255 / total
-        yellow = cv2.inRange(hsv, (20, 40, 40), (34, 255, 255)).sum() / 255 / total
-        brightness = float(hsv[:, :, 2].mean()) / 255
-
-        parts: list[str] = []
-        if green > 0.35:
-            parts.append("Healthy green foliage dominates the frame.")
-        elif green > 0.12:
-            parts.append("Moderate green cover; canopy is thinner than ideal.")
-        else:
-            parts.append("Little green foliage detected; sparse or stressed vegetation.")
-
-        if yellow > 0.15:
-            parts.append("Noticeable yellowing, possibly on lower leaves.")
-        elif yellow > 0.05:
-            parts.append("Slight yellowing visible on some leaves.")
-        else:
-            parts.append("No significant yellowing observed.")
-
-        parts.append("No obvious pest damage detected." if brightness > 0.25
-                     else "Low light; inspect again in better lighting.")
-        return VisionResult(
-            description=" ".join(parts),
-            abstained=True,               # colour stats are not a diagnosis
-            reason="no trained crop classifier is loaded",
-        )
-
+from backend.ai.base import LLMProvider, SpeechProvider
 
 # Fact lines the mock lifts out of the built prompt so its answer stays grounded.
-_FACT_KEYS = ("Temperature:", "Humidity:", "Soil moisture:", "Vision:",
+_FACT_KEYS = ("Temperature:", "Humidity:", "Soil moisture:",
               "[warning]", "[critical]", "decreased", "increased", "unchanged")
 
 

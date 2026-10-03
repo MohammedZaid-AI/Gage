@@ -62,7 +62,7 @@ class DatasetRepository:
         return list(db.execute(stmt).scalars())
 
     @classmethod
-    def stats(cls, db: Session, farm_ids: list[int]) -> dict:
+    def stats(cls, db: Session, farmer_id: int, farm_ids: list[int]) -> dict:
         if not farm_ids:
             return {"dataset_entries": 0, "exported_entries": 0, "average_quality": 0,
                     "total_observations": 0, "crop_distribution": {},
@@ -86,7 +86,8 @@ class DatasetRepository:
                 last7[d] += 1
 
         exports = list(db.execute(
-            select(DatasetExport).order_by(DatasetExport.created_at.desc()).limit(10)
+            select(DatasetExport).where(DatasetExport.farmer_id == farmer_id)
+            .order_by(DatasetExport.created_at.desc()).limit(10)
         ).scalars())
 
         return {

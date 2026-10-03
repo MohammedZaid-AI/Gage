@@ -19,7 +19,6 @@ class DatasetEntryOut(BaseModel):
     temperature: float | None
     humidity: float | None
     soil_moisture: float | None
-    vision_summary: str | None
     ai_summary: str | None
     image_path: str | None
     active_alerts: list[str]

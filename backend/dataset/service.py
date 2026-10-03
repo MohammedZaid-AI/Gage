@@ -38,7 +38,6 @@ class DatasetService:
         entry.temperature = obs.temperature
         entry.humidity = obs.humidity
         entry.soil_moisture = obs.soil_moisture
-        entry.vision_summary = obs.vision_summary
         entry.ai_summary = obs.ai_summary
         entry.image_path = obs.image_path
         entry.active_alerts = active_alerts

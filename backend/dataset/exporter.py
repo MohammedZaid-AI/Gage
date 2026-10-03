@@ -35,7 +35,6 @@ def _row(e: DatasetEntry) -> dict:
         "temperature": e.temperature,
         "humidity": e.humidity,
         "soil_moisture": e.soil_moisture,
-        "vision_summary": e.vision_summary,
         "ai_summary": e.ai_summary,
         "active_alerts": list(e.active_alerts or []),
         "labels": list(e.labels or []),
@@ -85,7 +84,7 @@ _WRITERS = {"jsonl": _write_jsonl, "csv": _write_csv, "parquet": _write_parquet}
 
 class Exporter:
     @staticmethod
-    def export(db: Session, farm_ids: list[int], filters: DatasetFilters,
+    def export(db: Session, farmer_id: int, farm_ids: list[int], filters: DatasetFilters,
                fmt: str = "jsonl") -> DatasetExport:
         fmt = fmt.lower()
         if fmt not in _FORMATS:
@@ -106,7 +105,7 @@ class Exporter:
                 e.status = EXPORTED
 
         export = DatasetExport(
-            dataset_version=version, fmt=fmt, record_count=len(rows),
+            farmer_id=farmer_id, dataset_version=version, fmt=fmt, record_count=len(rows),
             filters_used=_filters_dict(filters), checksum=checksum,
             path=path.as_posix(),
         )

@@ -137,7 +137,6 @@ class ObservationOut(BaseModel):
     temperature: float | None
     humidity: float | None
     soil_moisture: float | None
-    vision_summary: str | None
     ai_summary: str | None
 
 
@@ -151,6 +150,9 @@ class ChatResponse(BaseModel):
     question: str
     answer: str
     language: str
+    # Specific claims the grounding check could not find in the model's context
+    # (the answer is already prefixed with a caveat when this is non-empty).
+    unsupported_claims: list[str] = []
 
 
 # --- voice ---

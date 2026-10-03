@@ -6,8 +6,6 @@ from datetime import datetime
 
 from backend.models import Observation
 
-_VALID_VISION = True  # sentinel for readability below
-
 
 @dataclass(frozen=True)
 class Quality:
@@ -44,15 +42,6 @@ class QualityScorer:
         score += 10 * present  # up to 30 for complete sensor readings
         if present < 3:
             reasons.append(f"{3 - present} sensor value(s) missing")
-
-        vision = (obs.vision_summary or "").strip().lower()
-        if obs.vision_label:
-            score += 20          # a real, non-abstained classification
-        elif vision and "unavailable" not in vision:
-            score += 10          # prose only: usable context, weak supervision
-            reasons.append("no classifier label (description only)")
-        else:
-            reasons.append("no valid vision summary")
 
         age = _age_days(obs.timestamp)
         if age is not None and age <= 7:

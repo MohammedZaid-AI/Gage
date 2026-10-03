@@ -1,15 +1,24 @@
 """Observation service: merge the phone's image and the ESP32's sensor reading
-into ONE observation per capture, then run vision + AI summary.
+into ONE observation per capture, and decide when an AI summary is worth making.
 
 This is the only place hardware data meets the AI facade. The node routers call
 this service; they never import AI providers directly, keeping AI independent of
-hardware (Observation -> Vision -> AI stays a one-way pipeline).
+hardware (Observation -> AI stays a one-way pipeline). Images are stored as field
+records only; nothing analyses them.
 
 Merge strategy: an incoming image/sensor reading is folded into the most recent
 observation from the same node that is still missing that modality and is within
 `merge_window_seconds`; otherwise a fresh observation is started.
+
+Summary trigger: a reading that raises a NEW alert, or the farm's newest summary
+being older than SUMMARY_INTERVAL_MINUTES (default 60). Not every reading: the
+ESP32 posts every 30 s. Alerts alone are not enough because they de-duplicate
+while open and are never auto-resolved, so each type fires only once. The
+summary runs in a background thread after the response is sent, never inside
+the sensor request.
 """
 import logging
+import threading
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -17,8 +26,9 @@ from pathlib import Path
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from backend.ai import analyze_image, summarize_observation
+from backend.ai import claim_check, summarize_observation
 from backend.config import get_settings
+from backend.database import SessionLocal
 from backend.dataset.service import DatasetService
 from backend.models import Alert, Farm, Observation, SensorReading, _now
 from backend.services import alerts
@@ -67,31 +77,75 @@ def _mergeable(db: Session, node_id: str, adding: str) -> Observation | None:
     return None
 
 
-def _obs_context(obs: Observation, farm: Farm | None) -> str:
+def _obs_context(obs: Observation, farm: Farm | None, open_alerts: list[str]) -> str:
     def fmt(v: float | None, unit: str) -> str:
         return f"{v}{unit}" if v is not None else "n/a"
 
     return (
         f"Farm: {farm.name if farm else obs.farm_id}\n"
-        f"- Vision: {obs.vision_summary or 'not analysed'}\n"
         f"- Temperature: {fmt(obs.temperature, ' C')}\n"
         f"- Humidity: {fmt(obs.humidity, ' %')}\n"
-        f"- Soil moisture: {fmt(obs.soil_moisture, ' %')}"
+        f"- Soil moisture: {fmt(obs.soil_moisture, ' %')}\n"
+        f"- Active alerts: {'; '.join(open_alerts) or 'none'}"
     )
 
 
-def _finalize(db: Session, obs: Observation) -> None:
-    """Once an observation has both an image and sensor values, generate its AI
-    summary exactly once. A provider failure must never drop the observation."""
-    if not (obs.image_path and obs.temperature is not None) or obs.ai_summary:
-        return
-    farm = db.get(Farm, obs.farm_id)
-    language = farm.farmer.language if farm and farm.farmer else "en"
-    try:
-        obs.ai_summary = summarize_observation(_obs_context(obs, farm), language)
-        logger.info("AI summary generated for observation %s", obs.id)
-    except Exception:  # AI is best-effort; the observation stands without it
-        logger.exception("AI summary failed for observation %s", obs.id)
+def summary_due(db: Session, obs: Observation, raised: list[Alert]) -> bool:
+    """Whether this sensor observation should get an AI summary (see module doc)."""
+    if all(v is None for v in (obs.temperature, obs.humidity, obs.soil_moisture)):
+        return False
+    if obs.ai_summary:
+        return False
+    if raised:
+        return True
+    last = db.execute(
+        select(Observation.timestamp)
+        .where(Observation.farm_id == obs.farm_id, Observation.ai_summary.is_not(None))
+        .order_by(Observation.timestamp.desc()).limit(1)
+    ).scalar_one_or_none()
+    age = _age_seconds(last)
+    return age is None or age >= get_settings().summary_interval_minutes * 60
+
+
+_summarizing: set[int] = set()   # farm ids with a summary in flight
+_summarizing_lock = threading.Lock()
+
+
+def generate_summary(observation_id: str, session_factory=SessionLocal) -> None:
+    """Background task: summarise one observation with its own DB session.
+
+    One in flight per farm, so readings arriving during a slow generation do not
+    queue duplicates. A model failure saves nothing and is logged — a summary is
+    never replaced by an error message.
+    """
+    with session_factory() as db:
+        obs = db.get(Observation, observation_id)
+        if obs is None or obs.ai_summary:
+            return
+        farm_id = obs.farm_id
+        with _summarizing_lock:
+            if farm_id in _summarizing:
+                return
+            _summarizing.add(farm_id)
+        try:
+            farm = db.get(Farm, farm_id)
+            language = farm.farmer.language if farm and farm.farmer else "en"
+            open_alerts = [a.message for a in db.execute(
+                select(Alert).where(Alert.farm_id == farm_id, Alert.resolved.is_(False))
+            ).scalars()]
+            context = _obs_context(obs, farm, open_alerts)
+            text = summarize_observation(context, language)
+            obs.ai_summary = claim_check.check(text, context, language).answer
+            db.commit()
+            db.refresh(obs)
+            _build_dataset_entry(db, obs)
+            logger.info("AI summary generated for observation %s", obs.id)
+        except Exception:
+            db.rollback()
+            logger.exception("AI summary failed for observation %s; nothing saved", observation_id)
+        finally:
+            with _summarizing_lock:
+                _summarizing.discard(farm_id)
 
 
 def ingest_image(
@@ -120,21 +174,7 @@ def ingest_image(
         obs.gps_lat = gps_lat
     if gps_long is not None:
         obs.gps_long = gps_long
-    try:
-        v = analyze_image(image_bytes)
-        obs.vision_summary = v.description
-        # Only a usable verdict is persisted; an abstention leaves the columns NULL
-        # so nothing downstream can mistake "unknown" for "healthy".
-        obs.vision_label = v.label if v.usable else None
-        obs.vision_confidence = v.confidence if v.usable else None
-        logger.info("vision completed for observation %s (label=%s conf=%s%s)",
-                    obs.id, obs.vision_label, obs.vision_confidence,
-                    f", abstained: {v.reason}" if v.abstained else "")
-    except Exception:  # never let a vision hiccup drop the observation
-        logger.exception("vision analysis failed for %s", obs.id)
-        obs.vision_summary = "Automatic analysis unavailable."
 
-    _finalize(db, obs)
     db.commit()
     db.refresh(obs)
     _build_dataset_entry(db, obs)
@@ -173,7 +213,6 @@ def ingest_sensors(
     db.flush()
     reading.observation_id = obs.id
 
-    _finalize(db, obs)
     raised = alerts.evaluate_reading(db, reading)
     db.commit()
     db.refresh(obs)

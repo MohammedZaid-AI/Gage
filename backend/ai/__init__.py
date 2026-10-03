@@ -2,13 +2,12 @@
 
 Provider wiring lives in `service`; grounded context assembly in
 `services/farm_context` + `prompt_builder`; the end-to-end chat flow in
-`orchestrator`. Swapping in Gemini, OpenAI, Ollama, Qwen2.5-VL or Gemma later is
-a change in `service` / `providers` only.
+`orchestrator`. Swapping in Gemini, OpenAI, Ollama or Gemma later is a change in
+`service` / `providers` only.
 """
-from backend.ai.base import LLMProvider, SpeechProvider, VisionProvider
+from backend.ai.base import LLMProvider, SpeechProvider
 from backend.ai.service import (
     complete,
-    analyze_image,
     detect_language,
     summarize_observation,
     synthesize,
@@ -18,9 +17,7 @@ from backend.ai.service import (
 __all__ = [
     "LLMProvider",
     "SpeechProvider",
-    "VisionProvider",
     "complete",
-    "analyze_image",
     "detect_language",
     "summarize_observation",
     "synthesize",
