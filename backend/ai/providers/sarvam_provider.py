@@ -8,7 +8,10 @@ NOTE: endpoint paths, field names, and model ids follow Sarvam's documented API
 docs for your account before production — this module is the only place they live.
 """
 import base64
+import io
 import logging
+import re
+import wave
 
 import httpx
 
@@ -20,6 +23,49 @@ logger = logging.getLogger("gage.ai.sarvam")
 _BASE = "https://api.sarvam.ai"
 _TIMEOUT = 30.0
 _TTS_MAX_CHARS = 480  # Sarvam caps TTS input length; keep well under it.
+
+
+def _speakable(text: str) -> str:
+    """Strip markdown so the voice doesn't read out '#', '*' or '|'."""
+    text = re.sub(r"[#*_`|>]+", " ", text)
+    return re.sub(r"[ \t]+", " ", text).strip()
+
+
+def _tts_chunks(text: str, limit: int = _TTS_MAX_CHARS) -> list[str]:
+    """Split on sentence / line boundaries into pieces Sarvam accepts, so the
+    whole answer is spoken instead of being cut off at the length cap."""
+    parts = [p.strip() for p in re.split(r"(?<=[.!?।])\s+|\n+", text) if p.strip()]
+    chunks, cur = [], ""
+    for part in parts:
+        while len(part) > limit:              # one over-long sentence: hard split on a space
+            cut = part.rfind(" ", 0, limit)
+            cut = cut if cut > 0 else limit
+            chunks.append(part[:cut].strip())
+            part = part[cut:].strip()
+        if cur and len(cur) + 1 + len(part) > limit:
+            chunks.append(cur)
+            cur = ""
+        cur = f"{cur} {part}".strip()
+    if cur:
+        chunks.append(cur)
+    return chunks
+
+
+def _join_wavs(wavs: list[bytes]) -> bytes:
+    """Concatenate WAV clips that share one format into a single playable WAV."""
+    if len(wavs) == 1:
+        return wavs[0]
+    frames, params = [], None
+    for w in wavs:
+        with wave.open(io.BytesIO(w)) as r:
+            params = params or r.getparams()
+            frames.append(r.readframes(r.getnframes()))
+    out = io.BytesIO()
+    with wave.open(out, "wb") as wr:
+        wr.setparams(params)
+        for f in frames:
+            wr.writeframes(f)
+    return out.getvalue()
 
 
 def _lang_code(language: str | None) -> str:
@@ -67,12 +113,12 @@ class SarvamSpeechProvider(SpeechProvider):
         code = body.get("language_code") or _lang_code(language)
         return transcript, _short(code)
 
-    def synthesize(self, text: str, language: str) -> bytes:
+    def _tts(self, text: str, language: str) -> bytes:
         resp = httpx.post(
             f"{_BASE}/text-to-speech",
             headers={**self._headers, "Content-Type": "application/json"},
             json={
-                "inputs": [text[:_TTS_MAX_CHARS]],   # Sarvam expects a list of texts
+                "inputs": [text],                   # Sarvam expects a list of texts
                 "target_language_code": _lang_code(language),
                 "speaker": self._speaker,
                 "model": self._tts_model,
@@ -84,3 +130,11 @@ class SarvamSpeechProvider(SpeechProvider):
         if not audios:
             raise RuntimeError("Sarvam TTS returned no audio")
         return base64.b64decode(audios[0])
+
+    def synthesize(self, text: str, language: str) -> bytes:
+        chunks = _tts_chunks(_speakable(text))
+        if not chunks:
+            raise RuntimeError("nothing to speak")
+        logger.info("TTS: %d chars in %d request(s), lang=%s, starts %r",
+                    sum(map(len, chunks)), len(chunks), _lang_code(language), chunks[0][:60])
+        return _join_wavs([self._tts(c, language) for c in chunks])
