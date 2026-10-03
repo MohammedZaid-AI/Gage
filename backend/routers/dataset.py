@@ -52,7 +52,7 @@ def stats(
 ) -> dict:
     farm_ids = _farm_ids(db, farmer)
     _refresh_links(db, farm_ids)
-    return DatasetRepository.stats(db, farm_ids)
+    return DatasetRepository.stats(db, farmer.id, farm_ids)
 
 
 @router.post("/export", response_model=ExportOut)
@@ -68,7 +68,7 @@ def export(
         status=req.status, date_from=req.date_from, date_to=req.date_to,
     )
     try:
-        return Exporter.export(db, farm_ids, f, req.fmt)
+        return Exporter.export(db, farmer.id, farm_ids, f, req.fmt)
     except ValueError as exc:
         raise HTTPException(400, str(exc))
 

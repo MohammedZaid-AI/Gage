@@ -10,7 +10,7 @@ requires a valid API key.
 import logging
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, File, Form, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, UploadFile
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -56,13 +56,14 @@ async def upload_image(
     obs = observation_service.ingest_image(
         db, node, raw, image.filename, gps_lat, gps_long, timestamp
     )
-    await broadcaster.broadcast("observation", _obs_json(obs))
+    await broadcaster.broadcast("observation", _obs_json(obs), node.farm.farmer_id)
     return obs
 
 
 @router.post("/sensors", response_model=ObservationOut)
 async def upload_sensors(
     req: SensorIn,
+    background: BackgroundTasks,
     node=Depends(get_node),
     db: Session = Depends(get_db),
 ) -> Observation:
@@ -70,10 +71,15 @@ async def upload_sensors(
         db, node, req.temperature, req.humidity, req.soil_moisture,
         req.battery, req.timestamp,
     )
-    await broadcaster.broadcast("observation", _obs_json(obs))
+    if observation_service.summary_due(db, obs, raised):
+        # Runs after the response is sent, in a worker thread: the device never
+        # waits on the model.
+        background.add_task(observation_service.generate_summary, obs.id)
+    owner = node.farm.farmer_id
+    await broadcaster.broadcast("observation", _obs_json(obs), owner)
     for a in raised:
         await broadcaster.broadcast(
-            "alert", AlertOut.model_validate(a).model_dump(mode="json")
+            "alert", AlertOut.model_validate(a).model_dump(mode="json"), owner
         )
     return obs
 
@@ -108,10 +114,11 @@ async def heartbeat(
                 node.id, req.source, req.battery, req.firmware_version)
 
     payload = NodeHealthOut.model_validate(health).model_dump(mode="json")
-    await broadcaster.broadcast("node_health", {"node_id": node.id, **payload})
+    owner = node.farm.farmer_id
+    await broadcaster.broadcast("node_health", {"node_id": node.id, **payload}, owner)
     for a in raised:
         await broadcaster.broadcast(
-            "alert", AlertOut.model_validate(a).model_dump(mode="json")
+            "alert", AlertOut.model_validate(a).model_dump(mode="json"), owner
         )
     return health
 

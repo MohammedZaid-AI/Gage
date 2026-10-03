@@ -10,8 +10,9 @@
 #include <Adafruit_SSD1306.h>
 
 // ---- configuration ----
-const char* WIFI_SSID = "Hide yo wifi";   // real board: your SSID
-const char* WIFI_PASS = "Zaid@017";              // real board: your password
+// Fill these in locally before flashing; never commit real credentials.
+const char* WIFI_SSID = "YOUR_WIFI_SSID";
+const char* WIFI_PASS = "YOUR_WIFI_PASSWORD";
 const char* BACKEND   = "http://192.168.1.100:8000";
 const char* NODE_KEY  = "demo-node-key-123";
 const char* FIRMWARE  = "1.1.0";
