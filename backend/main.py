@@ -42,6 +42,7 @@ from backend.dependencies import get_current_farmer  # noqa: E402
 from backend.models import Alert, Farm, Farmer, Node, NodeHealth, Observation  # noqa: E402
 from backend.realtime import broadcaster  # noqa: E402
 from backend.routers import (  # noqa: E402
+    alerts as alerts_router,
     auth,
     chat,
     dataset,
@@ -59,6 +60,7 @@ from backend.services import alerts  # noqa: E402
 app = FastAPI(title="Gage", description="AI agricultural field assistant")
 
 app.include_router(auth.router)
+app.include_router(alerts_router.router)
 app.include_router(farm.router)
 app.include_router(farm_intel.router)
 app.include_router(node_router.router)
@@ -78,6 +80,13 @@ def _startup() -> None:
     if get_settings().seed_demo:
         with SessionLocal() as db:
             seed_demo(db)
+    # Close alerts that newer readings already show are over (heals alerts left
+    # open from before auto-resolution existed).
+    with SessionLocal() as db:
+        closed = alerts.reconcile_open_alerts(db)
+        if closed:
+            db.commit()
+            logging.getLogger("gage.alerts").info("startup: resolved %d stale alert(s)", len(closed))
 
 
 @app.get("/api/state")

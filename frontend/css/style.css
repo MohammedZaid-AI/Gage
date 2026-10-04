@@ -502,3 +502,6 @@ input:focus,select:focus,textarea:focus { outline:none; background:var(--surface
   .greet .name { font-size:23px; }
 }
 .caveat { margin:0 0 10px; padding:9px 12px; border-radius:var(--r); background:var(--warn-bg); color:var(--warn); font-size:13.5px; line-height:1.5; }
+.alert.resolved { background:var(--surface-2); border-color:var(--line, transparent); opacity:.85; }
+.alert.resolved .ic, .alert.resolved .sev { color:var(--g-700, var(--ink-2)); }
+.alert .how { font-size:12px; color:var(--ink-2); margin-top:2px; }

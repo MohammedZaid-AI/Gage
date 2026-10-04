@@ -122,6 +122,8 @@ class AlertOut(BaseModel):
     value: float | None
     resolved: bool
     created_at: datetime
+    resolved_at: datetime | None = None
+    resolution: str | None = None
 
 
 # --- observation ---

@@ -166,6 +166,9 @@ class Alert(Base):
     value: Mapped[float | None] = mapped_column(Float, nullable=True)
     resolved: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_now, index=True)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # How it closed: "auto: back in range (...)", "auto: node back online", "manual".
+    resolution: Mapped[str | None] = mapped_column(String, nullable=True)
 
 
 class Conversation(Base):
