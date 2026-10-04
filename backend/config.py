@@ -28,9 +28,9 @@ class Settings(BaseSettings):
     # on-topic questions (English, or translated Kannada) scored >= 0.87, off-topic
     # ones <= 0.81. Below the floor a question retrieves nothing rather than noise.
     retrieval_min_score: float = 0.83
-    # Latin-script questions whose best direct match is below this are retried as
-    # romanized Kannada (transliterate -> translate).
-    retrieval_romanized_trigger: float = 0.86
+    # Timeout for the small Groq helper calls (query rewrite, grounding check);
+    # on timeout the answer goes ahead without them.
+    groq_helper_timeout_s: float = 8.0
 
     # Groq (OpenAI-compatible). Model is configurable; defaults to GPT-OSS 120B.
     groq_api_key: str = ""

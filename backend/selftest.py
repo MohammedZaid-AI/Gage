@@ -168,6 +168,8 @@ def _offline_translation():
         raise qt.TranslationUnavailable("offline selftest")
     qt.kannada_to_english = unavailable
     qt.romanized_kannada_to_english = unavailable
+    from backend.ai import knowledge as kb
+    kb._groq_english = unavailable           # the Groq query rewrite is a network call too
 
 
 def test_knowledge_retrieval() -> None:
