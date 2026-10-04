@@ -181,38 +181,44 @@ def _groq_english(question: str) -> str:
 def retrieve(question: str, k: int = 3) -> Retrieval:
     """Up to k knowledge chunks relevant to the farmer's question, best first.
 
-    The corpus is English and farmers write English, Kannada script or Kanglish,
-    so three queries are searched and every chunk keeps its best score from any
-    of them (no query ever replaces another's results):
-      - original: the question as written
-      - sarvam:   Sarvam translation (Kannada script directly; Latin text via
-                  transliteration first, which is how Kanglish is handled)
-      - groq:     Groq's rewrite of the question as a short English search query
-    The two network rewrites run in parallel; if either fails, the others still
-    count. Chunks below RETRIEVAL_MIN_SCORE are dropped, so an unrelated question
-    returns no docs.
+    The corpus is English and farmers write English, Kannada script or Kanglish.
+    The question as written is searched first; if its best chunk already reaches
+    RETRIEVAL_DIRECT_TRIGGER (typical for plain English), that is used as is and
+    no network call is made. Otherwise two more queries are searched and every
+    chunk keeps its best score from any of them (no query replaces another's):
+      - sarvam: Sarvam translation (Kannada script directly; Latin text via
+                transliteration first, which is how Kanglish is handled)
+      - groq:   Groq's rewrite of the question as a short English search query
+    The two network rewrites run in parallel; if either fails or is skipped by
+    the Groq token budget, the others still count. Chunks below
+    RETRIEVAL_MIN_SCORE are dropped, so an unrelated question returns no docs.
     """
     from concurrent.futures import ThreadPoolExecutor
 
     if not question.strip():
         return Retrieval([], [])
     queries = {"original": question}
-    with ThreadPoolExecutor(max_workers=2) as pool:
-        futures = {"sarvam": pool.submit(_sarvam_english, question),
-                   "groq": pool.submit(_groq_english, question)}
-        for method, fut in futures.items():
-            try:
-                text = fut.result()
-                if text and text.strip() and text.strip() != question.strip():
-                    queries[method] = text.strip()
-            except Exception as exc:  # translation / rewrite are optional extras
-                logger.warning("retrieval: %s query unavailable (%s)", method, exc)
+    best: dict[str, float] = {}
+    hit_lists = []
 
-    hit_lists, best = [], {}
-    for method, text in queries.items():
+    def _search(method: str, text: str) -> None:
         top = _index.search(text, 1, via=method, min_score=-1.0)
         best[method] = top[0].score if top else 0.0
         hit_lists.append(_index.search(text, k, via=method))
+
+    _search("original", question)
+    if best["original"] < get_settings().retrieval_direct_trigger:
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            futures = {"sarvam": pool.submit(_sarvam_english, question),
+                       "groq": pool.submit(_groq_english, question)}
+            for method, fut in futures.items():
+                try:
+                    text = fut.result()
+                    if text and text.strip() and text.strip() != question.strip():
+                        queries[method] = text.strip()
+                        _search(method, text.strip())
+                except Exception as exc:  # translation / rewrite are optional extras
+                    logger.warning("retrieval: %s query unavailable (%s)", method, exc)
     docs = _merge(*hit_lists, k=k)
     logger.info("retrieval: %s -> %s", {m: round(v, 4) for m, v in best.items()},
                 [(d.via, d.score, d.source) for d in docs])

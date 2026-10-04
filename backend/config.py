@@ -28,17 +28,34 @@ class Settings(BaseSettings):
     # on-topic questions (English, or translated Kannada) scored >= 0.87, off-topic
     # ones <= 0.81. Below the floor a question retrieves nothing rather than noise.
     retrieval_min_score: float = 0.83
+    # Skip the Sarvam translation and the Groq rewrite when the question as
+    # written already retrieves a chunk at this score: English questions scored
+    # >= 0.87 on this corpus, Kanglish ones 0.83-0.85 (too low to trust alone).
+    retrieval_direct_trigger: float = 0.87
     # Timeout for the small Groq helper calls (query rewrite, grounding check);
     # on timeout the answer goes ahead without them.
     groq_helper_timeout_s: float = 8.0
-    # The grounding check reads the whole context + answer; it gets longer, and the
-    # answer is returned with an 'unavailable' note if it runs out.
+    # The grounding check reads the top chunks + farm data + answer; it gets
+    # longer, and the answer is returned with an 'unavailable' note if it runs out.
     grounding_timeout_s: float = 20.0
 
     # Groq (OpenAI-compatible). Model is configurable; defaults to GPT-OSS 120B.
     groq_api_key: str = ""
     # Groq namespaces the GPT-OSS models — the id is "openai/gpt-oss-120b", not "gpt-oss-120b".
     groq_model: str = "openai/gpt-oss-120b"
+    # Smaller model for the query rewrite and the grounding check. On this
+    # account every model has its own tokens-per-minute bucket, so these calls
+    # no longer compete with the answer. (No "instant" model is offered here;
+    # gpt-oss-20b is the smallest one that returns valid JSON.)
+    groq_helper_model: str = "openai/gpt-oss-20b"
+    # Groq's tokens-per-minute limit per model on this account (free tier: 8000).
+    # Groq counts prompt + max_tokens against it when a request starts.
+    groq_tokens_per_minute: int = 8000
+    groq_rewrite_max_tokens: int = 160
+    groq_check_max_tokens: int = 1200
+    # Answer call rate-limited: wait and retry once if Groq says the wait is
+    # shorter than this; otherwise fail with 503 and the wait time.
+    groq_answer_retry_max_wait_s: float = 20.0
 
     # Speech (STT + TTS). mock | sarvam. Sarvam handles Kannada/English voice.
     speech_provider: str = "mock"

@@ -10,6 +10,12 @@ Covers the pieces with real branching, no server needed:
 - observation merge (image + sensors), alert rules, offline detection
 """
 import json
+import os
+
+# Offline by design: the mock model and speech providers, whatever .env says.
+os.environ["LLM_PROVIDER"] = "mock"
+os.environ["SPEECH_PROVIDER"] = "mock"
+
 from datetime import datetime, timedelta
 
 from sqlalchemy import create_engine
@@ -674,6 +680,60 @@ def test_offline_detection() -> None:
     assert alerts.evaluate_offline(db) == []      # fresh contact -> stays online
 
 
+def test_groq_budget_and_rate_limits() -> None:
+    """Token budget priorities, 429 parsing, and the answer's retry-once / 503."""
+    from backend.ai import groq_client as gc
+    from backend.ai.base import LLMBusy
+    from backend.ai.providers import groq_provider as gp
+
+    b = gc.TokenBudget()
+    m = "test-model"
+    assert b.allow("rewrite", m, 1000)[0] and b.allow("summary", m, 1000)[0]
+    b.charge(m, 6500)                                   # 1500 of 8000 left this minute
+    assert b.allow("answer", m, 5000)[0]                # the answer is never skipped
+    assert b.allow("fact_check", m, 1400)[0]            # check may use the last tokens
+    assert not b.allow("rewrite", m, 500)[0]            # rewrite must leave 30 % free
+    assert not b.allow("summary", m, 100)[0]            # summary is skipped first
+    b.observe(m, {"x-ratelimit-remaining-tokens": "200", "x-ratelimit-limit-tokens": "8000",
+                  "x-ratelimit-reset-tokens": "50s"})  # Groq's own view is tighter
+    assert not b.allow("fact_check", m, 1400)[0]
+    assert gc._seconds("1m4.5s") == 64.5 and gc._seconds("450ms") == 0.45
+
+    class _Resp:
+        headers = {"retry-after": "35", "x-ratelimit-reset-tokens": "45.9s"}
+    body = {"error": {"message": "Rate limit reached for model `m` ... on tokens per minute "
+                                 "(TPM): Limit 8000, Used 6130, Requested 6517. Please try "
+                                 "again in 34.85s. Need more tokens?"}}
+    assert abs(gc._retry_after(_Resp.headers, body) - 34.85) < 0.01
+    assert gc._limit_name(body) == "tokens per minute (TPM)"
+
+    real_call, real_sleep = gc.call, gp.time.sleep
+    calls, slept = [], []
+    try:
+        def limited(wait):
+            def f(purpose, messages, **kw):
+                calls.append(purpose)
+                if len(calls) == 1 or wait >= 20:
+                    raise gc.GroqRateLimited("429", wait, "tokens per minute (TPM)")
+                return "an answer"
+            return f
+        gp.time.sleep = slept.append
+        gc.call = limited(3.0)                              # short wait: retried once
+        assert gp.GroqLLMProvider().answer("q", "ctx", "en") == "an answer"
+        assert calls == ["answer", "answer"] and slept and slept[0] >= 3.0
+        calls.clear(); slept.clear()
+        gc.call = limited(35.0)                             # long wait: 503 with the wait
+        try:
+            gp.GroqLLMProvider().answer("q", "ctx", "en")
+            raise AssertionError("expected LLMBusy")
+        except LLMBusy as exc:
+            assert exc.retry_after == 35.0 and "35 seconds" in str(exc)
+        assert calls == ["answer"] and not slept
+    finally:
+        gc.call, gp.time.sleep = real_call, real_sleep
+    print("ok  groq budget: priorities, 429 parsing, answer retry-once and 503")
+
+
 if __name__ == "__main__":
     _offline_translation()   # no network: translation, query rewrite and grounding are stubbed
     test_language_detection_and_routing()
@@ -697,4 +757,5 @@ if __name__ == "__main__":
     test_node_keys_hashed()
     test_flybrain_anomaly()
     test_offline_detection()
+    test_groq_budget_and_rate_limits()
     print("OK — all self-checks passed")

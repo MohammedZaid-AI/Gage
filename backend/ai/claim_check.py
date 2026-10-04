@@ -61,7 +61,7 @@ class CheckResult:
     answer: str              # what the farmer receives (caveated / noted if needed)
     unsupported: list[str]   # claims flagged, e.g. "unsupported: X", "name: Y"
     checked: list[str]       # every claim examined, with its status
-    status: str = "checked"  # checked | unavailable
+    status: str = "checked"  # checked | unavailable | skipped (token budget)
     seconds: float = 0.0     # time spent in the grounding call
     claims: list[dict] = field(default_factory=list)  # raw grounding verdicts
 
@@ -103,7 +103,7 @@ def _grounding(answer: str, context: str) -> list[dict]:
     s = get_settings()
     data = groq_client.chat_json(
         _GROUNDING_SYSTEM, f"CONTEXT:\n{context}\n\nANSWER:\n{answer}",
-        timeout=s.grounding_timeout_s, max_tokens=4000,
+        purpose="fact_check", timeout=s.grounding_timeout_s, max_tokens=s.groq_check_max_tokens,
     )
     claims = data.get("claims")
     if not isinstance(claims, list):
@@ -129,9 +129,14 @@ def check(answer: str, context: str, language: str = "en") -> CheckResult:
 
     # 2. grounding call; never blocks the answer
     t0 = time.perf_counter()
+    from backend.ai.groq_client import GroqSkipped
+
     try:
         claims = _grounding(answer, context)
         status = "checked"
+    except GroqSkipped as exc:
+        logger.info("grounding check skipped: %s", exc)
+        claims, status = [], "skipped"
     except Exception as exc:
         logger.warning("grounding check unavailable: %s", exc)
         claims, status = [], "unavailable"
@@ -148,7 +153,7 @@ def check(answer: str, context: str, language: str = "en") -> CheckResult:
         if len(caveat_items) > len(shown):
             shown.append(f"+{len(caveat_items) - len(shown)}")
         final = _CAVEAT[lang].format(items="; ".join(shown)) + "\n\n" + final
-    if status == "unavailable":
+    if status != "checked":
         final = f"{final}\n\n{_UNAVAILABLE[lang]}"
     logger.info("grounding %s in %.2fs: %d claims, %d flagged", status, seconds,
                 len(claims), len(flagged))

@@ -7,6 +7,14 @@ class LLMError(RuntimeError):
     so a failure is never shown to a farmer or saved as if it were advice."""
 
 
+class LLMBusy(LLMError):
+    """The model service is rate-limited; `retry_after` says how long to wait."""
+
+    def __init__(self, message: str, retry_after: float):
+        super().__init__(message)
+        self.retry_after = retry_after
+
+
 class LLMProvider(ABC):
     """Answers a farmer's question given assembled field context."""
 

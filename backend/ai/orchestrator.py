@@ -35,11 +35,17 @@ class AnswerResult:
     unsupported: list[str]  # specific claims not found in the context
     answer: str             # what the farmer receives (caveated if needed)
     claims: list[str] = field(default_factory=list)
+    fact_check: str = "checked"     # checked | unavailable | skipped
+    fact_check_seconds: float = 0.0
+    groq_calls: list[dict] = field(default_factory=list)
 
 
 class AIOrchestrator:
     @staticmethod
     def answer(db: Session, farm: Farm, question: str) -> AnswerResult:
+        from backend.ai import groq_client
+
+        calls_before = groq_client.last_seq()
         language = service.detect_language(question)
         ctx = farm_context.build(db, farm)
         retrieval = knowledge.retrieve(question, k=3)
@@ -54,7 +60,9 @@ class AIOrchestrator:
 
         # LLMError propagates: nothing is saved, the router reports the failure.
         raw = service.complete(model_question, context, language)
-        checked = claim_check.check(raw, f"{context}\n{model_question}", language)
+        # Checked against the top two chunks + farm data, not the whole prompt.
+        checked = claim_check.check(
+            raw, prompt_builder.build_check_context(ctx, retrieval.docs, question), language)
 
         db.add(Conversation(
             farm_id=farm.id, farmer_id=farm.farmer_id,
@@ -66,6 +74,8 @@ class AIOrchestrator:
             question=question, language=language, retrieval_queries=retrieval.queries,
             docs=retrieval.docs, context=context, raw_answer=raw,
             unsupported=checked.unsupported, answer=checked.answer, claims=checked.checked,
+            fact_check=checked.status, fact_check_seconds=checked.seconds,
+            groq_calls=groq_client.calls_since(calls_before),
         )
         logger.info("answer trace %s", json.dumps({
             "farm": farm.id, "language": language, "question": question,
@@ -77,5 +87,7 @@ class AIOrchestrator:
                           for d in retrieval.docs],
             "raw_answer": raw, "claims": checked.checked,
             "unsupported": checked.unsupported, "final_answer": checked.answer,
+            "fact_check": checked.status, "fact_check_seconds": checked.seconds,
+            "groq_calls": result.groq_calls,
         }, ensure_ascii=False))
         return result

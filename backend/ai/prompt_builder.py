@@ -88,16 +88,23 @@ def _fmt(v: float | None, unit: str) -> str:
     return f"{v}{unit}" if v is not None else "n/a"
 
 
-def _observation_block(obs: Observation | None) -> str:
+def _same_values(a, b) -> bool:
+    return all(getattr(a, f) == getattr(b, f) for f in ("temperature", "humidity", "soil_moisture"))
+
+
+def _observation_block(obs: Observation | None, sensors=None) -> str:
     if obs is None:
         return "No observation recorded yet."
-    return (
-        f"- Time: {obs.timestamp:%Y-%m-%d %H:%M} UTC (node {obs.node_id})\n"
-        f"- Temperature: {_fmt(obs.temperature, ' C')}\n"
-        f"- Humidity: {_fmt(obs.humidity, ' %')}\n"
-        f"- Soil moisture: {_fmt(obs.soil_moisture, ' %')}\n"
-        f"- GPS: {_fmt(obs.gps_lat, '')}, {_fmt(obs.gps_long, '')}"
-    )
+    lines = [f"- Time: {obs.timestamp:%Y-%m-%d %H:%M} UTC (node {obs.node_id})"]
+    if sensors is not None and sensors is not obs and _same_values(obs, sensors):
+        # Same numbers as SENSOR READINGS below: say so instead of repeating them.
+        lines.append("- Sensor values: as in SENSOR READINGS below")
+    else:
+        lines += [f"- Temperature: {_fmt(obs.temperature, ' C')}",
+                  f"- Humidity: {_fmt(obs.humidity, ' %')}",
+                  f"- Soil moisture: {_fmt(obs.soil_moisture, ' %')}"]
+    lines.append(f"- GPS: {_fmt(obs.gps_lat, '')}, {_fmt(obs.gps_long, '')}")
+    return "\n".join(lines)
 
 
 def _sensor_source(ctx: FarmContext) -> Observation | None:
@@ -180,10 +187,25 @@ def _knowledge_block(docs: list[KnowledgeDoc]) -> str:
     return "\n\n".join(f"{d.title}:\n{d.text}" for d in docs)
 
 
+_MEMORY_TURNS = 3
+_MEMORY_ANSWER_CHARS = 240
+
+
+def _clip(text: str, n: int) -> str:
+    text = " ".join(text.split())
+    return text if len(text) <= n else text[:n].rsplit(" ", 1)[0] + " ..."
+
+
 def _conversation_block(ctx: FarmContext) -> str:
+    """Recent turns, so a follow-up question makes sense. Earlier answers are
+    clipped: they are Gage's own words, already given, and repeating five of
+    them in full made the prompt over 5000 tokens (most of a minute's Groq
+    budget)."""
     if not ctx.conversation:
         return ""
-    turns = "\n".join(f"Farmer: {c.question}\nGage: {c.answer}" for c in ctx.conversation)
+    recent = ctx.conversation[-_MEMORY_TURNS:]
+    turns = "\n".join(f"Farmer: {c.question}\nGage (earlier, shortened): "
+                      f"{_clip(c.answer, _MEMORY_ANSWER_CHARS)}" for c in recent)
     return f"\n\n# CONVERSATION MEMORY (recent turns, for context)\n{turns}"
 
 
@@ -200,6 +222,22 @@ def build_compact(docs: list[KnowledgeDoc], question: str) -> tuple[str, str]:
     return context, question
 
 
+def build_check_context(ctx: FarmContext | None, docs: list[KnowledgeDoc], question: str) -> str:
+    """What the grounding check compares an answer against: the top two
+    retrieved chunks, the farm's sensor readings, alerts and FlyBrain line, and
+    the question. Smaller than the answer prompt (no persona, contract or
+    conversation memory) to keep the check inside the Groq token budget."""
+    parts = [f"# REFERENCE TEXT\n{_knowledge_block(docs[:2])}"]
+    if ctx is not None:
+        parts.append(f"# FARM SENSOR READINGS\n{_sensor_block(ctx)}")
+        parts.append(f"# ACTIVE ALERTS\n{_alerts_block(ctx)}")
+        anomaly = _anomaly_block(ctx).strip()
+        if anomaly:
+            parts.append(anomaly)
+    parts.append(f"# FARMER QUESTION\n{question}")
+    return "\n\n".join(parts)
+
+
 def build(ctx: FarmContext, docs: list[KnowledgeDoc], question: str) -> str:
     """Assemble the full structured Crop Doctor prompt for the LLM."""
     intent = detect_intent(question)
@@ -212,7 +250,7 @@ def build(ctx: FarmContext, docs: list[KnowledgeDoc], question: str) -> str:
         f"Crop: {ctx.crop_type}\n"
         f"Location: {ctx.location}\n"
         f"Farmer: {ctx.farmer.name or 'unknown'}\n\n"
-        f"# CURRENT OBSERVATION\n{_observation_block(latest)}\n\n"
+        f"# CURRENT OBSERVATION\n{_observation_block(latest, _sensor_source(ctx))}\n\n"
         f"# SENSOR READINGS (latest)\n{_sensor_block(ctx)}\n\n"
         f"# RECENT HISTORY\n{_history_block(ctx)}\n\n"
         f"# ACTIVE ALERTS\n{_alerts_block(ctx)}\n\n"
