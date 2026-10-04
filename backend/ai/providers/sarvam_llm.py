@@ -6,9 +6,11 @@ over the base model — never as a standalone model. Loading happens once, when
 the provider is constructed at startup; requests only run generation.
 
 The prompt reproduces the training format from Gage_Sarvam_Finetune_Colab.ipynb
-exactly (### System / ### Context / ### Farmer / ### Assistant). The model was
-trained with max_length=1024, so it receives the compact prompt (farm readings +
-retrieved knowledge), not the long Crop Doctor contract.
+exactly (### System / ### Context / ### Farmer / ### Assistant); measured on the
+real adapter, it scores lower loss than the tokenizer's [INST] chat template. The
+model was trained with max_length=1024 on (knowledge, question, answer) rows, so
+it receives the compact prompt: retrieved knowledge in ### Context and the
+farmer's own question in ### Farmer. No farm sensor readings are sent to it.
 
 Generation is CPU/GPU-bound and blocking; callers must run it off the event
 loop (the routers do, via a threadpool). A lock serialises generations so

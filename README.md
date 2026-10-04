@@ -3,9 +3,10 @@
 during field inspections while automatically collecting structured agricultural
 data for future AI models.
 
-An Android phone mounted on an ESP32 robot acts as camera, GPS, mic, speaker and
-network. This backend ingests that data, describes crops with AI, stores
-observations, and answers questions in **English and Kannada**.
+Low-cost monitoring nodes (an ESP32 with soil-moisture and temperature/humidity
+sensors) report field conditions; farmers use the web app on their phone. This
+backend ingests the readings, raises and resolves alerts, stores observations, and
+answers questions in **English and Kannada**.
 
 ---
 
@@ -17,7 +18,8 @@ python -m venv .venv
 # Unix:     source .venv/bin/activate
 
 pip install -r requirements.txt
-cp .env.example .env          # defaults work out of the box (mock AI, no keys)
+cp .env.example .env          # then set JWT_SECRET (required) and GROQ_API_KEY
+python -c "import secrets; print(secrets.token_urlsafe(48))"   # a JWT_SECRET value
 
 uvicorn backend.main:app --reload
 ```
@@ -38,11 +40,14 @@ python -m backend.selftest
 |------------|-----------------------------------------|
 | Backend    | FastAPI, SQLAlchemy 2, Pydantic v2      |
 | Database   | SQLite (`storage/observations.db`)      |
-| LLM        | Templated bilingual answers (mock)      |
+| LLM        | Groq `openai/gpt-oss-120b` (default)    |
+| Retrieval  | multilingual-e5 over `knowledge_base/`  |
+| Voice      | Sarvam STT/TTS                          |
 | Frontend   | Plain HTML/CSS/JS + WebSocket           |
 
-No API keys needed — the mock providers keep the app working offline (the
-assistant grounds every answer in the latest observation).
+The default LLM provider is **Groq** (`LLM_PROVIDER=groq` in `.env.example`; needs
+`GROQ_API_KEY`). `LLM_PROVIDER=mock` runs fully offline with templated answers, and
+`LLM_PROVIDER=sarvam_finetuned` runs the local fine-tuned Sarvam-1 adapter (GPU).
 
 ---
 
@@ -59,10 +64,19 @@ Interactive docs at **http://localhost:8000/docs**.
 
 ### Ask in Kannada
 
+`/chat` needs a login token and the id of one of your farms:
+
 ```bash
-curl -X POST http://localhost:8000/chat \
+# 1. log in (the demo farmer is seeded on first start) and copy access_token
+curl -X POST http://localhost:8000/auth/login \
      -H "Content-Type: application/json" \
-     -d '{"question": "ಈ ಗಿಡ ಹೇಗಿದೆ?"}'
+     -d '{"phone": "9999999999", "password": "demo1234"}'
+
+# 2. ask, with the token and your farm id (GET /farms lists them)
+curl -X POST http://localhost:8000/chat \
+     -H "Authorization: Bearer <access_token>" \
+     -H "Content-Type: application/json" \
+     -d '{"farm_id": 1, "question": "ಈ ಗಿಡ ಹೇಗಿದೆ?"}'
 ```
 
 ---
