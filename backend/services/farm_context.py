@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from backend.models import (
     Alert,
+    AnomalyScore,
     Conversation,
     Farm,
     Farmer,
@@ -55,6 +56,7 @@ class FarmContext:
     active_alerts: list[Alert]
     conversation: list[Conversation]          # oldest first (chat memory)
     trends: list[Trend] = field(default_factory=list)
+    latest_anomaly: AnomalyScore | None = None   # FlyBrain score of a recent reading
 
     @property
     def crop_type(self) -> str:
@@ -120,6 +122,11 @@ def build(db: Session, farm: Farm) -> FarmContext:
     ).scalars())
     conversation.reverse()  # oldest first for natural reading order
 
+    latest_anomaly = db.execute(
+        select(AnomalyScore).where(AnomalyScore.farm_id == farm.id)
+        .order_by(AnomalyScore.created_at.desc()).limit(1)
+    ).scalar_one_or_none()
+
     return FarmContext(
         farmer=farm.farmer,
         farm=farm,
@@ -129,4 +136,5 @@ def build(db: Session, farm: Farm) -> FarmContext:
         active_alerts=active_alerts,
         conversation=conversation,
         trends=_trends(recent),
+        latest_anomaly=latest_anomaly,
     )

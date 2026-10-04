@@ -39,6 +39,7 @@ from backend.models import (
     Node,
     NodeHealth,
     Observation,
+    SensorReading,
 )
 from backend.services import alerts, farm_context, health_score, observation_service
 
@@ -533,6 +534,55 @@ def test_dataset_stats_and_conversation_linking() -> None:
     assert entry.conversation_reference == convo.id
 
 
+def test_flybrain_anomaly() -> None:
+    """Per-farm baseline + calibrated threshold on the synthetic graph (small sizes)."""
+    import os
+
+    from backend.config import get_settings
+    from backend.services import anomaly
+
+    db = _memory_session()
+    farm, node = _farm_with_node(db)
+    import random
+    r = random.Random(5)
+    for i in range(30):                         # this farm's normal history
+        db.add(SensorReading(node_id=node.id, farm_id=farm.id, temperature=26 + r.uniform(-1, 1),
+                             humidity=65 + r.uniform(-4, 4), soil_moisture=50 + r.uniform(-8, 8),
+                             timestamp=datetime(2026, 9, 1) + timedelta(hours=i)))
+    db.commit()
+    env = {"FLYBRAIN_BASELINE_SIZE": "10", "FLYBRAIN_HELDOUT_SIZE": "10", "FLYBRAIN_SIM_STEPS": "400"}
+    os.environ.update(env)
+    get_settings.cache_clear()
+    try:
+        bl = anomaly.fit_farm(db, farm.id)
+        assert bl is not None and bl.graph == "synthetic" and len(bl.heldout_scores) == 10
+        assert bl.threshold == max(bl.heldout_scores) or bl.threshold <= max(bl.heldout_scores)
+        anomaly._baselines[farm.id] = bl
+        normal = SensorReading(node_id=node.id, farm_id=farm.id, temperature=26.0, humidity=65.0,
+                               soil_moisture=50.0)
+        drought = SensorReading(node_id=node.id, farm_id=farm.id, temperature=31.0, humidity=50.0,
+                                soil_moisture=5.0)
+        db.add_all([normal, drought])
+        db.flush()
+        s_normal, s_drought = anomaly.score_reading(db, normal), anomaly.score_reading(db, drought)
+        db.commit()
+        assert s_drought.score > s_normal.score
+        assert s_drought.is_anomalous and not s_normal.is_anomalous, (s_normal.score, s_drought.score, bl.threshold)
+        assert db.query(Alert).filter(Alert.type == "anomaly", Alert.resolved.is_(False)).count() == 1
+        assert "synthetic test graph" in anomaly.describe(s_drought)
+        assert anomaly.status(db, farm.id)["graph"] == "synthetic"
+        # Too little history -> no baseline (and so no scores), never a guess.
+        empty_farm = Farm(farmer_id=farm.farmer_id, name="Empty")
+        db.add(empty_farm)
+        db.commit()
+        assert anomaly.fit_farm(db, empty_farm.id) is None
+    finally:
+        for k in env:
+            os.environ.pop(k)
+        get_settings.cache_clear()
+        anomaly._baselines.clear()
+
+
 def test_node_keys_hashed() -> None:
     from fastapi import HTTPException
 
@@ -645,5 +695,6 @@ if __name__ == "__main__":
     test_merge_and_alerts()
     test_alert_resolution()
     test_node_keys_hashed()
+    test_flybrain_anomaly()
     test_offline_detection()
     print("OK — all self-checks passed")

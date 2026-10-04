@@ -70,6 +70,18 @@ class Settings(BaseSettings):
     # is older than this. Never per reading (the ESP32 posts every 30 s).
     summary_interval_minutes: int = 60
 
+    # FlyBrain sensor-pattern anomaly detection (services/anomaly.py).
+    flybrain_enabled: bool = True
+    flybrain_graph: str = "synthetic"          # synthetic | malecns (needs a compiled connectome)
+    flybrain_raw_dir: str = "./models/malecns/raw"
+    flybrain_compiled_dir: str = "./models/malecns/compiled"
+    flybrain_sim_steps: int = 1500
+    flybrain_baseline_size: int = 40           # normal readings that define the baseline
+    flybrain_heldout_size: int = 60            # other normal readings, scored to calibrate
+    flybrain_threshold_percentile: float = 99.0
+    flybrain_score_interval_minutes: int = 5   # score a farm at most this often
+    flybrain_refit_hours: int = 24             # refit each farm's baseline this often
+
     # A node is considered offline if its last heartbeat is older than this.
     offline_seconds: int = 180
     # How often the server's background timer checks for silent nodes.
