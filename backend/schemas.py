@@ -74,7 +74,9 @@ class NodeOut(BaseModel):
     farm_id: int
     name: str | None
     location: str | None
-    api_key: str  # the owner needs this to provision the device
+    # The device key, returned only when it is created or rotated (it is stored
+    # hashed and cannot be shown again). None in listings.
+    api_key: str | None = None
     created_at: datetime
     health: NodeHealthOut | None = None
 

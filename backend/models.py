@@ -68,6 +68,7 @@ class Node(Base):
     id: Mapped[str] = mapped_column(String, primary_key=True)  # hardware/device id
     farm_id: Mapped[int] = mapped_column(ForeignKey("farms.id"), index=True)
     name: Mapped[str | None] = mapped_column(String, nullable=True)
+    # HMAC-SHA256 of the device key (core.security.hash_node_key), never the key.
     api_key: Mapped[str] = mapped_column(String, unique=True, index=True)
     location: Mapped[str | None] = mapped_column(String, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)

@@ -26,6 +26,20 @@ uvicorn backend.main:app --reload
 
 Open **http://localhost:8000** for the dashboard.
 
+### Local demo data
+
+No demo account exists by default. For a local demo, set `SEED_DEMO=true` in `.env`
+before starting the server: it creates farmer `9999999999` / password `demo1234`, a
+farm, and node `demo-node-1` with API key `demo-node-key-123`. These credentials are
+public, so never enable `SEED_DEMO` on a server other people can reach.
+
+### Node API keys
+
+A node's API key is shown **once**, when the node is registered (or when you press
+**New key** in Settings); only an HMAC of it is stored. Copy it into the device's
+`NODE_KEY`. Set `NODE_KEY_SECRET` in `.env` so `JWT_SECRET` can be rotated without
+invalidating device keys.
+
 Run the smoke test (starts nothing, checks the core logic):
 
 ```bash

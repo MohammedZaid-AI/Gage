@@ -53,9 +53,14 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60 * 24 * 7  # 7 days
 
-    # Demo farmer/farm/node seeded on startup so the dashboard runs out of the box.
-    # ponytail: remove once real farmer onboarding exists.
-    seed_demo: bool = True
+    # Seed a demo farmer/farm/node with publicly known credentials on startup.
+    # Off by default; set SEED_DEMO=true in .env for a local demo only.
+    seed_demo: bool = False
+
+    # Key for hashing node API keys (HMAC-SHA256) before they are stored. If
+    # unset it is derived from JWT_SECRET; set it explicitly so JWT_SECRET can
+    # be rotated without invalidating every device key.
+    node_key_secret: str = ""
 
     # Observation merge: an image and a sensor reading from the same node within
     # this window are merged into one observation.

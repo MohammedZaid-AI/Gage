@@ -79,6 +79,13 @@ def _startup() -> None:
     from backend.ai import knowledge
 
     knowledge.warm_up()
+    # Node API keys are stored hashed; hash any left in plaintext by older
+    # versions (idempotent, so devices are never locked out by a missed migration).
+    from backend.services.node_keys import hash_plaintext_keys
+
+    with SessionLocal() as db:
+        if hash_plaintext_keys(db):
+            db.commit()
     if get_settings().seed_demo:
         with SessionLocal() as db:
             seed_demo(db)

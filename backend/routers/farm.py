@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from backend.core.security import generate_api_key
+from backend.core.security import generate_api_key, hash_node_key
 from backend.database import get_db
 from backend.dependencies import get_current_farmer, owned_farm
 from backend.models import Farm, Farmer, Node
@@ -45,19 +45,20 @@ def register_node(
     req: NodeCreate,
     farmer: Farmer = Depends(get_current_farmer),
     db: Session = Depends(get_db),
-) -> Node:
+) -> NodeOut:
     farm = owned_farm(db, farmer, farm_id)
     if db.get(Node, req.id):
         raise HTTPException(409, "Node id already registered")
+    raw_key = generate_api_key()
     node = Node(
         id=req.id, farm_id=farm.id, name=req.name,
-        location=req.location, api_key=generate_api_key(),
+        location=req.location, api_key=hash_node_key(raw_key),
     )
     db.add(node)
     db.commit()
     db.refresh(node)
     logger.info("node %s registered on farm %d", node.id, farm.id)
-    return node
+    return _node_out(node, raw_key)   # the only time this key is ever shown
 
 
 @router.get("/farms/{farm_id}/nodes", response_model=list[NodeOut])
@@ -65,6 +66,34 @@ def list_nodes(
     farm_id: int,
     farmer: Farmer = Depends(get_current_farmer),
     db: Session = Depends(get_db),
-) -> list[Node]:
+) -> list[NodeOut]:
     owned_farm(db, farmer, farm_id)
-    return list(db.execute(select(Node).where(Node.farm_id == farm_id)).scalars())
+    nodes = db.execute(select(Node).where(Node.farm_id == farm_id)).scalars()
+    return [_node_out(n) for n in nodes]   # keys are stored hashed; never listed
+
+
+@router.post("/farms/{farm_id}/nodes/{node_id}/rotate-key", response_model=NodeOut)
+def rotate_node_key(
+    farm_id: int,
+    node_id: str,
+    farmer: Farmer = Depends(get_current_farmer),
+    db: Session = Depends(get_db),
+) -> NodeOut:
+    """Issue a new key for a node (e.g. the old one was lost: stored keys are
+    hashed and cannot be shown again). The old key stops working immediately."""
+    owned_farm(db, farmer, farm_id)
+    node = db.get(Node, node_id)
+    if node is None or node.farm_id != farm_id:
+        raise HTTPException(404, "Node not found")
+    raw_key = generate_api_key()
+    node.api_key = hash_node_key(raw_key)
+    db.commit()
+    db.refresh(node)
+    logger.info("node %s key rotated", node.id)
+    return _node_out(node, raw_key)
+
+
+def _node_out(node: Node, raw_key: str | None = None) -> NodeOut:
+    """Response for a node: the plain key only when it was just issued."""
+    out = NodeOut.model_validate(node)
+    return out.model_copy(update={"api_key": raw_key})

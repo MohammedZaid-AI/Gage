@@ -533,6 +533,32 @@ def test_dataset_stats_and_conversation_linking() -> None:
     assert entry.conversation_reference == convo.id
 
 
+def test_node_keys_hashed() -> None:
+    from fastapi import HTTPException
+
+    from backend.core.security import hash_node_key, is_hashed_node_key
+    from backend.dependencies import get_node
+    from backend.services.node_keys import hash_plaintext_keys
+
+    db = _memory_session()
+    farm, node = _farm_with_node(db)            # stored the old way: plaintext
+    raw = node.api_key
+    assert not is_hashed_node_key(raw)
+    assert hash_plaintext_keys(db) == [node.id]
+    db.commit()
+    stored = db.get(Node, node.id).api_key
+    assert is_hashed_node_key(stored) and raw not in stored and stored == hash_node_key(raw)
+    assert hash_plaintext_keys(db) == []        # idempotent: already hashed
+    # The device keeps sending its original key, and it still authenticates.
+    assert get_node(x_node_key=raw, db=db).id == node.id
+    for bad in ("wrong-key", stored):           # the stored hash itself is not a key
+        try:
+            get_node(x_node_key=bad, db=db)
+            raise AssertionError(f"{bad!r} authenticated")
+        except HTTPException as exc:
+            assert exc.status_code == 401
+
+
 def test_alert_resolution() -> None:
     db = _memory_session()
     farm, node = _farm_with_node(db)
@@ -618,5 +644,6 @@ if __name__ == "__main__":
     test_dataset_stats_and_conversation_linking()
     test_merge_and_alerts()
     test_alert_resolution()
+    test_node_keys_hashed()
     test_offline_detection()
     print("OK — all self-checks passed")
