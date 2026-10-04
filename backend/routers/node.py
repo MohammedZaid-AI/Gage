@@ -22,7 +22,6 @@ from backend.models import (
     NodeHeartbeat,
     Observation,
     SensorReading,
-    _now,
 )
 from backend.realtime import broadcaster
 from backend.schemas import (
@@ -43,6 +42,20 @@ def _obs_json(obs: Observation) -> dict:
     return ObservationOut.model_validate(obs).model_dump(mode="json")
 
 
+def _seen(db: Session, node) -> list[Alert]:
+    """Any contact from the device proves it is online (see alerts.mark_seen)."""
+    _health, back_online = alerts.mark_seen(db, node.id)
+    db.commit()
+    return back_online
+
+
+async def _announce_resolved(closed: list[Alert], owner: int) -> None:
+    for a in closed:
+        await broadcaster.broadcast(
+            "alert_resolved", AlertOut.model_validate(a).model_dump(mode="json"), owner
+        )
+
+
 @router.post("/image", response_model=ObservationOut)
 async def upload_image(
     image: UploadFile = File(...),
@@ -56,7 +69,9 @@ async def upload_image(
     obs = observation_service.ingest_image(
         db, node, raw, image.filename, gps_lat, gps_long, timestamp
     )
+    back_online = _seen(db, node)
     await broadcaster.broadcast("observation", _obs_json(obs), node.farm.farmer_id)
+    await _announce_resolved(back_online, node.farm.farmer_id)
     return obs
 
 
@@ -71,6 +86,7 @@ async def upload_sensors(
         db, node, req.temperature, req.humidity, req.soil_moisture,
         req.battery, req.timestamp,
     )
+    back_online = _seen(db, node)
     if observation_service.summary_due(db, obs, raised):
         # Runs after the response is sent, in a worker thread: the device never
         # waits on the model.
@@ -81,6 +97,7 @@ async def upload_sensors(
         await broadcaster.broadcast(
             "alert", AlertOut.model_validate(a).model_dump(mode="json"), owner
         )
+    await _announce_resolved(back_online, owner)
     return obs
 
 
@@ -90,10 +107,7 @@ async def heartbeat(
     node=Depends(get_node),
     db: Session = Depends(get_db),
 ) -> NodeHealth:
-    health = db.get(NodeHealth, node.id) or NodeHealth(node_id=node.id)
-    health.status = "online"
-    health.last_seen = _now()
-    health.updated_at = _now()
+    health, back_online = alerts.mark_seen(db, node.id)
     # Only overwrite fields the device actually reported.
     for field in ("battery", "wifi_strength", "firmware_version",
                   "gps_available", "camera_available", "storage_available"):
@@ -120,6 +134,7 @@ async def heartbeat(
         await broadcaster.broadcast(
             "alert", AlertOut.model_validate(a).model_dump(mode="json"), owner
         )
+    await _announce_resolved(back_online, owner)
     return health
 
 

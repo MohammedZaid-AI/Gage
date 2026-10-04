@@ -555,11 +555,16 @@ def test_offline_detection() -> None:
     assert any(a.type == "node_offline" for a in raised)
     assert db.get(NodeHealth, node.id).status == "offline"
 
-    # Fresh heartbeat -> recovers, no duplicate alert on re-eval.
-    db.get(NodeHealth, node.id).last_seen = datetime.utcnow()
-    db.commit()
+    # Still silent -> no duplicate alert on the next timer tick.
     assert alerts.evaluate_offline(db) == []
+
+    # The node makes contact again -> online, and its offline alert is resolved.
+    _health, closed = alerts.mark_seen(db, node.id)
+    db.commit()
     assert db.get(NodeHealth, node.id).status == "online"
+    assert [a.type for a in closed] == ["node_offline"]
+    assert closed[0].resolved and closed[0].resolution == "auto: node back online"
+    assert alerts.evaluate_offline(db) == []      # fresh contact -> stays online
 
 
 if __name__ == "__main__":

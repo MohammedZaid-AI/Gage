@@ -165,23 +165,38 @@ def reconcile_open_alerts(db: Session) -> list[Alert]:
     return closed
 
 
+def mark_seen(db: Session, node_id: str) -> tuple[NodeHealth, list[Alert]]:
+    """A node just contacted the server (heartbeat, sensors or photo): it is
+    online, and any open node_offline alert for it is resolved. Returns the
+    health row and the alerts closed. Caller commits."""
+    health = db.get(NodeHealth, node_id) or NodeHealth(node_id=node_id)
+    health.status = "online"
+    health.last_seen = _now()
+    health.updated_at = _now()
+    db.add(health)
+    closed = []
+    for a in _open(db, node_id, "node_offline"):
+        resolve(a, "auto: node back online")
+        closed.append(a)
+    return health, closed
+
+
 def evaluate_offline(db: Session) -> list[Alert]:
-    """Mark stale nodes offline and raise one alert each. Evaluated lazily on read.
-    ponytail: lazy (runs when status is queried). Move to a scheduled task when you
-    need offline alerts without a dashboard viewer."""
+    """Mark nodes silent for longer than offline_seconds as offline and raise one
+    node_offline alert each. Run on a timer by the server (see backend/main.py);
+    recovery is handled by mark_seen when the node next makes contact. Returns
+    the newly raised alerts. Caller commits."""
     s = get_settings()
     out: list[Alert] = []
     healths = list(db.execute(select(NodeHealth)).scalars())
     for h in healths:
         age = _age_seconds(h.last_seen)
-        offline = age is not None and age > s.offline_seconds
-        if offline and h.status != "offline":
+        if age is not None and age > s.offline_seconds and h.status != "offline":
             h.status = "offline"
             node = h.node
+            logger.info("node %s offline: no contact for %.0fs", node.id, age)
             a = _raise(db, node.farm_id, node.id, "node_offline", "critical",
-                       "Node offline (no heartbeat)", None)
+                       f"Node offline (no contact for {age / 60:.0f} min)", None)
             if a:
                 out.append(a)
-        elif not offline and h.status == "offline":
-            h.status = "online"  # recovered
     return out

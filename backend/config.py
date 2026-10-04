@@ -64,6 +64,8 @@ class Settings(BaseSettings):
 
     # A node is considered offline if its last heartbeat is older than this.
     offline_seconds: int = 180
+    # How often the server's background timer checks for silent nodes.
+    offline_check_seconds: int = 60
 
     # Alert rule thresholds. ponytail: global constants for V1; make them
     # per-crop / per-farm rows when agronomy demands it.

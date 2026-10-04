@@ -657,7 +657,7 @@ function connectWS() {
         showAnalyzing();
         setTimeout(async () => { await go("home"); ["#health-card"].forEach((s) => $(s)?.classList.add("flash")); document.querySelectorAll(".sensor").forEach((el) => el.classList.add("flash")); }, 1100);
       } else toast("New observation captured");
-    } else if (m.event === "alert" && state.view === "home") { invalidate(); go("home"); }
+    } else if (["alert", "alert_resolved", "node_health"].includes(m.event) && state.view === "home") { invalidate(); go("home"); }
   };
   ws.onclose = () => { if (state.token) setTimeout(connectWS, 4000); };
 }
