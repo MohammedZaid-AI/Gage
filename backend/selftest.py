@@ -170,6 +170,11 @@ def _offline_translation():
     qt.romanized_kannada_to_english = unavailable
     from backend.ai import knowledge as kb
     kb._groq_english = unavailable           # the Groq query rewrite is a network call too
+    from backend.ai import claim_check as cc
+
+    def grounding_offline(_answer, _context):
+        raise RuntimeError("offline selftest")
+    cc._grounding = grounding_offline        # answers get the "checking unavailable" note
 
 
 def test_knowledge_retrieval() -> None:
@@ -188,21 +193,45 @@ def test_knowledge_retrieval() -> None:
 def test_claim_check() -> None:
     from backend.ai import claim_check
 
-    ctx = "Foliar spray of 2% FeSO4 with 0.5% MnSO4 and 2% urea, 2-3 times. Iron chlorosis."
-    ok = claim_check.check("Spray 2% FeSO4 and 2% urea for iron chlorosis.", ctx)
-    assert ok.unsupported == [] and ok.answer.startswith("Spray")
-    bad = claim_check.check("This is calcium deficiency; apply 75 kg/ha in March.", ctx)
-    assert set(bad.unsupported) == {"calcium", "75", "March"}, bad.unsupported
-    assert bad.answer.startswith("Please double-check")      # caveat, not stated as fact
-    # Invented people are flagged; a person named in the context is not.
-    vksa = "VKSA was launched by Union Agriculture Minister Shri Shivraj Singh Chouhan."
-    made_up = claim_check.check("Launched by Agriculture Minister Ramesh Kumar Gowda, "
-                                "on advice from Dr. Raghupathy Srinivasan.", vksa)
-    assert {"name: Ramesh Kumar Gowda", "name: Raghupathy Srinivasan"} <= set(made_up.unsupported)
-    assert claim_check.check("It was launched by Shivraj Singh Chouhan, Union Minister.",
-                             vksa).unsupported == []
-    kn = claim_check.check("ಹೆಕ್ಟೇರ್‌ಗೆ ೭೫ kg ಕ್ಯಾಲ್ಸಿಯಂ ಹಾಕಿ.", ctx, "kn")
-    assert {"75", "calcium"} <= set(kn.unsupported) and kn.answer.startswith("ದಯವಿಟ್ಟು")
+    ctx = "Foliar spray of 2% FeSO4 with 0.5% MnSO4 and 2% urea. Gypsum is a sulphur source."
+    real = claim_check._grounding
+    try:
+        # All claims supported -> the answer is returned unchanged.
+        claim_check._grounding = lambda a, c: [
+            {"claim": "Spray 2% FeSO4 and 2% urea", "status": "supported", "reason": "in context"}]
+        ok = claim_check.check("Spray 2% FeSO4 and 2% urea.", ctx)
+        assert ok.status == "checked" and ok.unsupported == [] and ok.answer == "Spray 2% FeSO4 and 2% urea."
+
+        # Unsupported / contradicted -> a caveat naming them comes first.
+        claim_check._grounding = lambda a, c: [
+            {"claim": "Gypsum supplies iron", "status": "contradicted", "reason": "context: sulphur"},
+            {"claim": "Apply 75 kg/ha", "status": "unsupported", "reason": "no dose in context"}]
+        bad = claim_check.check("Gypsum supplies iron; apply 75 kg/ha.", ctx)
+        assert bad.answer.startswith("Please double-check before acting:"), bad.answer
+        assert '"Gypsum supplies iron" (contradicts' in bad.answer and '"Apply 75 kg/ha" (not in' in bad.answer
+        assert set(bad.unsupported) == {"contradicted: Gypsum supplies iron", "unsupported: Apply 75 kg/ha"}
+        kn = claim_check.check("ಜಿಪ್ಸಮ್ ಕಬ್ಬಿಣ ಕೊಡುತ್ತದೆ.", ctx, "kn")
+        assert kn.answer.startswith("ದಯವಿಟ್ಟು")
+
+        # The cheap name filter still runs first: invented people are flagged,
+        # a person named in the context is not.
+        claim_check._grounding = lambda a, c: []
+        vksa = "VKSA was launched by Union Agriculture Minister Shri Shivraj Singh Chouhan."
+        made_up = claim_check.check("Launched by Agriculture Minister Ramesh Kumar Gowda, "
+                                    "on advice from Dr. Raghupathy Srinivasan.", vksa)
+        assert {"name: Ramesh Kumar Gowda", "name: Raghupathy Srinivasan"} <= set(made_up.unsupported)
+        assert claim_check.check("It was launched by Shivraj Singh Chouhan, Union Minister.",
+                                 vksa).unsupported == []
+
+        # A failed or timed-out check never blocks the answer: it is returned with a note.
+        def boom(a, c):
+            raise TimeoutError("grounding timed out")
+        claim_check._grounding = boom
+        r = claim_check.check("Apply 7-8 cm of water.", ctx)
+        assert r.status == "unavailable" and r.answer.startswith("Apply 7-8 cm of water.")
+        assert r.answer.endswith("(Automatic fact-checking was unavailable for this answer.)")
+    finally:
+        claim_check._grounding = real
 
 
 def test_llm_failure_is_not_saved() -> None:
@@ -570,6 +599,7 @@ def test_offline_detection() -> None:
 
 
 if __name__ == "__main__":
+    _offline_translation()   # no network: translation, query rewrite and grounding are stubbed
     test_language_detection_and_routing()
     test_password_and_token()
     test_context_engine_and_prompt()

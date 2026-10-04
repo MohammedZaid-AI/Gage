@@ -31,6 +31,9 @@ class Settings(BaseSettings):
     # Timeout for the small Groq helper calls (query rewrite, grounding check);
     # on timeout the answer goes ahead without them.
     groq_helper_timeout_s: float = 8.0
+    # The grounding check reads the whole context + answer; it gets longer, and the
+    # answer is returned with an 'unavailable' note if it runs out.
+    grounding_timeout_s: float = 20.0
 
     # Groq (OpenAI-compatible). Model is configurable; defaults to GPT-OSS 120B.
     groq_api_key: str = ""
