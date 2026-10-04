@@ -21,6 +21,16 @@ class LLMProvider(ABC):
         """Return the answer text, or raise LLMError. Never return an error
         message disguised as an answer."""
 
+    def summarize(self, context: str, language: str) -> str:
+        """One or two plain sentences on the farm's current state (for the Home
+        screen), or raise LLMError. Providers whose answer() imposes a long
+        answer format should override this with their own short prompt."""
+        return self.answer(SUMMARY_REQUEST, context, language)
+
+
+SUMMARY_REQUEST = ("In one or two plain sentences, describe the farm's current state "
+                   "for the farmer. No headings or lists.")
+
 
 class SpeechProvider(ABC):
     """Speech-to-text and text-to-speech (e.g. Sarvam AI) for the voice loop."""
