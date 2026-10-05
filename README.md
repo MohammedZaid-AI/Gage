@@ -75,10 +75,16 @@ invalidating device keys.
 | Sensor-pattern check | FlyBrain (flycns LIF simulation) on a synthetic test graph by default; see `GET /farm/{id}/anomaly` for the graph in use |
 | Frontend | plain HTML/CSS/JS + WebSocket (`frontend/`) |
 
-`LLM_PROVIDER=groq` is the default and the only live answerer. Two other values
-exist: `sarvam_finetuned` loads the local fine-tuned Sarvam-1 adapter (GPU; kept
-as an option, not used live — see [docs/KNOWN_LIMITATIONS.md](docs/KNOWN_LIMITATIONS.md)),
-and `mock` returns a fixed text for offline tests only. Gage does not analyse
+**Answer engine.** `LLM_PROVIDER` in `.env` sets the default (`groq`). Each chat
+request can choose its engine: `POST /chat` with `"provider": "groq"` or
+`"provider": "sarvam_finetuned"`, or the **Answer engine** dropdown in the Ask
+panel; every answer bubble says which engine wrote it. The fine-tuned Sarvam-1
+adapter (local GPU) is loaded once, on the first request that asks for it, never
+at startup. If its model or GPU is missing, that request gets a clear HTTP 503;
+it is never answered by Groq instead. Both engines get the same retrieval, the
+same local number and name checks and the same caveat. (`mock` returns a fixed
+text and is for offline tests only.) How the two compare:
+[docs/FINAL_REPORT.md](docs/FINAL_REPORT.md). Gage does not analyse
 photos: images uploaded by a node are stored with the observation, nothing more.
 
 How an answer is made (`backend/ai/orchestrator.py`): build the farm context →

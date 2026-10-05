@@ -3,7 +3,8 @@
 Selected with LLM_PROVIDER=sarvam_finetuned. The adapter (SARVAM_ADAPTER_PATH,
 default models/sarvam_agri_final) is loaded with PEFT's PeftModel.from_pretrained
 over the base model — never as a standalone model. Loading happens once, when
-the provider is constructed at startup; requests only run generation.
+the provider is constructed by the first chat request that asks for this engine
+(ai/service.get_llm; never at server startup); later requests only run generation.
 
 The prompt reproduces the training format from Gage_Sarvam_Finetune_Colab.ipynb
 exactly (### System / ### Context / ### Farmer / ### Assistant); measured on the

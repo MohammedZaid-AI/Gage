@@ -1,0 +1,60 @@
+[
+ {
+  "case": "no provider (env default)",
+  "http": 200,
+  "seconds": 5.8,
+  "provider": "groq",
+  "answer_seconds": 3.51,
+  "fact_check": "checked",
+  "unsupported": [
+   "unsupported: Use a flow meter or field markings to estimate the volume needed for the field size",
+   "unsupported: Check the soil‑moisture sensor after irrigation to confirm wetting depth is within 7–8 cm",
+   "unsupported: Adjust future applications if the soil remains too dry or overly wet",
+   "unsupported: Align irrigation frequency with crop stage (e.g., ~7 days during germination, ~10 days during tillering, etc.)",
+   "unsupported: Contact an agronomist if soil‑moisture readings stay far below expected level despite applying 7–8 cm of water",
+   "unsupported: Waterlogging or surface ponding occurs after irrigation",
+   "unsupported: Persistent water‑stress symptoms (e.g., leaf wilting, stunted growth) that do not improve with the recommended depth"
+  ],
+  "answer_start": "Please double-check before acting: \"Use a flow meter or field markings to estimate the volume needed for the field size\" (not in Gage's sources); \"Check the soil‑moisture sensor after irrigation to confirm wetting depth is within 7–8 cm\" (not in Gage's sources); \"Adjust future applications if the so"
+ },
+ {
+  "case": "provider=groq",
+  "http": 200,
+  "seconds": 2.5,
+  "provider": "groq",
+  "answer_seconds": 1.52,
+  "fact_check": "checked",
+  "unsupported": [],
+  "answer_start": "**Observation**  \nThe agricultural knowledge states: “Recommended irrigation depth per application: **7–8 cm**.”\n\n**Analysis**  \nThe guideline indicates that applying water to achieve a wetting depth of 7 cm to 8 cm per irrigation event meets the crop’s water‑use requirements across its growth stage"
+ },
+ {
+  "case": "provider=sarvam_finetuned (1st: loads model)",
+  "http": 200,
+  "seconds": 22.1,
+  "provider": "sarvam_finetuned",
+  "answer_seconds": 6.44,
+  "fact_check": "checked",
+  "unsupported": [],
+  "answer_start": "Irrigation water depth generally ranges from 7–8 centimeters but varies based on specific field condition as detailed above."
+ },
+ {
+  "case": "provider=sarvam_finetuned (2nd)",
+  "http": 200,
+  "seconds": 4.4,
+  "provider": "sarvam_finetuned",
+  "answer_seconds": 4.35,
+  "fact_check": "skipped",
+  "unsupported": [],
+  "answer_start": "Irrigation water depth generally ranges from 7–8 centimeters but varies based on specific field condition as detailed above.\n\n(Full fact-checking was unavailable for this answer; only the local number and name checks ran.)"
+ },
+ {
+  "case": "provider=bogus",
+  "http": 422,
+  "seconds": 0.0,
+  "provider": null,
+  "answer_seconds": null,
+  "fact_check": null,
+  "unsupported": null,
+  "answer_start": "[{'type': 'literal_error', 'loc': ['body', 'provider'], 'msg': \"Input should be 'groq' or 'sarvam_finetuned'\", 'input': 'bogus', 'ctx': {'expected': \"'groq' or 'sarvam_finetuned'\"}}]"
+ }
+]

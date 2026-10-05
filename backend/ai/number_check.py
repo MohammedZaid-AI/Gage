@@ -118,7 +118,7 @@ def _known(value: float, kind: str, src: dict[str, set]) -> bool:
         return True
     # The source may state the same quantity without a parsed unit (e.g. a
     # table cell "355"), but only in the same base unit as written there.
-    return kind in ("money", "percent") and any(abs(value - v) < 1e-6 for v in src["any"])
+    return kind == "money" and any(abs(value - v) < 1e-6 for v in src["any"])
 
 
 def unsupported_numbers(answer: str, sources: str) -> list[str]:

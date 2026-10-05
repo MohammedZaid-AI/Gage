@@ -140,6 +140,10 @@ async def _stop_background_tasks() -> None:
     task = getattr(app.state, "offline_task", None)
     if task:
         task.cancel()
+    # The FlyBrain worker is a separate process; stop it with the server.
+    from backend.services import anomaly
+
+    anomaly.shutdown()
 
 
 @app.get("/api/state")
