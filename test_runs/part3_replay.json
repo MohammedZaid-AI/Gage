@@ -1,0 +1,161 @@
+[
+ {
+  "run": "test_runs/part2_questions_run1.json",
+  "id": "Q1",
+  "findings": []
+ },
+ {
+  "run": "test_runs/part2_questions_run1.json",
+  "id": "Q2",
+  "findings": [
+   [
+    "number",
+    "10 days"
+   ],
+   [
+    "input",
+    "lime for calcium"
+   ]
+  ]
+ },
+ {
+  "run": "test_runs/part2_questions_run1.json",
+  "id": "Q3",
+  "findings": []
+ },
+ {
+  "run": "test_runs/part2_questions_run1.json",
+  "id": "Q4",
+  "findings": [
+   [
+    "number",
+    "3–5 days"
+   ],
+   [
+    "number",
+    "24 hours"
+   ]
+  ]
+ },
+ {
+  "run": "test_runs/part2_questions_run1.json",
+  "id": "Q5",
+  "findings": []
+ },
+ {
+  "run": "test_runs/part2_questions_run1.json",
+  "id": "Q6",
+  "findings": []
+ },
+ {
+  "run": "test_runs/part2_questions_run1.json",
+  "id": "Q7",
+  "findings": []
+ },
+ {
+  "run": "test_runs/part2_questions_run1.json",
+  "id": "Q8",
+  "findings": []
+ },
+ {
+  "run": "test_runs/part2_questions_run1.json",
+  "id": "Q9",
+  "findings": [
+   [
+    "number",
+    "7‑10 days"
+   ],
+   [
+    "number",
+    "2 weeks"
+   ]
+  ]
+ },
+ {
+  "run": "test_runs/part2_questions_run1.json",
+  "id": "Q10",
+  "findings": [
+   [
+    "number",
+    "15‑20 cm"
+   ],
+   [
+    "number",
+    "24 h"
+   ]
+  ]
+ },
+ {
+  "run": "test_runs/part2_questions.json",
+  "id": "Q1",
+  "findings": []
+ },
+ {
+  "run": "test_runs/part2_questions.json",
+  "id": "Q2",
+  "findings": [
+   [
+    "input",
+    "gypsum"
+   ]
+  ]
+ },
+ {
+  "run": "test_runs/part2_questions.json",
+  "id": "Q3",
+  "findings": [
+   [
+    "number",
+    "5–7 days"
+   ]
+  ]
+ },
+ {
+  "run": "test_runs/part2_questions.json",
+  "id": "Q4",
+  "findings": [
+   [
+    "number",
+    "2‑3 ದಿನಗಳಲ್ಲಿ"
+   ]
+  ]
+ },
+ {
+  "run": "test_runs/part2_questions.json",
+  "id": "Q5",
+  "findings": []
+ },
+ {
+  "run": "test_runs/part2_questions.json",
+  "id": "Q6",
+  "findings": []
+ },
+ {
+  "run": "test_runs/part2_questions.json",
+  "id": "Q7",
+  "findings": []
+ },
+ {
+  "run": "test_runs/part2_questions.json",
+  "id": "Q8",
+  "findings": []
+ },
+ {
+  "run": "test_runs/part2_questions.json",
+  "id": "Q9",
+  "findings": [
+   [
+    "number",
+    "7‑10 days"
+   ],
+   [
+    "number",
+    "2 weeks"
+   ],
+   [
+    "judgement",
+    "32.3 % adequate"
+   ]
+  ]
+ }
+]

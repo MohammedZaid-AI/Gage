@@ -1,20 +1,25 @@
-"""Grounding check on a model answer, run before the farmer sees it.
+"""Grounding checks on a model answer, run before the farmer sees it.
 
-1. A cheap first filter: a regex for invented people ("Dr. X Y", "Minister X Y",
-   "X Y, Minister") whose exact name is not in the context.
-2. The real check: one extra Groq call that reads the context the answering
-   model was given and the answer, lists each factual claim, and marks it
-   supported, unsupported or contradicted (strict JSON).
+Local checks, always run (no network; ai/number_check.py and below):
+1. Numbers with units not found in the sources (retrieved text, question, farm
+   readings), after unit normalisation (70 mm == 7 cm).
+2. Inputs (gypsum, urea, ...) the sources never name.
+3. Farm readings called low/high/optimal without a range in the text.
+4. Invented people ("Dr. X Y", "Minister X Y", "X Y, Minister") whose exact name
+   is not in the context.
+Groq check, when the token budget allows: one call that lists each factual
+claim and marks it supported, unsupported or contradicted (strict JSON).
 
-Unsupported or contradicted claims get a short caveat before the answer, naming
-them. The check never blocks the answer: if the Groq call fails or times out,
-the answer is returned with a one-line note that checking was unavailable.
+All findings are merged into one short caveat before the answer, naming them.
+The checks never block the answer: if the Groq call is skipped, fails or times
+out, the answer gets a one-line note that only the local checks ran.
 """
 import logging
 import re
 import time
 from dataclasses import dataclass, field
 
+from backend.ai import number_check
 from backend.config import get_settings
 
 logger = logging.getLogger("gage.claim_check")
@@ -27,7 +32,8 @@ _GROUNDING_SYSTEM = (
     "supply, dates, names and organisations, and agronomic judgements (for example "
     "whether a reading is low, high or optimal, or what causes a symptom). Do not "
     "list greetings, generic advice like 'monitor the field' or 'consult an expert', "
-    "or restatements of the farmer's own question.\n"
+    "restatements of the farmer's own question, or statements that some information "
+    "is missing, not covered or should be confirmed.\n"
     "For each claim choose exactly one status:\n"
     "- supported: the CONTEXT states it or it follows directly from the CONTEXT "
     "(a plain unit conversion of a context value counts as supported)\n"
@@ -45,13 +51,20 @@ _CAVEAT = {
 }
 _LABEL = {
     "en": {"unsupported": "not in Gage's sources", "contradicted": "contradicts Gage's sources",
-           "name": "this person is not in Gage's sources"},
+           "name": "this person is not in Gage's sources",
+           "number": "this number is not in Gage's sources",
+           "input": "Gage's sources do not mention this input",
+           "judgement": "Gage's sources give no range to judge this reading by"},
     "kn": {"unsupported": "Gage ಮಾಹಿತಿ ದಾಖಲೆಗಳಲ್ಲಿ ಇಲ್ಲ", "contradicted": "Gage ಮಾಹಿತಿ ದಾಖಲೆಗಳಿಗೆ ವಿರುದ್ಧವಾಗಿದೆ",
-           "name": "ಈ ವ್ಯಕ್ತಿಯ ಹೆಸರು Gage ಮಾಹಿತಿ ದಾಖಲೆಗಳಲ್ಲಿ ಇಲ್ಲ"},
+           "name": "ಈ ವ್ಯಕ್ತಿಯ ಹೆಸರು Gage ಮಾಹಿತಿ ದಾಖಲೆಗಳಲ್ಲಿ ಇಲ್ಲ",
+           "number": "ಈ ಸಂಖ್ಯೆ Gage ಮಾಹಿತಿ ದಾಖಲೆಗಳಲ್ಲಿ ಇಲ್ಲ",
+           "input": "ಈ ಒಳಸುರಿಯನ್ನು Gage ಮಾಹಿತಿ ದಾಖಲೆಗಳು ಹೇಳುವುದಿಲ್ಲ",
+           "judgement": "ಈ ಓದುವಿಕೆಯನ್ನು ನಿರ್ಣಯಿಸಲು Gage ದಾಖಲೆಗಳಲ್ಲಿ ಮಿತಿ ಇಲ್ಲ"},
 }
 _UNAVAILABLE = {
-    "en": "(Automatic fact-checking was unavailable for this answer.)",
-    "kn": "(ಈ ಉತ್ತರದ ಸ್ವಯಂಚಾಲಿತ ಪರಿಶೀಲನೆ ಈಗ ಲಭ್ಯವಿಲ್ಲ.)",
+    "en": "(Full fact-checking was unavailable for this answer; only the local number "
+          "and name checks ran.)",
+    "kn": "(ಈ ಉತ್ತರದ ಪೂರ್ಣ ಪರಿಶೀಲನೆ ಈಗ ಲಭ್ಯವಿಲ್ಲ; ಸಂಖ್ಯೆ ಮತ್ತು ಹೆಸರು ಪರಿಶೀಲನೆ ಮಾತ್ರ ನಡೆದಿದೆ.)",
 }
 _MAX_CAVEAT_ITEMS = 3
 
@@ -116,16 +129,37 @@ def _grounding(answer: str, context: str) -> list[dict]:
     return out
 
 
-def check(answer: str, context: str, language: str = "en") -> CheckResult:
-    """Check `answer` against the `context` the model was given; caveat or note it."""
+def local_findings(answer: str, sources: str, readings: str = "",
+                   knowledge: str | None = None) -> list[tuple[str, str]]:
+    """(kind, item) for every local finding: number, input, judgement, name.
+
+    `sources` is everything the answer may draw on (retrieved text, question,
+    farm readings); `readings` is the farm-readings part, `knowledge` the
+    retrieved-text part (defaults to `sources`)."""
+    knowledge = sources if knowledge is None else knowledge
+    found = [("number", n) for n in number_check.unsupported_numbers(answer, sources)]
+    found += [("input", n) for n in number_check.unsupported_inputs(answer, sources)]
+    found += [("input", n) for n in number_check.unsupported_input_purposes(answer, sources)]
+    found += [("judgement", j) for j in number_check.unsupported_judgements(
+        answer, number_check.quantities(readings), knowledge)]
+    src_lower = sources.lower()
+    found += [("name", n) for n in sorted(_names(answer)) if n.lower() not in src_lower]
+    return found
+
+
+def check(answer: str, context: str, language: str = "en", *, sources: str | None = None,
+          readings: str = "", knowledge: str | None = None) -> CheckResult:
+    """Check `answer`; caveat or note it. `context` goes to the Groq check;
+    `sources` (default: `context`) to the local checks — see local_findings."""
     lang = "kn" if language == "kn" else "en"
     labels = _LABEL[lang]
 
-    # 1. cheap first filter: invented people
-    ctx_lower = context.lower()
-    invented = [n for n in sorted(_names(answer)) if n.lower() not in ctx_lower]
-    flagged = [f"name: {n}" for n in invented]
-    caveat_items = [f'"{n}" ({labels["name"]})' for n in invented]
+    # 1. local checks, always run
+    local = local_findings(answer, context if sources is None else sources, readings, knowledge)
+    flagged = [f"{kind}: {item}" for kind, item in local]
+    caveat_items = [f'"{item}" ({labels[kind]})' for kind, item in local]
+    local_numbers = {d for kind, item in local if kind == "number"
+                     for d in re.findall(r"\d+", number_check._normalise_text(item))}
 
     # 2. grounding call; never blocks the answer
     t0 = time.perf_counter()
@@ -145,6 +179,10 @@ def check(answer: str, context: str, language: str = "en") -> CheckResult:
     for c in claims:
         if c["status"] != "supported":
             flagged.append(f'{c["status"]}: {c["claim"]}')
+            # One caveat: skip a Groq finding about a number already flagged locally.
+            claim_digits = re.findall(r"\d+", c["claim"])
+            if claim_digits and all(d in local_numbers for d in claim_digits):
+                continue
             caveat_items.append(f'"{c["claim"]}" ({labels[c["status"]]})')
 
     final = answer

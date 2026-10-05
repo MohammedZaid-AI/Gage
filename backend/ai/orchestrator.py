@@ -62,8 +62,11 @@ class AIOrchestrator:
         # LLMError propagates: nothing is saved, the router reports the failure.
         raw = service.complete(model_question, context, language)
         # Checked against two chunks (those the answer uses most) + farm data.
+        # Local checks see every retrieved chunk, the question and the readings.
+        sources, readings, knowledge_text = prompt_builder.check_sources(ctx, retrieval.docs, question)
         checked = claim_check.check(
-            raw, prompt_builder.build_check_context(ctx, retrieval.docs, question, raw), language)
+            raw, prompt_builder.build_check_context(ctx, retrieval.docs, question, raw), language,
+            sources=sources, readings=readings, knowledge=knowledge_text)
 
         db.add(Conversation(
             farm_id=farm.id, farmer_id=farm.farmer_id,

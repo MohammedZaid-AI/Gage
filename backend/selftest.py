@@ -226,8 +226,12 @@ def test_claim_check() -> None:
             {"claim": "Apply 75 kg/ha", "status": "unsupported", "reason": "no dose in context"}]
         bad = claim_check.check("Gypsum supplies iron; apply 75 kg/ha.", ctx)
         assert bad.answer.startswith("Please double-check before acting:"), bad.answer
-        assert '"Gypsum supplies iron" (contradicts' in bad.answer and '"Apply 75 kg/ha" (not in' in bad.answer
-        assert set(bad.unsupported) == {"contradicted: Gypsum supplies iron", "unsupported: Apply 75 kg/ha"}
+        # "75 kg" is caught by the local number check; Groq's finding about the
+        # same number is kept in `unsupported` but not repeated in the caveat.
+        assert '"Gypsum supplies iron" (contradicts' in bad.answer and '"75 kg" (this number' in bad.answer
+        assert "Apply 75 kg/ha" not in bad.answer.split("\n\n")[0]
+        assert {"contradicted: Gypsum supplies iron", "unsupported: Apply 75 kg/ha",
+                "number: 75 kg"} <= set(bad.unsupported)
         kn = claim_check.check("ಜಿಪ್ಸಮ್ ಕಬ್ಬಿಣ ಕೊಡುತ್ತದೆ.", ctx, "kn")
         assert kn.answer.startswith("ದಯವಿಟ್ಟು")
 
@@ -245,9 +249,9 @@ def test_claim_check() -> None:
         def boom(a, c):
             raise TimeoutError("grounding timed out")
         claim_check._grounding = boom
-        r = claim_check.check("Apply 7-8 cm of water.", ctx)
-        assert r.status == "unavailable" and r.answer.startswith("Apply 7-8 cm of water.")
-        assert r.answer.endswith("(Automatic fact-checking was unavailable for this answer.)")
+        r = claim_check.check("Spray 2% FeSO4.", ctx)
+        assert r.status == "unavailable" and r.answer.startswith("Spray 2% FeSO4.")
+        assert r.answer.endswith("only the local number and name checks ran.)")
     finally:
         claim_check._grounding = real
 
@@ -691,6 +695,67 @@ def test_offline_detection() -> None:
     assert alerts.evaluate_offline(db) == []      # fresh contact -> stays online
 
 
+def test_local_number_and_name_checks() -> None:
+    """Local checks (no Groq): the five required cases, plus normalisation."""
+    from backend.ai import claim_check, number_check
+
+    kb = ("Iron chlorosis is common in ratoon crops on calcareous soils. Spray 1% ferrous "
+          "sulphate (FeSO4) 2-3 times at 7-10 day intervals to correct iron chlorosis.\n\n"
+          "Gypsum is applied to reclaim sodic soils.\n\n"   # separate chunks
+          "Each irrigation should apply 7-8 cm of water.")
+    readings = "- Soil moisture: 40.0 %\n- Temperature: 27.9 C"
+    sources = f"{kb}\n\n{readings}\n\nHow much water per irrigation?"
+
+    def findings(answer):
+        return claim_check.local_findings(answer, sources, readings, kb)
+
+    # 1. gypsum called an iron source (gypsum IS in the text, but for sodic soils)
+    f = findings("Apply gypsum as an iron source to correct the yellowing.")
+    assert ("input", "gypsum for iron") in f, f
+    # 2. 40 % soil moisture called below optimal, with no range in the text
+    f = findings("Your soil moisture is 40.0 %, which is below optimal.")
+    assert [k for k, _ in f] == ["judgement"] and "40.0 %" in f[0][1], f
+    # 3. an invented 30 to 35 percent range
+    f = findings("Keep soil moisture between 30 to 35 % for best growth.")
+    assert f == [("number", "30 to 35 %")], f
+    # 4. 7 cm written as 70 mm is a faithful conversion, not a finding
+    assert findings("Apply about 70 mm of water per irrigation.") == []
+    # 5. a fully correct answer passes clean
+    correct = ("Each irrigation should apply 7–8 cm of water. For iron chlorosis, spray 1 % "
+               "ferrous sulphate 2–3 times at 7–10 day intervals. Your soil moisture reading "
+               "is 40.0 %.")
+    assert findings(correct) == [], findings(correct)
+    # Kannada digits / units and written numbers normalise before comparing
+    assert findings("ಪ್ರತಿ ನೀರಾವರಿಗೆ ೭-೮ ಸೆಂ.ಮೀ ನೀರು ಹಾಕಿ.") == []
+    assert number_check.unsupported_numbers("Repeat every two weeks.", "repeat after 2 weeks") == []
+    assert number_check.unsupported_numbers("Repeat every 3 weeks.", "repeat after 2 weeks") == ["3 weeks"]
+    assert number_check.unsupported_numbers("Pay within 2 weeks.", "within 14 days") == []
+
+    # One merged caveat: local findings + Groq findings, with Groq's duplicate of
+    # a locally flagged number dropped; the Groq check skipped -> local-only note.
+    real = claim_check._grounding
+    try:
+        claim_check._grounding = lambda a, c: [
+            {"claim": "Soil moisture of 30-35% is best", "status": "unsupported", "reason": ""},
+            {"claim": "Gypsum supplies iron", "status": "contradicted", "reason": ""}]
+        r = claim_check.check("Keep soil moisture at 30 to 35 %. Gypsum supplies iron.", kb,
+                              sources=sources, readings=readings, knowledge=kb)
+        assert r.answer.count("Please double-check") == 1
+        assert '"30 to 35 %"' in r.answer and "Gypsum supplies iron" in r.answer
+        assert "30-35% is best" not in r.answer.split("\n\n")[0]   # not listed twice
+
+        def skipped(a, c):
+            from backend.ai.groq_client import GroqSkipped
+            raise GroqSkipped("budget")
+        claim_check._grounding = skipped
+        r = claim_check.check(correct, kb, sources=sources, readings=readings, knowledge=kb)
+        assert r.status == "skipped" and "Please double-check" not in r.answer
+        assert "only the local number and name checks ran" in r.answer
+    finally:
+        claim_check._grounding = real
+    print("ok  local checks: numbers (units, ranges, Kannada digits), inputs, judgements, merge")
+
+
 def test_groq_budget_and_rate_limits() -> None:
     """Token budget priorities, 429 parsing, and the answer's retry-once / 503."""
     from backend.ai import groq_client as gc
@@ -769,4 +834,5 @@ if __name__ == "__main__":
     test_flybrain_anomaly()
     test_offline_detection()
     test_groq_budget_and_rate_limits()
+    test_local_number_and_name_checks()
     print("OK — all self-checks passed")

@@ -299,6 +299,18 @@ def build_check_context(ctx: FarmContext | None, docs: list[KnowledgeDoc], quest
     return "\n\n".join(parts)
 
 
+def check_sources(ctx: FarmContext | None, docs: list[KnowledgeDoc],
+                  question: str) -> tuple[str, str, str]:
+    """(sources, readings, knowledge) for the local number/input/judgement
+    checks: everything the answer may take numbers from — ALL retrieved
+    chunks, the question, and the farm's readings and alerts."""
+    knowledge = "\n\n".join(d.text for d in docs)
+    readings = ""
+    if ctx is not None:
+        readings = f"{_sensor_block(ctx)}\n{_alerts_block(ctx)}\n{_anomaly_block(ctx)}"
+    return f"{knowledge}\n\n{readings}\n\n{question}", readings, knowledge
+
+
 def build(ctx: FarmContext, docs: list[KnowledgeDoc], question: str) -> str:
     """Assemble the full structured Crop Doctor prompt for the LLM."""
     intent = detect_intent(question)
