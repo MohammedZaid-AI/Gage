@@ -10,6 +10,12 @@ Covers the pieces with real branching, no server needed:
 - observation merge (image + sensors), alert rules, offline detection
 """
 import json
+import os
+
+# Offline by design: the mock model and speech providers, whatever .env says.
+os.environ["LLM_PROVIDER"] = "mock"
+os.environ["SPEECH_PROVIDER"] = "mock"
+
 from datetime import datetime, timedelta
 
 from sqlalchemy import create_engine
@@ -39,6 +45,7 @@ from backend.models import (
     Node,
     NodeHealth,
     Observation,
+    SensorReading,
 )
 from backend.services import alerts, farm_context, health_score, observation_service
 
@@ -149,10 +156,21 @@ def test_crop_doctor_prompt_and_intents() -> None:
     db.commit()
 
     prompt = prompt_builder.build(farm_context.build(db, farm), [], "Should I irrigate?")
-    # Response contract: sections + insufficient-evidence rule + expert-help step.
+    # Response contract: sections, expert-help step, number/reading rules.
     for token in ("Observation:", "Analysis:", "Confidence:", "When to seek expert help",
-                  "I don't have enough evidence from the latest observation."):
+                  "State only numbers", "Quote farm readings exactly"):
         assert token in prompt, f"missing {token!r}"
+    # Question type by keywords: knowledge questions are answered from the text;
+    # farm questions use the readings and say what is missing.
+    qt = prompt_builder.question_type
+    assert qt("Is my soil too dry right now?") == "farm"
+    assert qt("Nanna hola iga dry ide") == "farm" and qt("ನನ್ನ ಹೊಲದಲ್ಲಿ ಈಗ ನೀರು ಬೇಕಾ?") == "farm"
+    assert qt("Prathi irrigation ge eshtu cm neeru hakbeku") == "knowledge"
+    assert qt("Mysore variety yield") == "knowledge"          # whole words only
+    assert "QUESTION TYPE: knowledge" in prompt_builder.build(
+        farm_context.build(db, farm), [], "How deep should each irrigation be?")
+    assert "QUESTION TYPE: farm" in prompt_builder.build(
+        farm_context.build(db, farm), [], "Should I irrigate my field now?")
     assert "Observed Facts" in prompt and "Inference" in prompt  # facts vs inference
     assert "# FOCUS FOR THIS QUESTION (irrigation)" in prompt    # intent template
     assert "Address these FIRST" in prompt                       # alert prioritization
@@ -168,6 +186,13 @@ def _offline_translation():
         raise qt.TranslationUnavailable("offline selftest")
     qt.kannada_to_english = unavailable
     qt.romanized_kannada_to_english = unavailable
+    from backend.ai import knowledge as kb
+    kb._groq_english = unavailable           # the Groq query rewrite is a network call too
+    from backend.ai import claim_check as cc
+
+    def grounding_offline(_answer, _context):
+        raise RuntimeError("offline selftest")
+    cc._grounding = grounding_offline        # answers get the "checking unavailable" note
 
 
 def test_knowledge_retrieval() -> None:
@@ -186,21 +211,49 @@ def test_knowledge_retrieval() -> None:
 def test_claim_check() -> None:
     from backend.ai import claim_check
 
-    ctx = "Foliar spray of 2% FeSO4 with 0.5% MnSO4 and 2% urea, 2-3 times. Iron chlorosis."
-    ok = claim_check.check("Spray 2% FeSO4 and 2% urea for iron chlorosis.", ctx)
-    assert ok.unsupported == [] and ok.answer.startswith("Spray")
-    bad = claim_check.check("This is calcium deficiency; apply 75 kg/ha in March.", ctx)
-    assert set(bad.unsupported) == {"calcium", "75", "March"}, bad.unsupported
-    assert bad.answer.startswith("Please double-check")      # caveat, not stated as fact
-    # Invented people are flagged; a person named in the context is not.
-    vksa = "VKSA was launched by Union Agriculture Minister Shri Shivraj Singh Chouhan."
-    made_up = claim_check.check("Launched by Agriculture Minister Ramesh Kumar Gowda, "
-                                "on advice from Dr. Raghupathy Srinivasan.", vksa)
-    assert {"name: Ramesh Kumar Gowda", "name: Raghupathy Srinivasan"} <= set(made_up.unsupported)
-    assert claim_check.check("It was launched by Shivraj Singh Chouhan, Union Minister.",
-                             vksa).unsupported == []
-    kn = claim_check.check("ಹೆಕ್ಟೇರ್‌ಗೆ ೭೫ kg ಕ್ಯಾಲ್ಸಿಯಂ ಹಾಕಿ.", ctx, "kn")
-    assert {"75", "calcium"} <= set(kn.unsupported) and kn.answer.startswith("ದಯವಿಟ್ಟು")
+    ctx = "Foliar spray of 2% FeSO4 with 0.5% MnSO4 and 2% urea. Gypsum is a sulphur source."
+    real = claim_check._grounding
+    try:
+        # All claims supported -> the answer is returned unchanged.
+        claim_check._grounding = lambda a, c: [
+            {"claim": "Spray 2% FeSO4 and 2% urea", "status": "supported", "reason": "in context"}]
+        ok = claim_check.check("Spray 2% FeSO4 and 2% urea.", ctx)
+        assert ok.status == "checked" and ok.unsupported == [] and ok.answer == "Spray 2% FeSO4 and 2% urea."
+
+        # Unsupported / contradicted -> a caveat naming them comes first.
+        claim_check._grounding = lambda a, c: [
+            {"claim": "Gypsum supplies iron", "status": "contradicted", "reason": "context: sulphur"},
+            {"claim": "Apply 75 kg/ha", "status": "unsupported", "reason": "no dose in context"}]
+        bad = claim_check.check("Gypsum supplies iron; apply 75 kg/ha.", ctx)
+        assert bad.answer.startswith("Please double-check before acting:"), bad.answer
+        # "75 kg" is caught by the local number check; Groq's finding about the
+        # same number is kept in `unsupported` but not repeated in the caveat.
+        assert '"Gypsum supplies iron" (contradicts' in bad.answer and '"75 kg" (this number' in bad.answer
+        assert "Apply 75 kg/ha" not in bad.answer.split("\n\n")[0]
+        assert {"contradicted: Gypsum supplies iron", "unsupported: Apply 75 kg/ha",
+                "number: 75 kg"} <= set(bad.unsupported)
+        kn = claim_check.check("ಜಿಪ್ಸಮ್ ಕಬ್ಬಿಣ ಕೊಡುತ್ತದೆ.", ctx, "kn")
+        assert kn.answer.startswith("ದಯವಿಟ್ಟು")
+
+        # The cheap name filter still runs first: invented people are flagged,
+        # a person named in the context is not.
+        claim_check._grounding = lambda a, c: []
+        vksa = "VKSA was launched by Union Agriculture Minister Shri Shivraj Singh Chouhan."
+        made_up = claim_check.check("Launched by Agriculture Minister Ramesh Kumar Gowda, "
+                                    "on advice from Dr. Raghupathy Srinivasan.", vksa)
+        assert {"name: Ramesh Kumar Gowda", "name: Raghupathy Srinivasan"} <= set(made_up.unsupported)
+        assert claim_check.check("It was launched by Shivraj Singh Chouhan, Union Minister.",
+                                 vksa).unsupported == []
+
+        # A failed or timed-out check never blocks the answer: it is returned with a note.
+        def boom(a, c):
+            raise TimeoutError("grounding timed out")
+        claim_check._grounding = boom
+        r = claim_check.check("Spray 2% FeSO4.", ctx)
+        assert r.status == "unavailable" and r.answer.startswith("Spray 2% FeSO4.")
+        assert r.answer.endswith("only the local number and name checks ran.)")
+    finally:
+        claim_check._grounding = real
 
 
 def test_llm_failure_is_not_saved() -> None:
@@ -214,7 +267,7 @@ def test_llm_failure_is_not_saved() -> None:
 
     db = _memory_session()
     farm, _node = _farm_with_node(db)
-    real, service._llm = service._llm, Broken()
+    real, service._engines["mock"] = service.get_llm("mock"), Broken()
     try:
         try:
             AIOrchestrator.answer(db, farm, "Should I irrigate?")
@@ -223,7 +276,7 @@ def test_llm_failure_is_not_saved() -> None:
             pass
         assert db.query(Conversation).count() == 0
     finally:
-        service._llm = real
+        service._engines["mock"] = real
 
 
 def test_compact_prompt_for_finetuned_model() -> None:
@@ -254,11 +307,11 @@ def test_compact_prompt_for_finetuned_model() -> None:
             return "Irrigate at 7-8 cm."
 
     _offline_translation()
-    real, service._llm = service._llm, Capture()
+    real, service._engines["mock"] = service.get_llm("mock"), Capture()
     try:
         AIOrchestrator.answer(db, farm, "How deep should each irrigation be for sugarcane?")
     finally:
-        service._llm = real
+        service._engines["mock"] = real
     model_input = seen["question"] + seen["context"]
     assert not any(v in model_input for v in ("19.0", "29.0", "60.0")), model_input
     assert seen["question"] == "How deep should each irrigation be for sugarcane?"
@@ -502,6 +555,138 @@ def test_dataset_stats_and_conversation_linking() -> None:
     assert entry.conversation_reference == convo.id
 
 
+def test_flybrain_anomaly() -> None:
+    """Per-farm baseline + calibrated threshold on the synthetic graph (small sizes)."""
+    import os
+
+    from backend.config import get_settings
+    from backend.services import anomaly
+
+    db = _memory_session()
+    farm, node = _farm_with_node(db)
+    import random
+    r = random.Random(5)
+    for i in range(30):                         # this farm's normal history
+        db.add(SensorReading(node_id=node.id, farm_id=farm.id, temperature=26 + r.uniform(-1, 1),
+                             humidity=65 + r.uniform(-4, 4), soil_moisture=50 + r.uniform(-8, 8),
+                             timestamp=datetime(2026, 9, 1) + timedelta(hours=i)))
+    for i in range(6):                          # a disconnected soil probe: a run of 0 %
+        db.add(SensorReading(node_id=node.id, farm_id=farm.id, temperature=26.0, humidity=65.0,
+                             soil_moisture=0.0, timestamp=datetime(2026, 9, 3) + timedelta(minutes=i)))
+    db.commit()
+    env = {"FLYBRAIN_BASELINE_SIZE": "10", "FLYBRAIN_HELDOUT_SIZE": "10", "FLYBRAIN_SIM_STEPS": "400",
+           "FLYBRAIN_MIN_CLEAN_ROWS": "25"}
+    os.environ.update(env)
+    get_settings.cache_clear()
+    try:
+        bl = anomaly.fit_farm(db, farm.id)
+        assert bl is not None and bl.graph == "synthetic" and len(bl.heldout_scores) == 10
+        info = anomaly._fit_info[farm.id]                 # zero-soil run left out of the fit
+        assert (info["history"], info["clean"], info["soil_zero_runs"]) == (36, 30, 6), info
+        assert bl.mins["soil_moisture"] > 0               # normalisation range from clean rows
+        assert bl.threshold == max(bl.heldout_scores) or bl.threshold <= max(bl.heldout_scores)
+        anomaly._baselines[farm.id] = bl
+        normal = SensorReading(node_id=node.id, farm_id=farm.id, temperature=26.0, humidity=65.0,
+                               soil_moisture=50.0)
+        drought = SensorReading(node_id=node.id, farm_id=farm.id, temperature=31.0, humidity=50.0,
+                                soil_moisture=5.0)
+        db.add_all([normal, drought])
+        db.flush()
+        s_normal, s_drought = anomaly.score_reading(db, normal), anomaly.score_reading(db, drought)
+        db.commit()
+        assert s_drought.score > s_normal.score
+        assert s_drought.is_anomalous and not s_normal.is_anomalous, (s_normal.score, s_drought.score, bl.threshold)
+        assert db.query(Alert).filter(Alert.type == "anomaly", Alert.resolved.is_(False)).count() == 1
+        assert "synthetic test graph" in anomaly.describe(s_drought)
+        assert anomaly.status(db, farm.id)["graph"] == "synthetic"
+        # A soil-moisture-0 reading is a sensor fault, not scored.
+        probe_off = SensorReading(node_id=node.id, farm_id=farm.id, temperature=26.0,
+                                  humidity=65.0, soil_moisture=0.0)
+        db.add(probe_off)
+        db.flush()
+        assert anomaly.score_reading(db, probe_off) is None
+        # Fewer clean rows than FLYBRAIN_MIN_CLEAN_ROWS -> no baseline, a stated reason.
+        os.environ["FLYBRAIN_MIN_CLEAN_ROWS"] = "100"
+        get_settings.cache_clear()
+        assert anomaly.fit_farm(db, farm.id) is None
+        assert anomaly._fit_info[farm.id]["reason"].startswith("not enough clean history")
+        # Too little history -> no baseline (and so no scores), never a guess.
+        empty_farm = Farm(farmer_id=farm.farmer_id, name="Empty")
+        db.add(empty_farm)
+        db.commit()
+        assert anomaly.fit_farm(db, empty_farm.id) is None
+    finally:
+        for k in env:
+            os.environ.pop(k)
+        get_settings.cache_clear()
+        anomaly._baselines.clear()
+
+
+def test_node_keys_hashed() -> None:
+    from fastapi import HTTPException
+
+    from backend.core.security import hash_node_key, is_hashed_node_key
+    from backend.dependencies import get_node
+    from backend.services.node_keys import hash_plaintext_keys
+
+    db = _memory_session()
+    farm, node = _farm_with_node(db)            # stored the old way: plaintext
+    raw = node.api_key
+    assert not is_hashed_node_key(raw)
+    assert hash_plaintext_keys(db) == [node.id]
+    db.commit()
+    stored = db.get(Node, node.id).api_key
+    assert is_hashed_node_key(stored) and raw not in stored and stored == hash_node_key(raw)
+    assert hash_plaintext_keys(db) == []        # idempotent: already hashed
+    # The device keeps sending its original key, and it still authenticates.
+    assert get_node(x_node_key=raw, db=db).id == node.id
+    for bad in ("wrong-key", stored):           # the stored hash itself is not a key
+        try:
+            get_node(x_node_key=bad, db=db)
+            raise AssertionError(f"{bad!r} authenticated")
+        except HTTPException as exc:
+            assert exc.status_code == 401
+
+
+def test_alert_resolution() -> None:
+    db = _memory_session()
+    farm, node = _farm_with_node(db)
+
+    def reading(soil, ts=None):
+        _, _, raised = observation_service.ingest_sensors(db, node, 30.0, 60.0, soil, 95.0, ts)
+        return raised
+
+    reading(10.0)                                   # dry -> soil_low opens
+    open_q = db.query(Alert).filter(Alert.type == "soil_low", Alert.resolved.is_(False))
+    assert open_q.count() == 1
+    reading(21.0)                                   # in range but inside the clear margin
+    assert open_q.count() == 1, "hysteresis: 21% must not clear (needs >= min + margin)"
+    reading(25.0)                                   # clearly recovered -> auto-resolved
+    assert open_q.count() == 0
+    a = db.query(Alert).filter(Alert.type == "soil_low").one()
+    assert a.resolved and a.resolved_at and a.resolution.startswith("auto: back in range")
+
+    # Reconcile: an alert left open from before auto-resolution existed closes
+    # against the node's latest reading, but only if that reading is newer.
+    stale = Alert(farm_id=farm.id, node_id=node.id, type="humidity_high", severity="warning",
+                  message="High humidity 90%", value=90.0, created_at=datetime(2026, 7, 26))
+    future = Alert(farm_id=farm.id, node_id=node.id, type="temp_high", severity="warning",
+                   message="High temperature 45C", value=45.0, created_at=datetime(2099, 1, 1))
+    db.add_all([stale, future])
+    db.commit()
+    closed = alerts.reconcile_open_alerts(db)
+    db.commit()
+    assert stale in closed and stale.resolved          # latest reading: humidity 60%
+    assert not future.resolved                          # reading predates it -> stays open
+
+    # Low battery clears from a heartbeat once comfortably above the threshold.
+    alerts.evaluate_battery(db, farm.id, node.id, 10.0)
+    db.commit()
+    alerts.evaluate_battery(db, farm.id, node.id, 80.0)
+    db.commit()
+    assert db.query(Alert).filter(Alert.type == "low_battery", Alert.resolved.is_(False)).count() == 0
+
+
 def test_offline_detection() -> None:
     db = _memory_session()
     farm, node = _farm_with_node(db)
@@ -516,14 +701,192 @@ def test_offline_detection() -> None:
     assert any(a.type == "node_offline" for a in raised)
     assert db.get(NodeHealth, node.id).status == "offline"
 
-    # Fresh heartbeat -> recovers, no duplicate alert on re-eval.
-    db.get(NodeHealth, node.id).last_seen = datetime.utcnow()
-    db.commit()
+    # Still silent -> no duplicate alert on the next timer tick.
     assert alerts.evaluate_offline(db) == []
+
+    # The node makes contact again -> online, and its offline alert is resolved.
+    _health, closed = alerts.mark_seen(db, node.id)
+    db.commit()
     assert db.get(NodeHealth, node.id).status == "online"
+    assert [a.type for a in closed] == ["node_offline"]
+    assert closed[0].resolved and closed[0].resolution == "auto: node back online"
+    assert alerts.evaluate_offline(db) == []      # fresh contact -> stays online
+
+
+def test_local_number_and_name_checks() -> None:
+    """Local checks (no Groq): the five required cases, plus normalisation."""
+    from backend.ai import claim_check, number_check
+
+    kb = ("Iron chlorosis is common in ratoon crops on calcareous soils. Spray 1% ferrous "
+          "sulphate (FeSO4) 2-3 times at 7-10 day intervals to correct iron chlorosis.\n\n"
+          "Gypsum is applied to reclaim sodic soils.\n\n"   # separate chunks
+          "Each irrigation should apply 7-8 cm of water.")
+    readings = "- Soil moisture: 40.0 %\n- Temperature: 27.9 C"
+    sources = f"{kb}\n\n{readings}\n\nHow much water per irrigation?"
+
+    def findings(answer):
+        return claim_check.local_findings(answer, sources, readings, kb)
+
+    # 1. gypsum called an iron source (gypsum IS in the text, but for sodic soils)
+    f = findings("Apply gypsum as an iron source to correct the yellowing.")
+    assert ("input", "gypsum for iron") in f, f
+    # 2. 40 % soil moisture called below optimal, with no range in the text
+    f = findings("Your soil moisture is 40.0 %, which is below optimal.")
+    assert [k for k, _ in f] == ["judgement"] and "40.0 %" in f[0][1], f
+    # 3. an invented 30 to 35 percent range
+    f = findings("Keep soil moisture between 30 to 35 % for best growth.")
+    assert f == [("number", "30 to 35 %")], f
+    # 4. 7 cm written as 70 mm is a faithful conversion, not a finding
+    assert findings("Apply about 70 mm of water per irrigation.") == []
+    # 5. a fully correct answer passes clean
+    correct = ("Each irrigation should apply 7–8 cm of water. For iron chlorosis, spray 1 % "
+               "ferrous sulphate 2–3 times at 7–10 day intervals. Your soil moisture reading "
+               "is 40.0 %.")
+    assert findings(correct) == [], findings(correct)
+    # Kannada digits / units and written numbers normalise before comparing
+    assert findings("ಪ್ರತಿ ನೀರಾವರಿಗೆ ೭-೮ ಸೆಂ.ಮೀ ನೀರು ಹಾಕಿ.") == []
+    assert number_check.unsupported_numbers("Repeat every two weeks.", "repeat after 2 weeks") == []
+    assert number_check.unsupported_numbers("Repeat every 3 weeks.", "repeat after 2 weeks") == ["3 weeks"]
+    assert number_check.unsupported_numbers("Pay within 2 weeks.", "within 14 days") == []
+
+    # One merged caveat: local findings + Groq findings, with Groq's duplicate of
+    # a locally flagged number dropped; the Groq check skipped -> local-only note.
+    real = claim_check._grounding
+    try:
+        claim_check._grounding = lambda a, c: [
+            {"claim": "Soil moisture of 30-35% is best", "status": "unsupported", "reason": ""},
+            {"claim": "Gypsum supplies iron", "status": "contradicted", "reason": ""}]
+        r = claim_check.check("Keep soil moisture at 30 to 35 %. Gypsum supplies iron.", kb,
+                              sources=sources, readings=readings, knowledge=kb)
+        assert r.answer.count("Please double-check") == 1
+        assert '"30 to 35 %"' in r.answer and "Gypsum supplies iron" in r.answer
+        assert "30-35% is best" not in r.answer.split("\n\n")[0]   # not listed twice
+
+        def skipped(a, c):
+            from backend.ai.groq_client import GroqSkipped
+            raise GroqSkipped("budget")
+        claim_check._grounding = skipped
+        r = claim_check.check(correct, kb, sources=sources, readings=readings, knowledge=kb)
+        assert r.status == "skipped" and "Please double-check" not in r.answer
+        assert "only the local number and name checks ran" in r.answer
+    finally:
+        claim_check._grounding = real
+    print("ok  local checks: numbers (units, ranges, Kannada digits), inputs, judgements, merge")
+
+
+def test_groq_budget_and_rate_limits() -> None:
+    """Token budget priorities, 429 parsing, and the answer's retry-once / 503."""
+    from backend.ai import groq_client as gc
+    from backend.ai.base import LLMBusy
+    from backend.ai.providers import groq_provider as gp
+
+    b = gc.TokenBudget()
+    m = "test-model"
+    assert b.allow("rewrite", m, 1000)[0] and b.allow("summary", m, 1000)[0]
+    b.charge(m, 6500)                                   # 1500 of 8000 left this minute
+    assert b.allow("answer", m, 5000)[0]                # the answer is never skipped
+    assert b.allow("fact_check", m, 1400)[0]            # check may use the last tokens
+    assert not b.allow("rewrite", m, 500)[0]            # rewrite must leave 30 % free
+    assert not b.allow("summary", m, 100)[0]            # summary is skipped first
+    b.observe(m, {"x-ratelimit-remaining-tokens": "200", "x-ratelimit-limit-tokens": "8000",
+                  "x-ratelimit-reset-tokens": "50s"})  # Groq's own view is tighter
+    assert not b.allow("fact_check", m, 1400)[0]
+    assert gc._seconds("1m4.5s") == 64.5 and gc._seconds("450ms") == 0.45
+
+    class _Resp:
+        headers = {"retry-after": "35", "x-ratelimit-reset-tokens": "45.9s"}
+    body = {"error": {"message": "Rate limit reached for model `m` ... on tokens per minute "
+                                 "(TPM): Limit 8000, Used 6130, Requested 6517. Please try "
+                                 "again in 34.85s. Need more tokens?"}}
+    assert abs(gc._retry_after(_Resp.headers, body) - 34.85) < 0.01
+    assert gc._limit_name(body) == "tokens per minute (TPM)"
+
+    real_call, real_sleep = gc.call, gp.time.sleep
+    calls, slept = [], []
+    try:
+        def limited(wait):
+            def f(purpose, messages, **kw):
+                calls.append(purpose)
+                if len(calls) == 1 or wait >= 20:
+                    raise gc.GroqRateLimited("429", wait, "tokens per minute (TPM)")
+                return "an answer"
+            return f
+        gp.time.sleep = slept.append
+        gc.call = limited(3.0)                              # short wait: retried once
+        assert gp.GroqLLMProvider().answer("q", "ctx", "en") == "an answer"
+        assert calls == ["answer", "answer"] and slept and slept[0] >= 3.0
+        calls.clear(); slept.clear()
+        gc.call = limited(35.0)                             # long wait: 503 with the wait
+        try:
+            gp.GroqLLMProvider().answer("q", "ctx", "en")
+            raise AssertionError("expected LLMBusy")
+        except LLMBusy as exc:
+            assert exc.retry_after == 35.0 and "35 seconds" in str(exc)
+        assert calls == ["answer"] and not slept
+    finally:
+        gc.call, gp.time.sleep = real_call, real_sleep
+    print("ok  groq budget: priorities, 429 parsing, answer retry-once and 503")
+
+
+def test_answer_engine_switch() -> None:
+    """Per-request engine: lazy load, honoured choice, same checks, no silent fallback."""
+    import os
+
+    from backend.ai import service
+    from backend.ai.base import LLMProvider, LLMUnavailable
+    from backend.config import get_settings
+
+    # Never loaded at import/startup.
+    assert "sarvam_finetuned" not in service._engines
+
+    seen = {}
+
+    class FakeFinetuned(LLMProvider):
+        prompt_style = "compact"
+
+        def answer(self, question, context, language):
+            seen["context"] = context
+            return "Keep soil moisture at 30 to 35 % and apply 7-8 cm per irrigation."
+
+    db = _memory_session()
+    farm, _node = _farm_with_node(db)
+    _offline_translation()
+    service._engines["sarvam_finetuned"] = FakeFinetuned()
+    try:
+        r = AIOrchestrator.answer(db, farm, "How deep should each irrigation be for sugarcane?",
+                                  "sarvam_finetuned")
+        assert r.provider == "sarvam_finetuned"
+        # Same local checks and caveat as Groq answers: the invented range is named.
+        assert "number: 30 to 35 %" in r.unsupported and '"30 to 35 %"' in r.answer
+        r2 = AIOrchestrator.answer(db, farm, "How deep should each irrigation be?")
+        assert r2.provider == "mock"                      # default engine when not given
+    finally:
+        service._engines.pop("sarvam_finetuned", None)
+
+    # Model missing -> a clear error, nothing saved, no other engine answers.
+    os.environ["SARVAM_ADAPTER_PATH"] = "./models/does-not-exist"
+    get_settings.cache_clear()
+    before = db.query(Conversation).count()
+    try:
+        AIOrchestrator.answer(db, farm, "How deep should each irrigation be?", "sarvam_finetuned")
+        raise AssertionError("expected LLMUnavailable")
+    except LLMUnavailable as exc:
+        assert "fine-tuned engine (sarvam_finetuned) is unavailable" in str(exc)
+    finally:
+        os.environ.pop("SARVAM_ADAPTER_PATH")
+        get_settings.cache_clear()
+    assert db.query(Conversation).count() == before
+    assert "sarvam_finetuned" not in service._engines     # a failed load is not cached
+    try:
+        service.get_llm("gpt-x")
+        raise AssertionError("unknown engine accepted")
+    except LLMUnavailable:
+        pass
+    print("ok  answer engine switch: lazy load, per-request choice, same checks, no fallback")
 
 
 if __name__ == "__main__":
+    _offline_translation()   # no network: translation, query rewrite and grounding are stubbed
     test_language_detection_and_routing()
     test_password_and_token()
     test_context_engine_and_prompt()
@@ -541,5 +904,11 @@ if __name__ == "__main__":
     test_export_filtering_and_versioning()
     test_dataset_stats_and_conversation_linking()
     test_merge_and_alerts()
+    test_alert_resolution()
+    test_node_keys_hashed()
+    test_flybrain_anomaly()
     test_offline_detection()
+    test_groq_budget_and_rate_limits()
+    test_local_number_and_name_checks()
+    test_answer_engine_switch()
     print("OK — all self-checks passed")

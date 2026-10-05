@@ -1,0 +1,34 @@
+PART 6b - Answer engine switch
+
+1. POST /chat takes optional "provider": groq | sarvam_finetuned (anything else -> HTTP 422);
+   missing -> LLM_PROVIDER from .env (groq).
+2. ai/service.get_llm: one instance per engine, created on first use under a per-engine lock;
+   the fine-tuned model is loaded at most once, by the first request that asks for it, never
+   at startup (even when it is the .env default). One model in the server process; its
+   generation lock serialises requests.
+3. Dashboard Ask panel: "Answer engine" dropdown (remembered per browser); each answer bubble
+   shows "Answered by <engine> - <seconds>". Errors show the server's reason.
+4. Fine-tuned engine unavailable -> HTTP 503 "The fine-tuned engine (sarvam_finetuned) is
+   unavailable: ... Nothing was saved, and no other engine was used instead." Failed loads are
+   not cached (the next request tries again).
+5. Same retrieval, same local number/input/judgement/name checks, same caveat and Groq fact
+   check for both engines; only the prompt shape differs (compact for the fine-tuned model,
+   the format it was trained on).
+
+Seen working (part6b_api.txt/json, part6b_server.log):
+  startup: index built 16 s after launch, model NOT loaded (GPU 808 MiB, no load line)
+  no provider -> groq; provider=groq -> groq
+  1st provider=sarvam_finetuned: 22.1 s incl. loading (1.69 GiB on the RTX 3050), 27 tokens 6.4 s
+  2nd provider=sarvam_finetuned: 4.4 s, no reload ("model loads in log: 1")
+  provider=bogus -> 422
+Browser (part6b_browser.txt, part6b_dashboard_engine.png): options listed, fine-tuned chosen,
+  bubble "Answered by Fine-tuned Sarvam-1 - 4.5 s", choice saved.
+Missing adapter (part6b_unavailable.txt): HTTP 503 with the reason; 0 Groq answer calls during
+  that request; provider=groq on the same server HTTP 200.
+Selftest test_answer_engine_switch (part6b_selftest.txt): lazy, per-request choice, same checks
+  on the fine-tuned answer (invented "30 to 35 %" caveated), no fallback, failed load not cached.
+Also fixed: the local number check accepted any bare 30 / 35 in the sources for a "30 to 35 %"
+  claim; the bare-number fallback is now for money only (the Part 3 replay finds one more real
+  invention, "30 %", part6b_replay_after_percent_fix.txt). The FlyBrain worker process is now
+  stopped on server shutdown (an orphan was left by a force-killed test server); not verified
+  with a graceful stop.

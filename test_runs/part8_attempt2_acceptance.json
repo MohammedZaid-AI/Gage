@@ -1,0 +1,409 @@
+{
+ "summary": {
+  "passed": 7,
+  "total": 10,
+  "right_document": 7,
+  "fact_checks_completed": 7,
+  "latency": {
+   "uploads": 19,
+   "all_200": true,
+   "p50_ms": 78.8,
+   "p95_ms": 318.6,
+   "max_ms": 318.6
+  },
+  "pass_bar": {
+   "right_document_10_of_10": false,
+   "no_uncaveated_numbers": true,
+   "q9_not_refused": true,
+   "grounding_at_least_8_of_10": false,
+   "sensor_upload_p95_under_150ms": false
+  },
+  "pass_bar_met": false
+ },
+ "results": [
+  {
+   "id": "Q1",
+   "question": "Nodi anna, sugarcane borer training IISR yavaga nadesidru confirm madi.",
+   "note": "Must not invent a date.",
+   "status": 503,
+   "seconds": 53.68,
+   "pass": false,
+   "reasons": [
+    "HTTP 503: {'detail': 'The assistant could not answer right now: Groq request failed: APIConnectionError: Connection error.'}"
+   ],
+   "sources": null,
+   "fact_check": null,
+   "caveats": null,
+   "answer": null,
+   "raw_answer": null,
+   "error": {
+    "detail": "The assistant could not answer right now: Groq request failed: APIConnectionError: Connection error."
+   }
+  },
+  {
+   "id": "Q2",
+   "question": "Ratoon crop nalli chlorosis yaake jaasti aaguttade yenu madbeku heli.",
+   "note": "Must say iron.",
+   "status": 503,
+   "seconds": 1.15,
+   "pass": false,
+   "reasons": [
+    "HTTP 503: {'detail': 'The assistant could not answer right now: Groq request failed: APIConnectionError: Connection error.'}"
+   ],
+   "sources": null,
+   "fact_check": null,
+   "caveats": null,
+   "answer": null,
+   "raw_answer": null,
+   "error": {
+    "detail": "The assistant could not answer right now: Groq request failed: APIConnectionError: Connection error."
+   }
+  },
+  {
+   "id": "Q3",
+   "question": "Prathi irrigation ge eshtu cm neeru hakbeku.",
+   "note": "Must say 7 to 8 cm.",
+   "status": 200,
+   "seconds": 7.1,
+   "pass": true,
+   "reasons": [],
+   "sources": [
+    {
+     "source": "irrigation/01_irrigation_water_management.md",
+     "section": "Sugarcane Irrigation Water Management — Main Information",
+     "score": 0.9248,
+     "via": "groq"
+    },
+    {
+     "source": "sugarcane/02_land_preparation.md",
+     "section": "Land Preparation for Sugarcane Cultivation — Key Facts",
+     "score": 0.9029,
+     "via": "groq"
+    },
+    {
+     "source": "irrigation/01_irrigation_water_management.md",
+     "section": "Sugarcane Irrigation Water Management — Key Facts",
+     "score": 0.8957,
+     "via": "groq"
+    },
+    {
+     "source": "irrigation/01_irrigation_water_management.md",
+     "section": "Sugarcane Irrigation Water Management — Important Recommendations",
+     "score": 0.8981,
+     "via": "groq"
+    }
+   ],
+   "fact_check": "checked",
+   "caveats": [
+    "number: 5–7 days",
+    "unsupported: After irrigation, check the soil‑moisture sensor; it should show an increase consistent with the added 7–8 cm of water",
+    "unsupported: Observe the crop for any signs of water stress (wilting, yellowing) over the next 5–7 days",
+    "unsupported: If soil‑moisture does not rise after irrigation, or if the crop shows persistent stress despite applying the recommended depth, contact a field agronomist for a detailed assessment"
+   ],
+   "answer": "Please double-check before acting: \"5–7 days\" (this number is not in Gage's sources); \"After irrigation, check the soil‑moisture sensor; it should show an increase consistent with the added 7–8 cm of water\" (not in Gage's sources); \"If soil‑moisture does not rise after irrigation, or if the crop shows persistent stress despite applying the recommended depth, contact a field agronomist for a detailed assessment\" (not in Gage's sources).\n\n**Observation**  \n- AGRICULTURAL KNOWLEDGE states: “Recommended irrigation depth per application: 7–8 cm.”\n\n**Analysis**  \n- Therefore, each irrigation event for sugarcane should deliver water to a depth of roughly 7 cm to 8 cm in the root zone.\n\n**Confidence**  \n- **High** – the value is directly given in the reference knowledge.\n\n**Recommendations**  \n\n- **Immediate actions**  \n  - Apply water so that the infiltrated depth is between **7 cm and 8 cm** for the next irrigation.\n\n- **Monitoring advice**  \n  - After irrigation, check the soil‑moisture sensor; it should show an increase consistent with the added 7–8 cm of water.  \n  - Observe the crop for any signs of water stress (wilting, yellowing) over the next 5–7 days.\n\n- **When to seek expert help**  \n  - If soil‑moisture does not rise after irrigation, or if the crop shows persistent stress despite applying the recommended depth, contact a field agronomist for a detailed assessment.",
+   "raw_answer": "**Observation**  \n- AGRICULTURAL KNOWLEDGE states: “Recommended irrigation depth per application: 7–8 cm.”\n\n**Analysis**  \n- Therefore, each irrigation event for sugarcane should deliver water to a depth of roughly 7 cm to 8 cm in the root zone.\n\n**Confidence**  \n- **High** – the value is directly given in the reference knowledge.\n\n**Recommendations**  \n\n- **Immediate actions**  \n  - Apply water so that the infiltrated depth is between **7 cm and 8 cm** for the next irrigation.\n\n- **Monitoring advice**  \n  - After irrigation, check the soil‑moisture sensor; it should show an increase consistent with the added 7–8 cm of water.  \n  - Observe the crop for any signs of water stress (wilting, yellowing) over the next 5–7 days.\n\n- **When to seek expert help**  \n  - If soil‑moisture does not rise after irrigation, or if the crop shows persistent stress despite applying the recommended depth, contact a field agronomist for a detailed assessment.",
+   "error": null
+  },
+  {
+   "id": "Q4",
+   "question": "ಪ್ರತಿ irrigation ಗೆ ಎಷ್ಟು cm water ಹಾಕ್ಬೇಕು?",
+   "note": "Irrigation document.",
+   "status": 200,
+   "seconds": 12.85,
+   "pass": true,
+   "reasons": [],
+   "sources": [
+    {
+     "source": "irrigation/01_irrigation_water_management.md",
+     "section": "Sugarcane Irrigation Water Management — Main Information",
+     "score": 0.9062,
+     "via": "groq"
+    },
+    {
+     "source": "irrigation/01_irrigation_water_management.md",
+     "section": "Sugarcane Irrigation Water Management — Summary",
+     "score": 0.9162,
+     "via": "groq"
+    },
+    {
+     "source": "irrigation/01_irrigation_water_management.md",
+     "section": "Sugarcane Irrigation Water Management — Key Facts",
+     "score": 0.9122,
+     "via": "groq"
+    },
+    {
+     "source": "irrigation/01_irrigation_water_management.md",
+     "section": "Sugarcane Irrigation Water Management — Main Information",
+     "score": 0.9077,
+     "via": "groq"
+    }
+   ],
+   "fact_check": "checked",
+   "caveats": [
+    "unsupported: After irrigation, the soil‑moisture sensor should show an increase consistent with the added water"
+   ],
+   "answer": "ದಯವಿಟ್ಟು ಮುಂದುವರಿಯುವ ಮೊದಲು ಪರಿಶೀಲಿಸಿ: \"After irrigation, the soil‑moisture sensor should show an increase consistent with the added water\" (Gage ಮಾಹಿತಿ ದಾಖಲೆಗಳಲ್ಲಿ ಇಲ್ಲ).\n\n**Observation**  \n- Agricultural Knowledge: “Recommended irrigation depth per application: **7–8 cm**.”  \n\n**Analysis**  \n- Therefore, each irrigation event for sugarcane should deliver water to a depth of 7 cm to 8 cm in the root zone.  \n\n**Confidence**  \n- High – the depth is explicitly stated in the reference material.  \n\n**Recommendations**  \n\n- **Immediate actions**  \n  1. Apply water so that the soil profile receives **7–8 cm** of water per irrigation.  \n\n- **Monitoring advice**  \n  1. After irrigation, check the soil‑moisture sensor; it should show an increase consistent with the added water.  \n  2. Keep the irrigation schedule (≈ 7 days during germination, 10 days during tillering, 7 days during grand growth, 15 days during maturity) and adjust only if rainfall significantly changes soil moisture.  \n\n- **When to seek expert help**  \n  1. If the soil‑moisture sensor does not rise after applying 7–8 cm of water.  \n  2. If signs of water‑logging, root rot, or unexpected crop stress appear despite following the depth guideline.",
+   "raw_answer": "**Observation**  \n- Agricultural Knowledge: “Recommended irrigation depth per application: **7–8 cm**.”  \n\n**Analysis**  \n- Therefore, each irrigation event for sugarcane should deliver water to a depth of 7 cm to 8 cm in the root zone.  \n\n**Confidence**  \n- High – the depth is explicitly stated in the reference material.  \n\n**Recommendations**  \n\n- **Immediate actions**  \n  1. Apply water so that the soil profile receives **7–8 cm** of water per irrigation.  \n\n- **Monitoring advice**  \n  1. After irrigation, check the soil‑moisture sensor; it should show an increase consistent with the added water.  \n  2. Keep the irrigation schedule (≈ 7 days during germination, 10 days during tillering, 7 days during grand growth, 15 days during maturity) and adjust only if rainfall significantly changes soil moisture.  \n\n- **When to seek expert help**  \n  1. If the soil‑moisture sensor does not rise after applying 7–8 cm of water.  \n  2. If signs of water‑logging, root rot, or unexpected crop stress appear despite following the depth guideline.",
+   "error": null
+  },
+  {
+   "id": "Q5",
+   "question": "VKSA ಅಂತ ಒಂದು programme ಇದೆ ಅಂತ ಕೇಳಿದ್ದೀನಿ, ನಮ್ಮ ಕರ್ನಾಟಕದಲ್ಲಿ ಬಂತಾ?",
+   "note": "Must say 8 June 2025 and Bengaluru.",
+   "status": 200,
+   "seconds": 5.22,
+   "pass": true,
+   "reasons": [],
+   "sources": [
+    {
+     "source": "government_schemes/02_viksit_krishi_sankalp_abhiyan_vksa_2025.md",
+     "section": "Viksit Krishi Sankalp Abhiyan (VKSA-2025): Current National Farmer-Scientist Outreach Campaign — Summary",
+     "score": 0.8838,
+     "via": "groq"
+    },
+    {
+     "source": "government_schemes/02_viksit_krishi_sankalp_abhiyan_vksa_2025.md",
+     "section": "Viksit Krishi Sankalp Abhiyan (VKSA-2025): Current National Farmer-Scientist Outreach Campaign — Key Facts",
+     "score": 0.8812,
+     "via": "groq"
+    },
+    {
+     "source": "government_schemes/02_viksit_krishi_sankalp_abhiyan_vksa_2025.md",
+     "section": "Viksit Krishi Sankalp Abhiyan (VKSA-2025): Current National Farmer-Scientist Outreach Campaign — Important Recommendations",
+     "score": 0.8714,
+     "via": "groq"
+    },
+    {
+     "source": "government_schemes/02_viksit_krishi_sankalp_abhiyan_vksa_2025.md",
+     "section": "Viksit Krishi Sankalp Abhiyan (VKSA-2025): Current National Farmer-Scientist Outreach Campaign — Important Recommendations",
+     "score": 0.8686,
+     "via": "groq"
+    }
+   ],
+   "fact_check": "checked",
+   "caveats": [],
+   "answer": "**Observation**  \n- Viksit Krishi Sankalp Abhiyan (VKSA‑2025) is a current national farmer‑scientist outreach campaign (29 May – 12 June 2025).  \n- Karnataka was an explicit part of this campaign, with the state launch held on **8 June 2025** at ICAR‑IIHR, Bengaluru.  \n- The programme operates through the existing KVK network (731 KVKs nationwide), and the relevant Karnataka KVK for sugarcane is KVK Mandya (AICRP‑Sugarcane centre at V.C. Farm, Mandya).\n\n**Analysis**  \nThe text confirms that VKSA is active in Karnataka and that local KVKs are the channel for receiving its sugarcane‑specific advisory material.\n\n**Confidence**  \nHigh – the knowledge source directly states the Karnataka launch and KVK involvement.\n\n**Recommendations**  \n- **Immediate actions**: Contact KVK Mandya (phone/email) to obtain the latest VKSA‑linked sugarcane advisory and any upcoming training dates.  \n- **Monitoring advice**: Keep track of VKSA outreach windows (next edition expected around May–June 2026) and any announcements from the Karnataka State Department of Agriculture.  \n- **When to seek expert help**: If you need site‑specific recommendations (e.g., soil‑health card interpretation, pest‑disease management) that are not covered in the general VKSA material, arrange an in‑person visit by a KVK extension officer.",
+   "raw_answer": "**Observation**  \n- Viksit Krishi Sankalp Abhiyan (VKSA‑2025) is a current national farmer‑scientist outreach campaign (29 May – 12 June 2025).  \n- Karnataka was an explicit part of this campaign, with the state launch held on **8 June 2025** at ICAR‑IIHR, Bengaluru.  \n- The programme operates through the existing KVK network (731 KVKs nationwide), and the relevant Karnataka KVK for sugarcane is KVK Mandya (AICRP‑Sugarcane centre at V.C. Farm, Mandya).\n\n**Analysis**  \nThe text confirms that VKSA is active in Karnataka and that local KVKs are the channel for receiving its sugarcane‑specific advisory material.\n\n**Confidence**  \nHigh – the knowledge source directly states the Karnataka launch and KVK involvement.\n\n**Recommendations**  \n- **Immediate actions**: Contact KVK Mandya (phone/email) to obtain the latest VKSA‑linked sugarcane advisory and any upcoming training dates.  \n- **Monitoring advice**: Keep track of VKSA outreach windows (next edition expected around May–June 2026) and any announcements from the Karnataka State Department of Agriculture.  \n- **When to seek expert help**: If you need site‑specific recommendations (e.g., soil‑health card interpretation, pest‑disease management) that are not covered in the general VKSA material, arrange an in‑person visit by a KVK extension officer.",
+   "error": null
+  },
+  {
+   "id": "Q6",
+   "question": "ನಾನು ಯಾವ ಕಬ್ಬಿನ ತಳಿ ಹಾಕೊಬೇಕು ಅಂತ confuse ಆಗಿದೀನಿ, ಸರಿಯಾದ variety ಹೇಗೆ ಆರಿಸ್ಕೊಳಿ ಅಂತ ಹೇಳಿ.",
+   "note": "Must not mention crossbreeding or germplasm.",
+   "status": 200,
+   "seconds": 5.81,
+   "pass": true,
+   "reasons": [],
+   "sources": [
+    {
+     "source": "sugarcane/01_sugarcane_cultivation_overview_india_and_karnataka.md",
+     "section": "Sugarcane Cultivation in India: Agro-Climatic Overview (with Karnataka Focus) — Important Recommendations",
+     "score": 0.863,
+     "via": "groq"
+    },
+    {
+     "source": "sugarcane/04_planting_methods_and_nursery_techniques.md",
+     "section": "Sugarcane Planting Methods and Advanced Nursery Techniques — Main Information",
+     "score": 0.8682,
+     "via": "sarvam"
+    },
+    {
+     "source": "sugarcane/03_seed_selection_and_seed_treatment.md",
+     "section": "Sugarcane Seed Selection, Seed Rate, and Seed Treatment — Main Information",
+     "score": 0.8692,
+     "via": "groq"
+    },
+    {
+     "source": "sugarcane/03_seed_selection_and_seed_treatment.md",
+     "section": "Sugarcane Seed Selection, Seed Rate, and Seed Treatment — Important Recommendations",
+     "score": 0.8672,
+     "via": "groq"
+    }
+   ],
+   "fact_check": "checked",
+   "caveats": [
+    "number: 2–3 weeks",
+    "unsupported: Farmers should select varieties matched to their specific agro‑climatic zone and planting season rather than using a single variety across all conditions",
+    "unsupported: In Karnataka, farmers with adequate water availability can consider Adsali (July–August) planting for higher yield and sugar recovery, provided irrigation water is not a limiting constraint",
+    "unsupported: The right variety depends on the field location (Mandya, Karnataka peninsular zone) and planting time",
+    "unsupported: If reliable irrigation is available, Adsali-type varieties suited to July–August planting are recommended for higher yield and sugar recovery",
+    "unsupported: If water is limited or planting outside the Adsali window, choose varieties bred for early, mid‑late, or late planting in Karnataka peninsular zone",
+    "unsupported: Determine your intended planting month (early, mid‑late, or late season) and assess irrigation reliability before selecting varieties",
+    "unsupported: Ask local extension office or certified seed supplier for varieties recommended for Adsali, early‑season, or mid‑late/late planting",
+    "unsupported: Verify that setts are disease‑free and sourced from a certified nursery",
+    "unsupported: Observe germination and stand establishment during the first 2–3 weeks; poor emergence may indicate mismatch between variety and planting time or water stress",
+    "unsupported: Seek expert help if unsure about irrigation reliability, if extension cannot suggest a specific variety, or if early stand counts fall below expected 40–45% bud germination"
+   ],
+   "answer": "ದಯವಿಟ್ಟು ಮುಂದುವರಿಯುವ ಮೊದಲು ಪರಿಶೀಲಿಸಿ: \"2–3 weeks\" (ಈ ಸಂಖ್ಯೆ Gage ಮಾಹಿತಿ ದಾಖಲೆಗಳಲ್ಲಿ ಇಲ್ಲ); \"Farmers should select varieties matched to their specific agro‑climatic zone and planting season rather than using a single variety across all conditions\" (Gage ಮಾಹಿತಿ ದಾಖಲೆಗಳಲ್ಲಿ ಇಲ್ಲ); \"In Karnataka, farmers with adequate water availability can consider Adsali (July–August) planting for higher yield and sugar recovery, provided irrigation water is not a limiting constraint\" (Gage ಮಾಹಿತಿ ದಾಖಲೆಗಳಲ್ಲಿ ಇಲ್ಲ); +7.\n\n**Observation**  \n- Agricultural Knowledge states: “Farmers should select varieties matched to their specific agro‑climatic zone and planting season (early vs mid‑late vs late) rather than using a single variety across all conditions, to balance cane tonnage with sugar recovery.”  \n- It also notes: “In Karnataka … farmers with adequate water availability can consider **Adsali (July–August) planting** for higher yield and sugar recovery, provided irrigation water is not a limiting constraint.”\n\n**Analysis**  \n- The guidance indicates that the “right” variety is not a single universal choice; it depends on where the field is (Mandya, Karnataka peninsular zone) and when the crop will be planted.  \n- If you can supply reliable irrigation, the Adsali‑type varieties suited to July–August planting are recommended for higher yield and sugar recovery.  \n- If water is limited or you plan to plant outside the Adsali window, you should choose varieties that are specifically bred for early, mid‑late, or late planting in the Karnataka peninsular zone.\n\n**Confidence** – **High** (the inference follows directly from the provided knowledge text).\n\n**Recommendations**  \n\n- **Immediate actions**  \n  1. Determine your intended planting month (early, mid‑late, or late season).  \n  2. Assess whether you can provide assured irrigation throughout the crop cycle.  \n  3. Based on (1) and (2), ask your local extension office or certified seed supplier for varieties recommended for:  \n     - **Adsali (July–August) planting** if irrigation is reliable.  \n     - **Early‑season varieties** if planting before July and water may be limited.  \n     - **Mid‑late or late‑season varieties** if planting after July or in drier periods.\n\n- **Monitoring advice**  \n  1. After receiving the seed, verify that the setts are disease‑free and sourced from a certified nursery.  \n  2. Observe germination and stand establishment during the first 2–3 weeks; poor emergence may indicate a mismatch between variety and planting time or water stress.  \n\n- **When to seek expert help**  \n  1. If you are unsure about the reliability of irrigation water for the full 12–18 month crop.  \n  2. If local extension services cannot suggest a specific variety for your exact planting window.  \n  3. If early stand counts fall below the expected 40–45 % bud germination, indicating possible variety‑season incompatibility.",
+   "raw_answer": "**Observation**  \n- Agricultural Knowledge states: “Farmers should select varieties matched to their specific agro‑climatic zone and planting season (early vs mid‑late vs late) rather than using a single variety across all conditions, to balance cane tonnage with sugar recovery.”  \n- It also notes: “In Karnataka … farmers with adequate water availability can consider **Adsali (July–August) planting** for higher yield and sugar recovery, provided irrigation water is not a limiting constraint.”\n\n**Analysis**  \n- The guidance indicates that the “right” variety is not a single universal choice; it depends on where the field is (Mandya, Karnataka peninsular zone) and when the crop will be planted.  \n- If you can supply reliable irrigation, the Adsali‑type varieties suited to July–August planting are recommended for higher yield and sugar recovery.  \n- If water is limited or you plan to plant outside the Adsali window, you should choose varieties that are specifically bred for early, mid‑late, or late planting in the Karnataka peninsular zone.\n\n**Confidence** – **High** (the inference follows directly from the provided knowledge text).\n\n**Recommendations**  \n\n- **Immediate actions**  \n  1. Determine your intended planting month (early, mid‑late, or late season).  \n  2. Assess whether you can provide assured irrigation throughout the crop cycle.  \n  3. Based on (1) and (2), ask your local extension office or certified seed supplier for varieties recommended for:  \n     - **Adsali (July–August) planting** if irrigation is reliable.  \n     - **Early‑season varieties** if planting before July and water may be limited.  \n     - **Mid‑late or late‑season varieties** if planting after July or in drier periods.\n\n- **Monitoring advice**  \n  1. After receiving the seed, verify that the setts are disease‑free and sourced from a certified nursery.  \n  2. Observe germination and stand establishment during the first 2–3 weeks; poor emergence may indicate a mismatch between variety and planting time or water stress.  \n\n- **When to seek expert help**  \n  1. If you are unsure about the reliability of irrigation water for the full 12–18 month crop.  \n  2. If local extension services cannot suggest a specific variety for your exact planting window.  \n  3. If early stand counts fall below the expected 40–45 % bud germination, indicating possible variety‑season incompatibility.",
+   "error": null
+  },
+  {
+   "id": "Q7",
+   "question": "Sir every time watering how much depth I give, any standard number?",
+   "note": "Irrigation document.",
+   "status": 200,
+   "seconds": 6.04,
+   "pass": true,
+   "reasons": [],
+   "sources": [
+    {
+     "source": "irrigation/01_irrigation_water_management.md",
+     "section": "Sugarcane Irrigation Water Management — Main Information",
+     "score": 0.9128,
+     "via": "groq"
+    },
+    {
+     "source": "sugarcane/02_land_preparation.md",
+     "section": "Land Preparation for Sugarcane Cultivation — Key Facts",
+     "score": 0.8991,
+     "via": "groq"
+    },
+    {
+     "source": "irrigation/01_irrigation_water_management.md",
+     "section": "Sugarcane Irrigation Water Management — Key Facts",
+     "score": 0.885,
+     "via": "groq"
+    },
+    {
+     "source": "sugarcane/02_land_preparation.md",
+     "section": "Land Preparation for Sugarcane Cultivation — Important Recommendations",
+     "score": 0.8783,
+     "via": "groq"
+    }
+   ],
+   "fact_check": "checked",
+   "caveats": [
+    "contradicted: the recommended depth applies regardless of growth stage",
+    "unsupported: observe the soil‑moisture sensor for an increase consistent with the added water",
+    "unsupported: adjust future applications if the sensor shows consistently higher or lower moisture than expected",
+    "unsupported: contact an agronomist if soil‑moisture readings remain outside the expected range after irrigation",
+    "unsupported: contact an agronomist if the crop shows signs of water stress despite applying the recommended depth"
+   ],
+   "answer": "Please double-check before acting: \"the recommended depth applies regardless of growth stage\" (contradicts Gage's sources); \"observe the soil‑moisture sensor for an increase consistent with the added water\" (not in Gage's sources); \"adjust future applications if the sensor shows consistently higher or lower moisture than expected\" (not in Gage's sources); +2.\n\n**Observation:**  \nAgricultural knowledge states that the recommended irrigation depth per application for sugarcane is **7–8 cm**.\n\n**Analysis:**  \nThis range represents the standard amount of water to apply each time you irrigate a sugarcane field, regardless of the growth stage, unless adjusted for rainfall.\n\n**Confidence:**  \nHigh – the value is directly provided in the reference knowledge.\n\n**Recommendations:**  \n- **Immediate actions:** Apply water to achieve a depth of **7–8 cm** for each irrigation event.  \n- **Monitoring advice:** After irrigation, observe the soil‑moisture sensor for an increase consistent with the added water; adjust future applications if the sensor shows consistently higher or lower moisture than expected.  \n- **When to seek expert help:** Contact an agronomist if the soil‑moisture readings remain outside the expected range after irrigation, or if the crop shows signs of water stress despite applying the recommended depth.",
+   "raw_answer": "**Observation:**  \nAgricultural knowledge states that the recommended irrigation depth per application for sugarcane is **7–8 cm**.\n\n**Analysis:**  \nThis range represents the standard amount of water to apply each time you irrigate a sugarcane field, regardless of the growth stage, unless adjusted for rainfall.\n\n**Confidence:**  \nHigh – the value is directly provided in the reference knowledge.\n\n**Recommendations:**  \n- **Immediate actions:** Apply water to achieve a depth of **7–8 cm** for each irrigation event.  \n- **Monitoring advice:** After irrigation, observe the soil‑moisture sensor for an increase consistent with the added water; adjust future applications if the sensor shows consistently higher or lower moisture than expected.  \n- **When to seek expert help:** Contact an agronomist if the soil‑moisture readings remain outside the expected range after irrigation, or if the crop shows signs of water stress despite applying the recommended depth.",
+   "error": null
+  },
+  {
+   "id": "Q8",
+   "question": "What is the FRP for sugarcane this season and how soon must the mill pay?",
+   "note": "Must say Rs 355 per quintal for 2025-26 and 14 days.",
+   "status": 503,
+   "seconds": 51.36,
+   "pass": false,
+   "reasons": [
+    "HTTP 503: {'detail': 'The assistant could not answer right now: Groq request failed: APITimeoutError: Request timed out.'}"
+   ],
+   "sources": null,
+   "fact_check": null,
+   "caveats": null,
+   "answer": null,
+   "raw_answer": null,
+   "error": {
+    "detail": "The assistant could not answer right now: Groq request failed: APITimeoutError: Request timed out."
+   }
+  },
+  {
+   "id": "Q9",
+   "question": "Why are the leaves of my cane turning yellow?",
+   "note": "Answered, not refused.",
+   "status": 200,
+   "seconds": 58.3,
+   "pass": true,
+   "reasons": [],
+   "sources": [
+    {
+     "source": "diseases/01_disease_management.md",
+     "section": "Sugarcane Disease Management — Main Information",
+     "score": 0.847,
+     "via": "original"
+    },
+    {
+     "source": "harvesting/01_maturity_and_harvesting.md",
+     "section": "Sugarcane Maturity Indicators and Harvesting Practices — Main Information",
+     "score": 0.8407,
+     "via": "original"
+    },
+    {
+     "source": "pests/01_insect_pest_management.md",
+     "section": "Integrated Insect-Pest Management in Sugarcane — Main Information",
+     "score": 0.8332,
+     "via": "original"
+    },
+    {
+     "source": "diseases/01_disease_management.md",
+     "section": "Sugarcane Disease Management — Important Recommendations",
+     "score": 0.8355,
+     "via": "original"
+    }
+   ],
+   "fact_check": "checked",
+   "caveats": [
+    "number: 30 %",
+    "number: 48 hours",
+    "judgement: 32.3 % optimal",
+    "judgement: 32.3 % adequate",
+    "unsupported: Leaves turning yellow is a symptom of Yellow Leaf Disease (viral)",
+    "unsupported: Yellowing could indicate nutrient deficiency (e.g., nitrogen)",
+    "unsupported: Yellowing could indicate water stress due to soil moisture 32.3 %",
+    "unsupported: Inspect canopy for stunted shoots, rust pustules, or fungal lesions",
+    "unsupported: Check irrigation to raise soil moisture above current level",
+    "unsupported: Apply balanced nitrogen fertilizer if soil test shows N deficiency",
+    "unsupported: Restore node connectivity to resume real‑time monitoring",
+    "unsupported: Record progression of leaf yellowing weekly",
+    "unsupported: Conduct leaf tissue test for nitrogen and other macro‑nutrients",
+    "unsupported: Seek expert help if yellowing spreads to >30 % of stand or shows stunted growth, leaf curl, pustules",
+    "unsupported: Seek expert help if node remains offline >48 h",
+    "unsupported: Seek expert help if suspect Yellow Leaf Disease and contact agronomist for disease‑free planting material and hot‑water treatment"
+   ],
+   "answer": "Please double-check before acting: \"30 %\" (this number is not in Gage's sources); \"48 hours\" (this number is not in Gage's sources); \"32.3 % optimal\" (Gage's sources give no range to judge this reading by); +11.\n\n**Observation**  \n- Sensor reading (2026‑09‑23 04:25 UTC): Temperature 27.9 °C, Humidity 72.4 %, Soil moisture 32.3 %.  \n- Active alert: **[critical] Node offline** – no sensor contact for 50 304 minutes.  \n- Farmer reports: leaves of the sugarcane are turning yellow.\n\n**Analysis**  \n- The yellowing could be a symptom of **Yellow Leaf Disease** (viral), which is known to cause leaf yellowing in sugarcane and has no curative spray; control relies on using virus‑free planting material.  \n- It could also indicate **nutrient deficiency** (e.g., nitrogen) or **water stress**; the soil‑moisture reading of 32.3 % suggests the soil may be on the drier side, but without a known optimal range for this field we cannot confirm moisture stress.  \n- Because the node is offline, we lack recent data on soil‑moisture trends, leaf‑wetness, or any pest‑disease sensor alerts that might help narrow the cause.\n\n**Confidence** – **Low** – only a single set of sensor data and a visual symptom are available; multiple possible causes exist.\n\n**Recommendations**  \n\n*Immediate actions*  \n1. **Inspect the canopy**: look for any additional signs such as stunted shoots, rust pustules, or fungal lesions that could point to a specific disease.  \n2. **Check irrigation**: ensure the field receives adequate water to raise soil moisture from the current 32.3 % to a level that keeps the root zone moist (avoid prolonged dry periods).  \n3. **Apply a balanced nitrogen fertilizer** (if a soil test later shows N deficiency) – follow local extension rates; do not exceed recommended amounts.  \n\n*Monitoring advice*  \n- **Restore node connectivity** as soon as possible to resume real‑time soil‑moisture and temperature monitoring.  \n- Record the progression of leaf yellowing (percentage of plants affected, severity) and any new symptoms weekly.  \n- If possible, conduct a quick leaf tissue test for nitrogen and other macro‑nutrients.  \n\n*When to seek expert help*  \n- If yellowing spreads rapidly to >30 % of the stand or is accompanied by stunted growth, leaf curl, or pustules.  \n- If the node remains offline for more than 48 hours, preventing you from tracking moisture and temperature trends.  \n- If you suspect **Yellow Leaf Disease** (viral) because the yellowing is uniform and persistent, contact a local agronomist or the district agricultural office for certified disease‑free planting material and possible hot‑water treatment of setts.",
+   "raw_answer": "**Observation**  \n- Sensor reading (2026‑09‑23 04:25 UTC): Temperature 27.9 °C, Humidity 72.4 %, Soil moisture 32.3 %.  \n- Active alert: **[critical] Node offline** – no sensor contact for 50 304 minutes.  \n- Farmer reports: leaves of the sugarcane are turning yellow.\n\n**Analysis**  \n- The yellowing could be a symptom of **Yellow Leaf Disease** (viral), which is known to cause leaf yellowing in sugarcane and has no curative spray; control relies on using virus‑free planting material.  \n- It could also indicate **nutrient deficiency** (e.g., nitrogen) or **water stress**; the soil‑moisture reading of 32.3 % suggests the soil may be on the drier side, but without a known optimal range for this field we cannot confirm moisture stress.  \n- Because the node is offline, we lack recent data on soil‑moisture trends, leaf‑wetness, or any pest‑disease sensor alerts that might help narrow the cause.\n\n**Confidence** – **Low** – only a single set of sensor data and a visual symptom are available; multiple possible causes exist.\n\n**Recommendations**  \n\n*Immediate actions*  \n1. **Inspect the canopy**: look for any additional signs such as stunted shoots, rust pustules, or fungal lesions that could point to a specific disease.  \n2. **Check irrigation**: ensure the field receives adequate water to raise soil moisture from the current 32.3 % to a level that keeps the root zone moist (avoid prolonged dry periods).  \n3. **Apply a balanced nitrogen fertilizer** (if a soil test later shows N deficiency) – follow local extension rates; do not exceed recommended amounts.  \n\n*Monitoring advice*  \n- **Restore node connectivity** as soon as possible to resume real‑time soil‑moisture and temperature monitoring.  \n- Record the progression of leaf yellowing (percentage of plants affected, severity) and any new symptoms weekly.  \n- If possible, conduct a quick leaf tissue test for nitrogen and other macro‑nutrients.  \n\n*When to seek expert help*  \n- If yellowing spreads rapidly to >30 % of the stand or is accompanied by stunted growth, leaf curl, or pustules.  \n- If the node remains offline for more than 48 hours, preventing you from tracking moisture and temperature trends.  \n- If you suspect **Yellow Leaf Disease** (viral) because the yellowing is uniform and persistent, contact a local agronomist or the district agricultural office for certified disease‑free planting material and possible hot‑water treatment of setts.",
+   "error": null
+  },
+  {
+   "id": "Q10",
+   "question": "Is my soil too dry right now?",
+   "note": "Uses the farm readings; says what is missing if data is thin.",
+   "status": 200,
+   "seconds": 7.08,
+   "pass": true,
+   "reasons": [],
+   "sources": [
+    {
+     "source": "nutrient_deficiency/01_iron_chlorosis_and_micronutrient_deficiency.md",
+     "section": "Nutrient Deficiency Management in Sugarcane (Iron Chlorosis and Micronutrients) — Main Information",
+     "score": 0.8765,
+     "via": "groq"
+    },
+    {
+     "source": "sugarcane/01_sugarcane_cultivation_overview_india_and_karnataka.md",
+     "section": "Sugarcane Cultivation in India: Agro-Climatic Overview (with Karnataka Focus) — Main Information",
+     "score": 0.8792,
+     "via": "groq"
+    },
+    {
+     "source": "harvesting/02_post_harvest_management_and_sucrose_loss.md",
+     "section": "Post-Harvest Management of Sugarcane: Preventing Sucrose Loss — Key Facts",
+     "score": 0.8695,
+     "via": "groq"
+    },
+    {
+     "source": "irrigation/01_irrigation_water_management.md",
+     "section": "Sugarcane Irrigation Water Management — Important Recommendations",
+     "score": 0.8726,
+     "via": "groq"
+    }
+   ],
+   "fact_check": "checked",
+   "caveats": [
+    "number: 10 cm",
+    "number: 3–5 days",
+    "unsupported: The soil‑moisture value of 32.3% cannot be judged as “too dry” because no optimal range is provided"
+   ],
+   "answer": "Please double-check before acting: \"10 cm\" (this number is not in Gage's sources); \"3–5 days\" (this number is not in Gage's sources); \"The soil‑moisture value of 32.3% cannot be judged as “too dry” because no optimal range is provided\" (not in Gage's sources).\n\n**Observation**  \n- Sensor reading (2026‑09‑23 04:25 UTC): Soil moisture **32.3 %**.  \n- Temperature **27.9 °C**, Humidity **72.4 %**.  \n- Active alert: **[critical] Node offline (no contact for 50304 min)**.  \n- Only a single soil‑moisture measurement is available; no prior data for trend comparison.\n\n**Analysis**  \n- The soil‑moisture value of **32.3 %** cannot be judged as “too dry” or “adequate” because the agricultural knowledge base does not provide a specific optimal percentage range for sugarcane at this stage.  \n- Without a trend (previous readings) or a known crop‑stage reference, we cannot determine whether the current moisture level is sufficient for the crop’s water needs.  \n- The node‑offline alert means the sensor may not be reliably reporting; the reading could be outdated or inaccurate.\n\n**Confidence** – **Low** – because the required reference range and trend data are missing, and the sensor may be offline.\n\n**Recommendations**  \n\n*Immediate actions*  \n1. Verify the sensor’s connectivity (restart the node or check power/communication).  \n2. Perform a quick visual check of the soil around the root zone (feel the top 10 cm) to see if it feels dry.  \n\n*Monitoring advice*  \n1. Once the node is back online, record the next soil‑moisture reading and compare it to the current **32.3 %** value.  \n2. Note the crop stage (e.g., early growth, mid‑season, ratoon) and keep a simple log of moisture readings every 3–5 days.  \n\n*When to seek expert help*  \n- If the node remains offline for more than 24 hours.  \n- If visual inspection shows the soil is dry despite the reading, or if the cane shows persistent yellowing or wilting.  \n- If you cannot obtain a second moisture reading to establish a trend.",
+   "raw_answer": "**Observation**  \n- Sensor reading (2026‑09‑23 04:25 UTC): Soil moisture **32.3 %**.  \n- Temperature **27.9 °C**, Humidity **72.4 %**.  \n- Active alert: **[critical] Node offline (no contact for 50304 min)**.  \n- Only a single soil‑moisture measurement is available; no prior data for trend comparison.\n\n**Analysis**  \n- The soil‑moisture value of **32.3 %** cannot be judged as “too dry” or “adequate” because the agricultural knowledge base does not provide a specific optimal percentage range for sugarcane at this stage.  \n- Without a trend (previous readings) or a known crop‑stage reference, we cannot determine whether the current moisture level is sufficient for the crop’s water needs.  \n- The node‑offline alert means the sensor may not be reliably reporting; the reading could be outdated or inaccurate.\n\n**Confidence** – **Low** – because the required reference range and trend data are missing, and the sensor may be offline.\n\n**Recommendations**  \n\n*Immediate actions*  \n1. Verify the sensor’s connectivity (restart the node or check power/communication).  \n2. Perform a quick visual check of the soil around the root zone (feel the top 10 cm) to see if it feels dry.  \n\n*Monitoring advice*  \n1. Once the node is back online, record the next soil‑moisture reading and compare it to the current **32.3 %** value.  \n2. Note the crop stage (e.g., early growth, mid‑season, ratoon) and keep a simple log of moisture readings every 3–5 days.  \n\n*When to seek expert help*  \n- If the node remains offline for more than 24 hours.  \n- If visual inspection shows the soil is dry despite the reading, or if the cane shows persistent yellowing or wilting.  \n- If you cannot obtain a second moisture reading to establish a trend.",
+   "error": null
+  }
+ ],
+ "burst": []
+}

@@ -18,6 +18,7 @@ from dataclasses import dataclass, field
 from sqlalchemy.orm import Session
 
 from backend.ai import claim_check, knowledge, prompt_builder, service
+from backend.config import get_settings
 from backend.models import Conversation, Farm
 from backend.services import farm_context
 
@@ -35,26 +36,48 @@ class AnswerResult:
     unsupported: list[str]  # specific claims not found in the context
     answer: str             # what the farmer receives (caveated if needed)
     claims: list[str] = field(default_factory=list)
+    fact_check: str = "checked"     # checked | unavailable | skipped
+    fact_check_seconds: float = 0.0
+    groq_calls: list[dict] = field(default_factory=list)
+    provider: str = ""              # the answer engine that produced raw_answer
+    answer_seconds: float = 0.0     # time spent in the answer engine
 
 
 class AIOrchestrator:
     @staticmethod
-    def answer(db: Session, farm: Farm, question: str) -> AnswerResult:
+    def answer(db: Session, farm: Farm, question: str, provider: str | None = None) -> AnswerResult:
+        """`provider`: groq | sarvam_finetuned, default LLM_PROVIDER. Both engines
+        get the same retrieval, local checks and caveat logic; only the prompt
+        shape differs (the fine-tuned model was trained on the compact one)."""
+        import time
+
+        from backend.ai import groq_client
+
+        engine = (provider or service.default_engine()).lower()
+        llm = service.get_llm(engine)   # LLMUnavailable here, before any work
+        calls_before = groq_client.last_seq()
         language = service.detect_language(question)
         ctx = farm_context.build(db, farm)
-        retrieval = knowledge.retrieve(question, k=3)
+        retrieval = knowledge.retrieve(question, k=get_settings().retrieval_top_k)
 
         # What the model sees as the farmer's turn. The compact (fine-tuned) prompt
         # is knowledge + the farmer's question only; no sensor readings.
         model_question = question
-        if service.prompt_style() == "compact":
+        if llm.prompt_style == "compact":
             context, model_question = prompt_builder.build_compact(retrieval.docs, question)
         else:
             context = prompt_builder.build(ctx, retrieval.docs, question)
 
         # LLMError propagates: nothing is saved, the router reports the failure.
-        raw = service.complete(model_question, context, language)
-        checked = claim_check.check(raw, f"{context}\n{model_question}", language)
+        t_answer = time.perf_counter()
+        raw = service.complete(model_question, context, language, engine)
+        answer_seconds = round(time.perf_counter() - t_answer, 2)
+        # Checked against two chunks (those the answer uses most) + farm data.
+        # Local checks see every retrieved chunk, the question and the readings.
+        sources, readings, knowledge_text = prompt_builder.check_sources(ctx, retrieval.docs, question)
+        checked = claim_check.check(
+            raw, prompt_builder.build_check_context(ctx, retrieval.docs, question, raw), language,
+            sources=sources, readings=readings, knowledge=knowledge_text)
 
         db.add(Conversation(
             farm_id=farm.id, farmer_id=farm.farmer_id,
@@ -66,14 +89,22 @@ class AIOrchestrator:
             question=question, language=language, retrieval_queries=retrieval.queries,
             docs=retrieval.docs, context=context, raw_answer=raw,
             unsupported=checked.unsupported, answer=checked.answer, claims=checked.checked,
+            fact_check=checked.status, fact_check_seconds=checked.seconds,
+            groq_calls=groq_client.calls_since(calls_before),
+            provider=engine, answer_seconds=answer_seconds,
         )
         logger.info("answer trace %s", json.dumps({
-            "farm": farm.id, "language": language, "question": question,
+            "farm": farm.id, "provider": engine, "answer_seconds": answer_seconds,
+            "language": language, "question": question,
             "retrieval_queries": retrieval.queries,
             "model_input": {"context": context, "farmer": model_question},
-            "retrieved": [{"source": d.source, "section": d.title, "score": d.score}
+            "retrieval_methods": retrieval.methods,
+            "retrieval_best_by_method": retrieval.best_by_method,
+            "retrieved": [{"source": d.source, "section": d.title, "score": d.score, "via": d.via}
                           for d in retrieval.docs],
             "raw_answer": raw, "claims": checked.checked,
             "unsupported": checked.unsupported, "final_answer": checked.answer,
+            "fact_check": checked.status, "fact_check_seconds": checked.seconds,
+            "groq_calls": result.groq_calls,
         }, ensure_ascii=False))
         return result

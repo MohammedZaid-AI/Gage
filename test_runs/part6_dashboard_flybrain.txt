@@ -1,0 +1,5 @@
+logged in: True
+FlyBrain card shown: True
+card text: SENSOR PATTERN CHECK | FLYBRAIN · SYNTHETIC TEST GRAPH (NOT THE REAL FLY CONNECTOME) |  | Unusual pattern · score 0.64 (threshold 0.39) · 43 min ago |  | A statistical flag, not a diagnosis |  | ACTIVE ALERTS | CRITICAL | Node offline (no contact for 42 min) | Resolve | WARNING | Unusual sensor pattern for this field (FlyB
+login message: 
+screenshot: test_runs/part6_dashboard_flybrain.png

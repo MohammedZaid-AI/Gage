@@ -1,0 +1,14 @@
+Q1: PASS 200 6.11s fact_check=checked top=pests/02_iisr_current_helpline_and_2024_2025_activities.md@0.8641 
+Q2: PASS 200 7.69s fact_check=checked top=nutrient_deficiency/01_iron_chlorosis_and_micronutrient_deficiency.md@0.8871 
+Q3: FAIL 200 5.42s fact_check=checked top=irrigation/01_irrigation_water_management.md@0.9248 missing one of ['7', '೭']; missing one of ['8', '೮']
+Q4: PASS 200 5.7s fact_check=checked top=irrigation/01_irrigation_water_management.md@0.9162 
+Q5: PASS 200 5.07s fact_check=checked top=government_schemes/02_viksit_krishi_sankalp_abhiyan_vksa_2025.md@0.8838 
+Q6: PASS 200 4.67s fact_check=checked top=sugarcane/04_planting_methods_and_nursery_techniques.md@0.872 
+Q7: PASS 200 7.51s fact_check=checked top=irrigation/01_irrigation_water_management.md@0.9266 
+Q8: FAIL 200 2.78s fact_check=checked top=market/01_sugarcane_fair_and_remunerative_price_frp.md@0.9058 missing one of ['355']; missing one of ['14']
+Q9: PASS 200 8.93s fact_check=checked top=nutrient_deficiency/01_iron_chlorosis_and_micronutrient_deficiency.md@0.896 
+Q10: PASS 200 6.67s fact_check=checked top=sugarcane/01_sugarcane_cultivation_overview_india_and_karnataka.md@0.8792 
+burst 1: 200 6.12s fact_check=checked 
+burst 2: 200 7.04s fact_check=skipped 
+burst 3: 200 6.52s fact_check=skipped 
+{"passed": 8, "total": 10, "fact_checks_completed": 10}

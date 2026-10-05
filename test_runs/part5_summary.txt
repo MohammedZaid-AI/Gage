@@ -1,0 +1,22 @@
+PART 5 - Real connectome without the 13 GB table
+
+5.1 flycns compile_malecns_v1 (read from the installed source): the simulation graph (CSR
+    indptr/indices/counts + per-neuron transmitter sign) comes from three tables:
+    annotations (which neurons), transmitters (sign), weights (edges). The synapse-point
+    table is read ONLY by synapse_centroids() to give positions to neurons with no soma
+    location (positions also feed a left/right side fallback), and by eyes.measure_geometry.
+    It is skippable: compile_malecns_v1(..., synapse_centroids_for_missing=False).
+    So: it is used for positions/eye geometry, never for the connections.
+5.2 Built from the three finished tables: 166,700 neurons, 25,582,938 edges, 51 s
+    (part5_compile.log). The old loader read guessed array names; fixed to csr_indptr /
+    csr_indices / csr_count / neuron_sign with flycns's own weight rule (sign x count x
+    0.275 mV). API label: "real MaleCNS v1.0 connections (without synapse positions)".
+    Time per reading: CPU 10.3-10.6 s; GPU (flycns LIFTorch, RTX 3050) 4.3-4.4 s
+    (part5_timing.txt). New FLYBRAIN_ENGINE=auto uses the GPU for the real graph.
+    Two test readings on the real graph, GPU (part5_flybrain_real.txt/json):
+      fit 410.6 s (100 simulations); threshold 192,918.9
+      reading 299: 36,511.2 -> normal; reading 534: 185,453.8 -> normal (NOT flagged)
+    Under 5 s per reading on GPU, but it does not work as a detector yet (534 missed),
+    so FLYBRAIN_GRAPH stays synthetic. Cause and next step in docs/OPEN_ITEMS.md.
+5.3 Not needed (built without the table); the resume command is in docs/OPEN_ITEMS.md
+    anyway for the positions/eye-geometry use.

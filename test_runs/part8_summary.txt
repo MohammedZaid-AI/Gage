@@ -1,0 +1,20 @@
+PART 8 (revised) - Final acceptance on both answer engines
+
+scripts/acceptance.py: --provider groq|sarvam_finetuned; per question: right document, key facts
+(must / must_not / no date absent from the sources / Q10 quotes the soil reading or says what is
+missing), invented numbers without a caveat (checked independently against knowledge_base/ on
+disk), refusal, seconds; sensor-upload latency during an answer from the same engine; pass bar.
+
+One server (Groq default) on a fresh copy of the real DB (_p8c.db); runs one after the other:
+  Groq (part8_groq.txt/json):            docs 10/10, key facts 9/10 (Q8: Rs 365 vs note's 355),
+                                          uncaveated numbers 0, refusals 0, 7.7 s mean / 19.3 max,
+                                          grounding 10/10, upload p95 55.1 ms (153 uploads)
+  Fine-tuned (part8_finetuned.txt/json): warm-up load 32.7 s; docs 10/10, key facts 5/10 (Q2, Q5,
+                                          Q7, Q8, Q10 missed), uncaveated numbers 0, refusals 0,
+                                          18.5 s mean / 28.6 max, grounding 10/10, upload p95 56.8 ms
+Default rule (>= 8/10 key facts, 0 uncaveated numbers, < 45 s): fine-tuned fails key facts (5/10)
+  -> LLM_PROVIDER stays groq.
+Pass bar on the default engine (Groq run): all five criteria met.
+Final code also: check_security exit 0 / no failures; validate_pipeline 24/24; selftest OK
+  (part8_check_security.txt, part8_validate_pipeline.txt, part8_selftest.txt).
+Earlier attempts (part8_attempt1_*, part8_attempt2_*) failed the bar; see docs/OPEN_ITEMS.md.

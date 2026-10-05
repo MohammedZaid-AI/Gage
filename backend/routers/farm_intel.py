@@ -18,7 +18,7 @@ from backend.schemas import (
     SensorSnapshot,
     TrendOut,
 )
-from backend.services import farm_context, health_score
+from backend.services import anomaly, farm_context, health_score
 
 router = APIRouter(prefix="/farm", tags=["farm-intelligence"])
 
@@ -54,10 +54,15 @@ def farm_summary(
             delta=t.delta, direction=t.direction, unit=t.unit, days_ago=t.days_ago,
         ) for t in ctx.trends],
         active_alerts=[AlertOut.model_validate(a) for a in ctx.active_alerts],
-        # ponytail: reuse the observation's summary generated at merge — no fresh
-        # LLM call on a dashboard poll. Generate a farm-level summary on demand
-        # only if the per-observation one proves insufficient.
-        ai_summary=latest.ai_summary if latest else None,
+        # The newest stored summary, not necessarily the newest observation's:
+        # summaries are written by a background task on a new alert or at most
+        # every SUMMARY_INTERVAL_MINUTES (observation_service.generate_summary),
+        # so most observations have none. No LLM call on a dashboard poll.
+        ai_summary=db.execute(
+            select(Observation.ai_summary)
+            .where(Observation.farm_id == farm.id, Observation.ai_summary.is_not(None))
+            .order_by(Observation.timestamp.desc()).limit(1)
+        ).scalar_one_or_none(),
         latest_observation=ObservationOut.model_validate(latest) if latest else None,
     )
 
@@ -75,6 +80,18 @@ def farm_timeline(
         .order_by(Observation.timestamp.desc()).limit(limit)
     ).scalars())
     return [ObservationOut.model_validate(o) for o in obs]
+
+
+@router.get("/{farm_id}/anomaly")
+def farm_anomaly(
+    farm_id: int,
+    farmer: Farmer = Depends(get_current_farmer),
+    db: Session = Depends(get_db),
+) -> dict:
+    """FlyBrain sensor-pattern check: which graph was used (synthetic or the real
+    MaleCNS connectome), this farm's calibrated threshold, and the latest score."""
+    farm = owned_farm(db, farmer, farm_id)
+    return anomaly.status(db, farm.id)
 
 
 @router.get("/{farm_id}/health", response_model=HealthOut)

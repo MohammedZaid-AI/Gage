@@ -137,6 +137,21 @@ const jpost = (path, body) => api(path, { method: "POST", headers: { "Content-Ty
 
 // ---------- health helpers (client-side, mirrors backend thresholds) ----------
 const TH = { soilMin: 20, humMax: 85, tempMax: 40 };
+// FlyBrain sensor-pattern check: which graph, the latest score, or why nothing is scored.
+function flyBrainCard(fb) {
+  if (!fb || !fb.enabled) return "";
+  const L = fb.latest, d = fb.data;
+  let line;
+  if (L) line = `${L.is_anomalous ? "Unusual pattern" : "Normal pattern"} · score ${(+L.score).toFixed(2)} (threshold ${(+L.threshold).toFixed(2)}) · ${ago(L.at)}`;
+  else if (d && !d.fitted) line = `Not scoring: ${d.reason}`;
+  else line = "No reading scored yet";
+  const rows = d ? ` · ${d.clean} of ${d.history} readings usable (${d.excluded} left out as sensor faults)` : "";
+  return `<div class="section-title">Sensor pattern check</div>
+    <div class="card flat"><div class="calc-title">FlyBrain · ${esc(fb.graph_description || "")}</div>
+      <p style="margin:6px 0 0">${esc(line)}</p>
+      <p class="muted" style="margin:4px 0 0;font-size:13px">A statistical flag, not a diagnosis${esc(rows)}</p></div>`;
+}
+
 function clientHealth(o, alerts = []) {
   let s = 100;
   if (o.soil_moisture != null && o.soil_moisture < TH.soilMin) s -= 20;
@@ -252,7 +267,10 @@ VIEWS.home = async () => {
     <p class="muted" style="margin:6px 0 16px;font-size:14px">Add your first farm to begin monitoring.</p>
     <button class="btn" onclick="go('settings')">Set up my farm</button></div>`;
   const s = await cachedGet(`/farm/${state.farmId}/summary`);
+  const recentAlerts = await cachedGet(`/alerts?farm_id=${state.farmId}&include_resolved=true&limit=10`).catch(() => []);
+  const resolved = recentAlerts.filter((a) => a.resolved).slice(0, 3);
   const nodes = await cachedGet(`/farms/${state.farmId}/nodes`).catch(() => state.nodes);
+  const fb = await cachedGet(`/farm/${state.farmId}/anomaly`).catch(() => null);
   state.lastSummary = s; state.node = nodes[0] || state.node;
   const nh = state.node?.health || {};
   const snap = s.sensor_snapshot || {}, o = s.latest_observation || {};
@@ -302,9 +320,17 @@ VIEWS.home = async () => {
       ${o.gps_lat != null ? `<div class="sensor wide"><div class="top"><span class="ic">${icon("pin")}</span></div><span class="v word">${(+o.gps_lat).toFixed(4)}, ${(+o.gps_long).toFixed(4)}</span><span class="l">Last capture location</span></div>` : ""}
     </div>
 
+    ${flyBrainCard(fb)}
+
     ${(s.active_alerts || []).length ? `<div class="section-title">Active alerts</div>${[...s.active_alerts].sort((a, b) => (b.severity === "critical") - (a.severity === "critical")).map((a) => `
       <div class="alert ${a.severity === "critical" ? "crit" : ""}"><span class="ic">${icon("warning")}</span>
-      <div><div class="sev">${esc(a.severity)}</div><div class="msg">${esc(a.message)}</div></div></div>`).join("")}` : ""}
+      <div style="flex:1"><div class="sev">${esc(a.severity)}</div><div class="msg">${esc(a.message)}</div></div>
+      <button class="btn ghost sm" onclick="resolveAlert(${a.id})">Resolve</button></div>`).join("")}` : ""}
+
+    ${resolved.length ? `<div class="section-title">Recently resolved</div>${resolved.map((a) => `
+      <div class="alert resolved"><span class="ic">${icon("check")}</span>
+      <div><div class="sev">Resolved · ${esc(ago(a.resolved_at))}</div><div class="msg">${esc(a.message)}</div>
+      <div class="how">${esc(a.resolution === "manual" ? "Resolved by you" : (a.resolution || "").replace(/^auto: /, "Cleared automatically: "))}</div></div></div>`).join("")}` : ""}
 
     <div class="section-title">Quick actions</div>
     <div class="qa">
@@ -312,6 +338,10 @@ VIEWS.home = async () => {
       <button onclick="go('timeline')"><span class="ic">${icon("clock")}</span>Timeline</button>
       <button onclick="go('reports')"><span class="ic">${icon("doc")}</span>Reports</button>
     </div>`;
+};
+window.resolveAlert = async (id) => {
+  try { await jpost(`/alerts/${id}/resolve`, {}); invalidate(); toast("Alert resolved"); go("home"); }
+  catch { toast("Could not resolve the alert"); }
 };
 WIRE.home = () => {
   requestAnimationFrame(() => { const v = $(".gauge .val"); if (v) v.style.strokeDashoffset = v.dataset.off; });
@@ -401,6 +431,10 @@ VIEWS.detail = async (id) => {
 };
 
 // ---------- ASK GAGE ----------
+// "" = the server default (LLM_PROVIDER). The fine-tuned model loads on its first use.
+const ENGINES = [["", "Default (server setting)"], ["groq", "Groq · gpt-oss-120b"],
+                 ["sarvam_finetuned", "Fine-tuned Sarvam-1 (local GPU)"]];
+const engineName = (p) => ({ groq: "Groq · gpt-oss-120b", sarvam_finetuned: "Fine-tuned Sarvam-1", mock: "Offline test engine" }[p] || p || "unknown");
 const SUGGESTIONS = ["Should I irrigate?", "How is my crop?", "Any disease?", "Is soil moisture okay?", "ನನ್ನ ಬೆಳೆ ಹೇಗಿದೆ?"];
 VIEWS.ask = async () => `
   <div class="card">
@@ -411,6 +445,9 @@ VIEWS.ask = async () => `
   <div class="chips" id="chips">${SUGGESTIONS.map((q) => `<button class="chip-btn">${esc(q)}</button>`).join("")}</div>
   <div id="ask-log" style="margin-top:18px"></div>
   <div class="card glass" style="position:sticky;bottom:calc(var(--nav-h) + 10px);z-index:5;padding:12px">
+    <label class="engine-pick">Answer engine
+      <select id="ask-engine">${ENGINES.map(([v, l]) => `<option value="${v}"${(state.prefs.engine || "") === v ? " selected" : ""}>${esc(l)}</option>`).join("")}</select>
+    </label>
     <div class="row"><input id="ask-input" placeholder="Type your question…" />
       <button class="btn" id="ask-send" style="flex:0 0 auto">Ask</button></div>
   </div>`;
@@ -419,6 +456,7 @@ WIRE.ask = () => {
   $("#ask-send").onclick = () => { const v = $("#ask-input").value.trim(); if (v) { $("#ask-input").value = ""; askText(v); } };
   $("#ask-input").addEventListener("keydown", (e) => { if (e.key === "Enter") $("#ask-send").click(); });
   $("#mic").onclick = toggleMic;
+  $("#ask-engine").onchange = (e) => { state.prefs.engine = e.target.value; savePrefs(); };
 };
 function logBubble(html, who) {
   const log = $("#ask-log"); if (!log) return null;
@@ -428,9 +466,18 @@ function logBubble(html, who) {
 async function askText(q) {
   logBubble(esc(q), "user");
   const pending = logBubble(`<span class="typing"><span></span><span></span><span></span></span>`, "bot");
-  try { const r = await jpost("/chat", { farm_id: state.farmId, question: q });
-    pending.innerHTML = docInline(r.answer); attachPlay(pending, r.answer, r.language);
-  } catch { pending.textContent = "Sorry, I'm unavailable right now."; }
+  const body = { farm_id: state.farmId, question: q };
+  if (state.prefs.engine) body.provider = state.prefs.engine;
+  try { const r = await jpost("/chat", body);
+    pending.innerHTML = docInline(r.answer) +
+      `<div class="engine-tag">Answered by ${esc(engineName(r.provider))}${r.answer_seconds != null ? ` · ${(+r.answer_seconds).toFixed(1)} s` : ""}</div>`;
+    attachPlay(pending, r.answer, r.language);
+  } catch (e) {
+    // Show the server's reason (e.g. the fine-tuned engine is unavailable), not a guess.
+    let msg = "Sorry, I'm unavailable right now.";
+    try { msg = JSON.parse(e.message).detail || msg; } catch { /* not JSON */ }
+    pending.textContent = msg;
+  }
 }
 function parseDoc(text) {
   const grab = (n, stops) => { const m = text.match(new RegExp(`${n}\\s*:?\\s*([\\s\\S]*?)(?=(?:${stops.join("|")})\\s*:|$)`, "i")); return m ? m[1].trim() : ""; };
@@ -508,7 +555,7 @@ VIEWS.settings = async () => {
     </div>
 
     <div class="section-title">Monitoring nodes</div>
-    <div class="card">${nodes.map((n) => `<div class="list-item"><div><b>${esc(n.id)}</b><div class="kv">key <span class="code">${esc(n.api_key)}</span></div></div><span class="health-pill ${n.health && n.health.status === "offline" ? "crit" : "good"}">${n.health ? esc(n.health.status) : "new"}</span></div>`).join("") || '<p class="muted">No nodes registered.</p>'}
+    <div class="card">${nodes.map((n) => `<div class="list-item"><div><b>${esc(n.id)}</b><div class="kv">key stored securely · <a href="#" onclick="rotateKey('${esc(n.id)}');return false">New key</a></div></div><span class="health-pill ${n.health && n.health.status === "offline" ? "crit" : "good"}">${n.health ? esc(n.health.status) : "new"}</span></div>`).join("") || '<p class="muted">No nodes registered.</p>'}
       ${state.farmId ? `<div class="row" style="margin-top:12px"><input id="nn-id" placeholder="node-id (device)"/><button class="btn" id="add-node" style="flex:0 0 auto">Register</button></div>` : ""}
     </div>
 
@@ -529,11 +576,20 @@ VIEWS.settings = async () => {
 };
 WIRE.settings = () => {
   const af = $("#add-farm"); if (af) af.onclick = async () => { const name = $("#nf-name").value.trim(); if (!name) return; await jpost("/farms", { name }); invalidate(); toast("Farm added"); go("settings"); };
-  const an = $("#add-node"); if (an) an.onclick = async () => { const id = $("#nn-id").value.trim(); if (!id) return; try { await jpost(`/farms/${state.farmId}/nodes`, { id }); invalidate(); toast("Node registered"); go("settings"); } catch { toast("Could not register node"); } };
+  const an = $("#add-node"); if (an) an.onclick = async () => { const id = $("#nn-id").value.trim(); if (!id) return; try { const n = await jpost(`/farms/${state.farmId}/nodes`, { id }); showKeyOnce(n.id, n.api_key); invalidate(); go("settings"); } catch { toast("Could not register node"); } };
   $("#lang-toggle")?.querySelectorAll("button").forEach((b) => (b.onclick = () => { state.prefs.lang = b.dataset.lang; savePrefs(); go("settings"); }));
   $("#speak-toggle")?.querySelectorAll("button").forEach((b) => (b.onclick = () => { state.prefs.speak = b.dataset.speak === "1"; savePrefs(); go("settings"); }));
   $("#theme-toggle")?.querySelectorAll("button").forEach((b) => (b.onclick = () => { state.prefs.theme = b.dataset.theme; savePrefs(); applyTheme(); go("settings"); }));
   $("#logout-btn").onclick = logout;
+};
+// Node keys are stored hashed, so a key can only be shown at the moment it is issued.
+function showKeyOnce(nodeId, key) {
+  window.prompt(`API key for node ${nodeId}. Copy it into the device (NODE_KEY) now; it cannot be shown again:`, key);
+}
+window.rotateKey = async (nodeId) => {
+  if (!confirm(`Issue a new key for ${nodeId}? The old key stops working immediately.`)) return;
+  try { const n = await jpost(`/farms/${state.farmId}/nodes/${encodeURIComponent(nodeId)}/rotate-key`, {}); showKeyOnce(n.id, n.api_key); invalidate(); go("settings"); }
+  catch { toast("Could not issue a new key"); }
 };
 window.switchFarm = async (id) => {
   const farms = await api("/farms"); const f = farms.find((x) => x.id === id);
@@ -645,7 +701,7 @@ function connectWS() {
         showAnalyzing();
         setTimeout(async () => { await go("home"); ["#health-card"].forEach((s) => $(s)?.classList.add("flash")); document.querySelectorAll(".sensor").forEach((el) => el.classList.add("flash")); }, 1100);
       } else toast("New observation captured");
-    } else if (m.event === "alert" && state.view === "home") { invalidate(); go("home"); }
+    } else if (["alert", "alert_resolved", "node_health"].includes(m.event) && state.view === "home") { invalidate(); go("home"); }
   };
   ws.onclose = () => { if (state.token) setTimeout(connectWS, 4000); };
 }

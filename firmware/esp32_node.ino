@@ -34,7 +34,7 @@ const int LIGHT_DARK = 3000;  // ADC in darkness -> 0 %
 const int LIGHT_SUN  = 400;   // ADC in bright light -> 100 %
 
 // Alert thresholds (mirror backend/config.py)
-const float SOIL_MIN = 20.0, TEMP_MAX = 40.0, HUM_MAX = 90.0;
+const float SOIL_MIN = 20.0, TEMP_MAX = 40.0, HUM_MAX = 85.0;
 
 const unsigned long SENSOR_INTERVAL_MS    = 30000;
 const unsigned long HEARTBEAT_INTERVAL_MS = 60000;

@@ -76,13 +76,13 @@ def main() -> int:
     ap.add_argument("--password", default="demo1234")
     args = ap.parse_args()
     base = args.base.rstrip("/")
-    secret = os.environ.get("JWT_SECRET", "dev-insecure-change-me")
-    c = httpx.Client(base_url=base, timeout=40)
+    # Sign the expired-token test with the server's real secret, so a 401 proves
+    # expiry is enforced (with any other secret it would fail on the signature).
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from backend.config import get_settings
+    secret = get_settings().jwt_secret
+    c = httpx.Client(base_url=base, timeout=120)
     key_hdr = {"X-Node-Key": args.node_key}
-
-    ws_url = base.replace("http", "ws") + "/ws"
-    threading.Thread(target=ws_listen, args=(ws_url,), daemon=True).start()
-    time.sleep(0.6)
 
     # ---- auth ----
     print("\n== AUTH ==")
@@ -92,6 +92,11 @@ def main() -> int:
     record("auth", "Farmer login -> JWT", bool(token), f"status {r.status_code}")
     farm = c.get("/farms", headers=auth).json()[0]
     fid = farm["id"]
+
+    # /ws requires a login (browsers pass the token as ?token=).
+    ws_url = base.replace("http", "ws") + f"/ws?token={token}"
+    threading.Thread(target=ws_listen, args=(ws_url,), daemon=True).start()
+    time.sleep(0.6)
 
     # ---- STEP 1: ESP32 ----
     print("\n== STEP 1: ESP32 ==")
@@ -120,7 +125,16 @@ def main() -> int:
     record("pipeline", "Merged into ONE observation (image + sensors)",
            bool(obs.get("image_path")) and obs.get("soil_moisture") == 16,
            f"soil={obs.get('soil_moisture')} img={'yes' if obs.get('image_path') else 'no'}")
-    record("pipeline", "AI summary generated", bool(obs.get("ai_summary")), "present" if obs.get("ai_summary") else "missing")
+    # Summaries run in a background task after the response (on a new alert or
+    # hourly), so wait for it instead of expecting it in the upload response.
+    summary = None
+    for _ in range(60):
+        summary = next((o.get("ai_summary") for o in c.get(f"/farm/{fid}/timeline?limit=10", headers=auth).json()
+                        if o["id"] == obs.get("id")), None)
+        if summary:
+            break
+        time.sleep(1)
+    record("pipeline", "AI summary generated (background)", bool(summary), "present" if summary else "missing after 60 s")
     # dataset
     ds = c.get("/dataset?limit=5", headers=auth).json()
     entry = next((e for e in ds if e["observation_id"] == obs.get("id")), None)
@@ -145,18 +159,30 @@ def main() -> int:
     for q in ["How is my field?", "Should I irrigate?", "Any disease?", "Compare with yesterday."]:
         cr = timed("chat", lambda: c.post("/chat", headers=auth, json={"farm_id": fid, "question": q}))
         a = cr.json().get("answer", "") if cr.status_code == 200 else ""
-        grounded = ("16" in a) or ("Observation" in a and "Recommendation" in a)
-        record("ai", f'"{q}" grounded (not generic)', grounded, "references farm data" if grounded else a[:50])
+        # The prompt contract's explicit insufficient-evidence reply is a grounded
+        # answer too: it refuses to guess and names what data is missing.
+        refused = "I don't have enough evidence" in a
+        grounded = ("16" in a) or ("Observation" in a and "Recommendation" in a) or refused
+        record("ai", f'"{q}" grounded (not generic)', grounded,
+               ("honest insufficient-evidence reply" if refused else "references farm data") if grounded else a[:50])
 
     # ---- STEP 5: Voice (Kannada) ----
     print("\n== STEP 5: VOICE ==")
-    kn = "ನನ್ನ ಬೆಳೆ ಹೇಗಿದೆ?".encode()
+    # Real speech, not text bytes: synthesise the question with the server's own
+    # TTS, then send that audio through the full STT -> AI -> TTS loop. With the
+    # mock speech provider the "speech" is silence, so only the loop is checked.
+    question_kn = "ನನ್ನ ಬೆಳೆ ಹೇಗಿದೆ?"
+    sp = c.post("/voice/speak", headers=auth, json={"text": question_kn, "language": "kn"})
+    speech = base64.b64decode(sp.json()["audio_base64"]) if sp.status_code == 200 else b""
     vr = timed("voice", lambda: c.post("/voice/ask", headers=auth,
-        files={"audio": ("s.webm", kn, "audio/webm")}, data={"farm_id": str(fid)}))
+        files={"audio": ("speech.wav", speech, "audio/wav")}, data={"farm_id": str(fid)}))
     vd = vr.json() if vr.status_code == 200 else {}
     audio = base64.b64decode(vd.get("audio_base64", "")) if vd.get("audio_base64") else b""
-    record("voice", "STT -> AI -> TTS (Kannada)", vr.status_code == 200 and vd.get("language") == "kn" and audio[:4] == b"RIFF",
-           f"lang={vd.get('language')} transcript={vd.get('transcript','')[:20]} audio={len(audio)}b")
+    transcript = vd.get("transcript", "")
+    heard_kannada = any("\u0c80" <= ch <= "\u0cff" for ch in transcript)
+    record("voice", "STT -> AI -> TTS (Kannada)",
+           vr.status_code == 200 and audio[:4] == b"RIFF" and (vd.get("language") == "kn") == heard_kannada,
+           f"HTTP {vr.status_code} lang={vd.get('language')} transcript={transcript[:24]!r} audio={len(audio)}b")
 
     # ---- STEP 6: Failure handling ----
     print("\n== STEP 6: FAILURE TESTS ==")

@@ -4,7 +4,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from backend.core.security import decode_access_token
+from backend.core.security import decode_access_token, hash_node_key
 from backend.database import get_db
 from backend.models import Farm, Farmer, Node
 
@@ -41,7 +41,10 @@ def get_node(
     """Authenticate a monitoring node by its API key. Never allow anonymous uploads."""
     if not x_node_key:
         raise HTTPException(401, "Missing X-Node-Key header")
-    node = db.execute(select(Node).where(Node.api_key == x_node_key)).scalar_one_or_none()
+    # Keys are stored only as HMACs; hash what the device sent and look that up.
+    node = db.execute(
+        select(Node).where(Node.api_key == hash_node_key(x_node_key))
+    ).scalar_one_or_none()
     if node is None:
         raise HTTPException(401, "Invalid node API key")
     return node

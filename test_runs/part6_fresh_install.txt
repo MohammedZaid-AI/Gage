@@ -1,0 +1,16 @@
+== login (fresh DB, demo farmer from create_demo_farmer.py)
+token received
+== farms
+[{"id":1,"name":"Demo Farm","crop_type":"sugarcane","village":"Mandya","area_acres":null,"created_at":"2026-10-05T05:36:24.590647"}]
+== sensor upload with the printed node key
+HTTP 200 in 0.085221s
+== chat
+fact_check: checked | top source: irrigation/01_irrigation_water_management.md 
+ Please double-check before acting: "After irrigation, check soil‑moisture sensors or manually probe the soil to confirm that the moisture profile corresponds to the applied depth" (not in Gage's sources); "Observe the crop for signs of water stress (wilting) or waterlogging (yellowing, root rot) and adjust future applications accordingly" (not in Gage's sources); "Seek expert help if soil‑mois
+== anomaly API
+{"enabled":true,"graph":null,"graph_description":"no baseline fitted yet","data":{"history":1,"clean":1,"excluded":0,"all_zero":0,"soil_zero_runs":0,"normal":1,"fitted":false,"reason":"not enough clean history: 1 clean rows (need 100), 1 clean normal rows (need 100)"},"baseline":null,"latest":null,"note":"The sensor-to-neuron encoding is a design choice, not a biologically validated mapping; scores are relative to this farm's own history."}
+logged in: True
+FlyBrain card shown: True
+card text: SENSOR PATTERN CHECK | FLYBRAIN · NO BASELINE FITTED YET |  | Not scoring: not enough clean history: 1 clean rows (need 100), 1 clean normal rows (need 100) |  | A statistical flag, not a diagnosis · 1 of 1 readings usable (0 left out as sensor faults) |  | QUICK ACTIONS | Ask Gage | Timeline | Reports | Home | Timeline | As
+login message: 
+screenshot: test_runs/part6_dashboard_fresh.png

@@ -1,0 +1,4 @@
+history 549 rows, clean 183, clean normal 165
+flybrain          AUROC 0.996  recall@1%FPR 0.883  by type {'heat_spike': 0.975, 'drought': 0.9, 'humidity_jump': 0.775}
+isolation_forest  AUROC 0.889  recall@1%FPR 0.000  by type {'heat_spike': 0.0, 'drought': 0.0, 'humidity_jump': 0.0}
+z_score           AUROC 0.979  recall@1%FPR 0.492  by type {'heat_spike': 0.95, 'drought': 0.175, 'humidity_jump': 0.35}

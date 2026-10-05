@@ -28,14 +28,37 @@ class Settings(BaseSettings):
     # on-topic questions (English, or translated Kannada) scored >= 0.87, off-topic
     # ones <= 0.81. Below the floor a question retrieves nothing rather than noise.
     retrieval_min_score: float = 0.83
-    # Latin-script questions whose best direct match is below this are retried as
-    # romanized Kannada (transliterate -> translate).
-    retrieval_romanized_trigger: float = 0.86
+    # Chunks given to the answering model. 4, not 3: the FRP price sits in the
+    # 4th chunk for "what is the FRP this season" (measured 2026-10-04).
+    retrieval_top_k: int = 4
+    # Skip the Sarvam translation and the Groq rewrite when the question as
+    # written already retrieves a chunk at this score: English questions scored
+    # >= 0.87 on this corpus, Kanglish ones 0.83-0.85 (too low to trust alone).
+    retrieval_direct_trigger: float = 0.87
+    # Timeout for the small Groq helper calls (query rewrite, grounding check);
+    # on timeout the answer goes ahead without them.
+    groq_helper_timeout_s: float = 8.0
+    # The grounding check reads the top chunks + farm data + answer; it gets
+    # longer, and the answer is returned with an 'unavailable' note if it runs out.
+    grounding_timeout_s: float = 20.0
 
     # Groq (OpenAI-compatible). Model is configurable; defaults to GPT-OSS 120B.
     groq_api_key: str = ""
     # Groq namespaces the GPT-OSS models — the id is "openai/gpt-oss-120b", not "gpt-oss-120b".
     groq_model: str = "openai/gpt-oss-120b"
+    # Smaller model for the query rewrite and the grounding check. On this
+    # account every model has its own tokens-per-minute bucket, so these calls
+    # no longer compete with the answer. (No "instant" model is offered here;
+    # gpt-oss-20b is the smallest one that returns valid JSON.)
+    groq_helper_model: str = "openai/gpt-oss-20b"
+    # Groq's tokens-per-minute limit per model on this account (free tier: 8000).
+    # Groq counts prompt + max_tokens against it when a request starts.
+    groq_tokens_per_minute: int = 8000
+    groq_rewrite_max_tokens: int = 160
+    groq_check_max_tokens: int = 1200
+    # Answer call rate-limited: wait and retry once if Groq says the wait is
+    # shorter than this; otherwise fail with 503 and the wait time.
+    groq_answer_retry_max_wait_s: float = 20.0
 
     # Speech (STT + TTS). mock | sarvam. Sarvam handles Kannada/English voice.
     speech_provider: str = "mock"
@@ -50,9 +73,14 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60 * 24 * 7  # 7 days
 
-    # Demo farmer/farm/node seeded on startup so the dashboard runs out of the box.
-    # ponytail: remove once real farmer onboarding exists.
-    seed_demo: bool = True
+    # Seed a demo farmer/farm/node with publicly known credentials on startup.
+    # Off by default; set SEED_DEMO=true in .env for a local demo only.
+    seed_demo: bool = False
+
+    # Key for hashing node API keys (HMAC-SHA256) before they are stored. If
+    # unset it is derived from JWT_SECRET; set it explicitly so JWT_SECRET can
+    # be rotated without invalidating every device key.
+    node_key_secret: str = ""
 
     # Observation merge: an image and a sensor reading from the same node within
     # this window are merged into one observation.
@@ -62,8 +90,29 @@ class Settings(BaseSettings):
     # is older than this. Never per reading (the ESP32 posts every 30 s).
     summary_interval_minutes: int = 60
 
+    # FlyBrain sensor-pattern anomaly detection (services/anomaly.py).
+    flybrain_enabled: bool = True
+    flybrain_graph: str = "synthetic"          # synthetic | malecns (needs a compiled connectome)
+    # Simulation engine: auto (GPU for the real graph when CUDA is present) | numpy | torch.
+    flybrain_engine: str = "auto"
+    flybrain_raw_dir: str = "./models/malecns/raw"
+    flybrain_compiled_dir: str = "./models/malecns/compiled"
+    flybrain_sim_steps: int = 1500
+    flybrain_baseline_size: int = 40           # normal readings that define the baseline
+    flybrain_heldout_size: int = 60            # other normal readings, scored to calibrate
+    flybrain_threshold_percentile: float = 99.0
+    flybrain_score_interval_minutes: int = 5   # score a farm at most this often
+    flybrain_refit_hours: int = 24             # refit each farm's baseline this often
+    # Data cleaning: soil moisture exactly 0 for this many consecutive readings
+    # (or every channel 0) means a disconnected sensor, not a real field state;
+    # those rows are left out of fitting and calibration.
+    flybrain_zero_run: int = 3
+    flybrain_min_clean_rows: int = 100         # fewer clean rows -> no baseline, no flags
+
     # A node is considered offline if its last heartbeat is older than this.
     offline_seconds: int = 180
+    # How often the server's background timer checks for silent nodes.
+    offline_check_seconds: int = 60
 
     # Alert rule thresholds. ponytail: global constants for V1; make them
     # per-crop / per-farm rows when agronomy demands it.
@@ -71,6 +120,13 @@ class Settings(BaseSettings):
     soil_moisture_min: float = 20.0  # % -> too dry (water stress)
     temperature_max: float = 40.0    # C -> heat stress
     low_battery_percent: float = 20.0
+    # An open alert auto-resolves only once a newer reading is back inside the
+    # safe range by this margin (hysteresis), so a value hovering at a threshold
+    # does not raise and resolve a fresh alert on every 30 s reading.
+    humidity_clear_margin: float = 3.0      # resolves at <= humidity_max - 3
+    soil_moisture_clear_margin: float = 2.0  # resolves at >= soil_moisture_min + 2
+    temperature_clear_margin: float = 1.0   # resolves at <= temperature_max - 1
+    battery_clear_margin: float = 5.0       # resolves at >= low_battery_percent + 5
 
 
 @lru_cache

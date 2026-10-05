@@ -1,0 +1,32 @@
+Q1: FAIL 503 53.68s fact_check=None top=None@None HTTP 503: {'detail': 'The assistant could not answer right now: Groq request failed: APIConnectionError: Connection error.'}
+Q2: FAIL 503 1.15s fact_check=None top=None@None HTTP 503: {'detail': 'The assistant could not answer right now: Groq request failed: APIConnectionError: Connection error.'}
+Q3: PASS 200 7.1s fact_check=checked top=irrigation/01_irrigation_water_management.md@0.9248 
+Q4: PASS 200 12.85s fact_check=checked top=irrigation/01_irrigation_water_management.md@0.9062 
+Q5: PASS 200 5.22s fact_check=checked top=government_schemes/02_viksit_krishi_sankalp_abhiyan_vksa_2025.md@0.8838 
+Q6: PASS 200 5.81s fact_check=checked top=sugarcane/01_sugarcane_cultivation_overview_india_and_karnataka.md@0.863 
+Q7: PASS 200 6.04s fact_check=checked top=irrigation/01_irrigation_water_management.md@0.9128 
+Q8: FAIL 503 51.36s fact_check=None top=None@None HTTP 503: {'detail': 'The assistant could not answer right now: Groq request failed: APITimeoutError: Request timed out.'}
+Q9: PASS 200 58.3s fact_check=checked top=diseases/01_disease_management.md@0.847 
+Q10: PASS 200 7.08s fact_check=checked top=nutrient_deficiency/01_iron_chlorosis_and_micronutrient_deficiency.md@0.8765 
+sensor upload while answering: {'uploads': 19, 'all_200': True, 'p50_ms': 78.8, 'p95_ms': 318.6, 'max_ms': 318.6}
+{
+ "passed": 7,
+ "total": 10,
+ "right_document": 7,
+ "fact_checks_completed": 7,
+ "latency": {
+  "uploads": 19,
+  "all_200": true,
+  "p50_ms": 78.8,
+  "p95_ms": 318.6,
+  "max_ms": 318.6
+ },
+ "pass_bar": {
+  "right_document_10_of_10": false,
+  "no_uncaveated_numbers": true,
+  "q9_not_refused": true,
+  "grounding_at_least_8_of_10": false,
+  "sensor_upload_p95_under_150ms": false
+ },
+ "pass_bar_met": false
+}

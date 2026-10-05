@@ -1,0 +1,378 @@
+{
+ "summary": {
+  "passed": 9,
+  "total": 10,
+  "fact_checks_completed": 10
+ },
+ "results": [
+  {
+   "id": "Q1",
+   "question": "Nodi anna, sugarcane borer training IISR yavaga nadesidru confirm madi.",
+   "note": "Must not invent a date.",
+   "status": 200,
+   "seconds": 6.28,
+   "pass": true,
+   "reasons": [],
+   "sources": [
+    {
+     "source": "pests/02_iisr_current_helpline_and_2024_2025_activities.md",
+     "section": "ICAR-IISR Current Farmer Helpline and 2024–2025 Institutional Activities — Main Information",
+     "score": 0.8641,
+     "via": "sarvam"
+    },
+    {
+     "source": "pests/02_iisr_current_helpline_and_2024_2025_activities.md",
+     "section": "ICAR-IISR Current Farmer Helpline and 2024–2025 Institutional Activities — Key Facts",
+     "score": 0.8619,
+     "via": "sarvam"
+    },
+    {
+     "source": "pests/02_iisr_current_helpline_and_2024_2025_activities.md",
+     "section": "ICAR-IISR Current Farmer Helpline and 2024–2025 Institutional Activities — Main Information",
+     "score": 0.8617,
+     "via": "sarvam"
+    }
+   ],
+   "fact_check": "checked",
+   "caveats": [],
+   "answer": "**Observation**  \n- ICAR‑IISR ಜ್ಞಾನದಲ್ಲಿ “Identification and Management of Major Sugarcane Borers” ಎಂಬ ಒಂದಿನ ದಿನದ ರೈತ ತರಬೇತಿ ಕಾರ್ಯಕ್ರಮವನ್ನು ICAR‑IISR Biological Control Centre, Pravaranagar (Maharashtra) ನಲ್ಲಿ ನಡೆಸಲಾಗಿದೆ ಎಂದು ಉಲ್ಲೇಖಿಸಲಾಗಿದೆ.  \n- ಆ ಕಾರ್ಯಕ್ರಮದ ನಿರ್ದಿಷ್ಟ ದಿನಾಂಕ ಅಥವಾ ಸಮಯದ ಮಾಹಿತಿ ಪಠ್ಯದಲ್ಲಿ ನೀಡಲಾಗಿಲ್ಲ.  \n\n**Analysis**  \n- ಪಠ್ಯದಲ್ಲಿ ತರಬೇತಿ ಕಾರ್ಯಕ್ರಮದ ύಪಸ್ಥಿತಿ ದೃಢಪಡಿಸಲಾಗಿದೆ, ಆದರೆ ಯಾವ ದಿನ/ತಿಂಗಳು/ವರ್ಷದಲ್ಲಿ ನಡೆಸಲಾಗಿದೆ ಎಂಬ ವಿವರ ಇಲ್ಲದಿರುವುದರಿಂದ, ನಿಮಗೆ ನಿಖರ ದಿನಾಂಕವನ್ನು ನೀಡಲು ಸಾಧ್ಯವಿಲ್ಲ.  \n\n**Confidence**  \n- Low – ಕಾರಣ: ತರಬೇತಿ ದಿನಾಂಕದ ಮಾಹಿತಿ ಪಠ್ಯದಲ್ಲಿ ಕಾಣಿಸಿಲ್ಲ.  \n\n**Recommendations**  \n- **ತಕ್ಷಣದ ಕ್ರಮ:** IISR ನ ಹೆಲ್ಪ್ಲೈನ್ (SMS/ಇಮೇಲ್) ಮೂಲಕ “Sugarcane borer training date” ಎಂದು ಕೇಳಿ, ಅಧಿಕೃತ ದಿನಾಂಕವನ್ನು ದೃಢಪಡಿಸಿಕೊಳ್ಳಿ.  \n- **ಮೋನಿಟರಿಂಗ್ ಸಲಹೆ:** ತರಬೇತಿ ದಿನಾಂಕ ತಿಳಿದುಕೊಂಡ ನಂತರ, ಅದರ ಮುನ್ನ ಮತ್ತು ನಂತರದ ಕೆಲವು ದಿನಗಳಲ್ಲಿ ನಿಮ್ಮ ಕ್ಷೇತ್ರದಲ್ಲಿ ಬೋರರ್ ಲಕ್ಷಣಗಳ (ಹೋಲ್‌ಗಳು, ಕೀಟದ ಹಾನಿ) ಪರಿಶೀಲನೆ ನಡೆಸಿ, ಯಾವುದೇ ಹೆಚ್ಚುವರಿ ಕೀಟದ ಒತ್ತಡ ಕಂಡುಬಂದರೆ ದಾಖಲಿಸಿ.  \n- **ವಿಶೇಷಜ್ಞರ ನೆರವು ಪಡೆಯಬೇಕಾದ ಸಮಯ:** ತರಬೇತಿ ದಿನಾಂಕದ ಬಗ್ಗೆ ಸ್ಪಷ್ಟ ಉತ್ತರ ಸಿಗದಿದ್ದರೆ, ಅಥವಾ ನಿಮ್ಮ ಕ್ಷೇತ್ರದಲ್ಲಿ ಬೋರರ್ ಹಾನಿ ಹೆಚ್ಚಾಗಿ ಕಾಣಿಸಿದರೆ, ನೇರವಾಗಿ IISR ನ ನೊಡಲ್ ಅಧಿಕಾರಿ ಅಥವಾ ಸ್ಥಳೀಯ ಕೃಷಿ ವಿಸ್ತರಣಾ ಅಧಿಕಾರಿ ಜೊತೆ ಸಂಪರ್ಕಿಸಿ.",
+   "raw_answer": "**Observation**  \n- ICAR‑IISR ಜ್ಞಾನದಲ್ಲಿ “Identification and Management of Major Sugarcane Borers” ಎಂಬ ಒಂದಿನ ದಿನದ ರೈತ ತರಬೇತಿ ಕಾರ್ಯಕ್ರಮವನ್ನು ICAR‑IISR Biological Control Centre, Pravaranagar (Maharashtra) ನಲ್ಲಿ ನಡೆಸಲಾಗಿದೆ ಎಂದು ಉಲ್ಲೇಖಿಸಲಾಗಿದೆ.  \n- ಆ ಕಾರ್ಯಕ್ರಮದ ನಿರ್ದಿಷ್ಟ ದಿನಾಂಕ ಅಥವಾ ಸಮಯದ ಮಾಹಿತಿ ಪಠ್ಯದಲ್ಲಿ ನೀಡಲಾಗಿಲ್ಲ.  \n\n**Analysis**  \n- ಪಠ್ಯದಲ್ಲಿ ತರಬೇತಿ ಕಾರ್ಯಕ್ರಮದ ύಪಸ್ಥಿತಿ ದೃಢಪಡಿಸಲಾಗಿದೆ, ಆದರೆ ಯಾವ ದಿನ/ತಿಂಗಳು/ವರ್ಷದಲ್ಲಿ ನಡೆಸಲಾಗಿದೆ ಎಂಬ ವಿವರ ಇಲ್ಲದಿರುವುದರಿಂದ, ನಿಮಗೆ ನಿಖರ ದಿನಾಂಕವನ್ನು ನೀಡಲು ಸಾಧ್ಯವಿಲ್ಲ.  \n\n**Confidence**  \n- Low – ಕಾರಣ: ತರಬೇತಿ ದಿನಾಂಕದ ಮಾಹಿತಿ ಪಠ್ಯದಲ್ಲಿ ಕಾಣಿಸಿಲ್ಲ.  \n\n**Recommendations**  \n- **ತಕ್ಷಣದ ಕ್ರಮ:** IISR ನ ಹೆಲ್ಪ್ಲೈನ್ (SMS/ಇಮೇಲ್) ಮೂಲಕ “Sugarcane borer training date” ಎಂದು ಕೇಳಿ, ಅಧಿಕೃತ ದಿನಾಂಕವನ್ನು ದೃಢಪಡಿಸಿಕೊಳ್ಳಿ.  \n- **ಮೋನಿಟರಿಂಗ್ ಸಲಹೆ:** ತರಬೇತಿ ದಿನಾಂಕ ತಿಳಿದುಕೊಂಡ ನಂತರ, ಅದರ ಮುನ್ನ ಮತ್ತು ನಂತರದ ಕೆಲವು ದಿನಗಳಲ್ಲಿ ನಿಮ್ಮ ಕ್ಷೇತ್ರದಲ್ಲಿ ಬೋರರ್ ಲಕ್ಷಣಗಳ (ಹೋಲ್‌ಗಳು, ಕೀಟದ ಹಾನಿ) ಪರಿಶೀಲನೆ ನಡೆಸಿ, ಯಾವುದೇ ಹೆಚ್ಚುವರಿ ಕೀಟದ ಒತ್ತಡ ಕಂಡುಬಂದರೆ ದಾಖಲಿಸಿ.  \n- **ವಿಶೇಷಜ್ಞರ ನೆರವು ಪಡೆಯಬೇಕಾದ ಸಮಯ:** ತರಬೇತಿ ದಿನಾಂಕದ ಬಗ್ಗೆ ಸ್ಪಷ್ಟ ಉತ್ತರ ಸಿಗದಿದ್ದರೆ, ಅಥವಾ ನಿಮ್ಮ ಕ್ಷೇತ್ರದಲ್ಲಿ ಬೋರರ್ ಹಾನಿ ಹೆಚ್ಚಾಗಿ ಕಾಣಿಸಿದರೆ, ನೇರವಾಗಿ IISR ನ ನೊಡಲ್ ಅಧಿಕಾರಿ ಅಥವಾ ಸ್ಥಳೀಯ ಕೃಷಿ ವಿಸ್ತರಣಾ ಅಧಿಕಾರಿ ಜೊತೆ ಸಂಪರ್ಕಿಸಿ.",
+   "error": null
+  },
+  {
+   "id": "Q2",
+   "question": "Ratoon crop nalli chlorosis yaake jaasti aaguttade yenu madbeku heli.",
+   "note": "Must say iron.",
+   "status": 200,
+   "seconds": 7.37,
+   "pass": true,
+   "reasons": [],
+   "sources": [
+    {
+     "source": "nutrient_deficiency/01_iron_chlorosis_and_micronutrient_deficiency.md",
+     "section": "Nutrient Deficiency Management in Sugarcane (Iron Chlorosis and Micronutrients) — Summary",
+     "score": 0.8871,
+     "via": "groq"
+    },
+    {
+     "source": "nutrient_deficiency/01_iron_chlorosis_and_micronutrient_deficiency.md",
+     "section": "Nutrient Deficiency Management in Sugarcane (Iron Chlorosis and Micronutrients) — Important Recommendations",
+     "score": 0.8787,
+     "via": "groq"
+    },
+    {
+     "source": "nutrient_deficiency/01_iron_chlorosis_and_micronutrient_deficiency.md",
+     "section": "Nutrient Deficiency Management in Sugarcane (Iron Chlorosis and Micronutrients) — Main Information",
+     "score": 0.877,
+     "via": "sarvam"
+    }
+   ],
+   "fact_check": "checked",
+   "caveats": [],
+   "answer": "**Observation**  \n- “Iron chlorosis has been observed … it is most severe on calcareous soils and tends to intensify with successive ratoons.”  \n- “Six documented treatments for lime‑induced iron chlorosis” are listed, including foliar spray of 2 % FeSO₄ + 0.5 % MnSO₄ + 2 % urea (2‑3 times) and soil application of FeSO₄ at 25 kg / ha.  \n- Soil testing thresholds: Fe < 4.2–6.3 ppm (depending on soil type) indicate deficiency.  \n\n**Analysis**  \n- In ratoon crops the same soil is reused; lime (calcium carbonate) in calcareous soils raises pH, which reduces iron solubility and makes Fe less available to the plant.  \n- Repeated ratooning depletes the limited available iron further, so chlorosis becomes more pronounced.  \n- Drought periods can aggravate the problem by limiting Fe uptake, hence proactive iron nutrition is advised.  \n\n**Confidence**  \nHigh – the explanation and management options are directly stated in the provided agricultural knowledge.  \n\n**Recommendations**  \n\n*Immediate actions*  \n1. Conduct a soil test for Fe; if Fe < 4.2 ppm (or < 6.3 ppm on the relevant soil type) proceed with a combined iron correction.  \n2. Apply one of the documented combined strategies, e.g.:  \n   - Foliar spray of 2 % FeSO₄ + 0.5 % MnSO₄ + 2 % urea, repeat 2‑3 times at 7‑day intervals.  \n   - Simultaneously apply soil FeSO₄ at 25 kg / ha (or incorporate press‑mud 5 t / ha + iron pyrite 2 t / ha).  \n\n*Monitoring advice*  \n- Inspect younger leaves weekly for interveinal yellowing (early chlorosis sign).  \n- Re‑measure soil Fe after the first soil application (if feasible) to confirm increase toward the 4.2–6.3 ppm range.  \n- Keep a record of foliar spray dates and visual response; repeat foliar sprays if yellowing persists after 10 days.  \n\n*When to seek expert help*  \n- If chlorosis does not improve after two foliar applications and one soil FeSO₄ dose.  \n- If soil test shows Fe still below the critical threshold despite applications.  \n- If other nutrient deficiency symptoms (e.g., stunted growth, necrosis) appear, indicating possible multi‑micronutrient imbalance.",
+   "raw_answer": "**Observation**  \n- “Iron chlorosis has been observed … it is most severe on calcareous soils and tends to intensify with successive ratoons.”  \n- “Six documented treatments for lime‑induced iron chlorosis” are listed, including foliar spray of 2 % FeSO₄ + 0.5 % MnSO₄ + 2 % urea (2‑3 times) and soil application of FeSO₄ at 25 kg / ha.  \n- Soil testing thresholds: Fe < 4.2–6.3 ppm (depending on soil type) indicate deficiency.  \n\n**Analysis**  \n- In ratoon crops the same soil is reused; lime (calcium carbonate) in calcareous soils raises pH, which reduces iron solubility and makes Fe less available to the plant.  \n- Repeated ratooning depletes the limited available iron further, so chlorosis becomes more pronounced.  \n- Drought periods can aggravate the problem by limiting Fe uptake, hence proactive iron nutrition is advised.  \n\n**Confidence**  \nHigh – the explanation and management options are directly stated in the provided agricultural knowledge.  \n\n**Recommendations**  \n\n*Immediate actions*  \n1. Conduct a soil test for Fe; if Fe < 4.2 ppm (or < 6.3 ppm on the relevant soil type) proceed with a combined iron correction.  \n2. Apply one of the documented combined strategies, e.g.:  \n   - Foliar spray of 2 % FeSO₄ + 0.5 % MnSO₄ + 2 % urea, repeat 2‑3 times at 7‑day intervals.  \n   - Simultaneously apply soil FeSO₄ at 25 kg / ha (or incorporate press‑mud 5 t / ha + iron pyrite 2 t / ha).  \n\n*Monitoring advice*  \n- Inspect younger leaves weekly for interveinal yellowing (early chlorosis sign).  \n- Re‑measure soil Fe after the first soil application (if feasible) to confirm increase toward the 4.2–6.3 ppm range.  \n- Keep a record of foliar spray dates and visual response; repeat foliar sprays if yellowing persists after 10 days.  \n\n*When to seek expert help*  \n- If chlorosis does not improve after two foliar applications and one soil FeSO₄ dose.  \n- If soil test shows Fe still below the critical threshold despite applications.  \n- If other nutrient deficiency symptoms (e.g., stunted growth, necrosis) appear, indicating possible multi‑micronutrient imbalance.",
+   "error": null
+  },
+  {
+   "id": "Q3",
+   "question": "Prathi irrigation ge eshtu cm neeru hakbeku.",
+   "note": "Must say 7 to 8 cm.",
+   "status": 200,
+   "seconds": 5.9,
+   "pass": true,
+   "reasons": [],
+   "sources": [
+    {
+     "source": "irrigation/01_irrigation_water_management.md",
+     "section": "Sugarcane Irrigation Water Management — Main Information",
+     "score": 0.9248,
+     "via": "groq"
+    },
+    {
+     "source": "sugarcane/02_land_preparation.md",
+     "section": "Land Preparation for Sugarcane Cultivation — Key Facts",
+     "score": 0.9029,
+     "via": "groq"
+    },
+    {
+     "source": "irrigation/01_irrigation_water_management.md",
+     "section": "Sugarcane Irrigation Water Management — Important Recommendations",
+     "score": 0.8981,
+     "via": "groq"
+    }
+   ],
+   "fact_check": "checked",
+   "caveats": [
+    "unsupported: After irrigation, the soil‑moisture sensor should rise above the current 32.3 %",
+    "unsupported: Soil‑moisture readings remain low despite applying 7–8 cm water"
+   ],
+   "answer": "Please double-check before acting: \"After irrigation, the soil‑moisture sensor should rise above the current 32.3 %\" (not in Gage's sources); \"Soil‑moisture readings remain low despite applying 7–8 cm water\" (not in Gage's sources).\n\n**Observation**  \nAgricultural Knowledge states that an irrigation water depth of **7–8 cm per application** is recommended for sugarcane.\n\n**Analysis**  \nTherefore, each scheduled irrigation should deliver water to the field to achieve a depth of roughly 7 to 8 cm.\n\n**Confidence**  \nHigh – the value is directly given in the reference text.\n\n**Recommendations**  \n- **Immediate actions:** Apply water so that the net depth on the field is between **7 cm and 8 cm** for each irrigation event.  \n- **Monitoring advice:** After irrigation, check the soil‑moisture sensor; it should rise above the current 32.3 % and stay within the range that supports normal growth (no specific numeric range given). Re‑measure before the next scheduled irrigation to confirm the soil is not drying out excessively.  \n- **When to seek expert help:** If soil‑moisture readings remain low despite applying 7–8 cm water, or if you notice signs of water stress (wilting, yellowing) or water‑logging, contact a local agronomist or extension officer for a field‑specific assessment.",
+   "raw_answer": "**Observation**  \nAgricultural Knowledge states that an irrigation water depth of **7–8 cm per application** is recommended for sugarcane.\n\n**Analysis**  \nTherefore, each scheduled irrigation should deliver water to the field to achieve a depth of roughly 7 to 8 cm.\n\n**Confidence**  \nHigh – the value is directly given in the reference text.\n\n**Recommendations**  \n- **Immediate actions:** Apply water so that the net depth on the field is between **7 cm and 8 cm** for each irrigation event.  \n- **Monitoring advice:** After irrigation, check the soil‑moisture sensor; it should rise above the current 32.3 % and stay within the range that supports normal growth (no specific numeric range given). Re‑measure before the next scheduled irrigation to confirm the soil is not drying out excessively.  \n- **When to seek expert help:** If soil‑moisture readings remain low despite applying 7–8 cm water, or if you notice signs of water stress (wilting, yellowing) or water‑logging, contact a local agronomist or extension officer for a field‑specific assessment.",
+   "error": null
+  },
+  {
+   "id": "Q4",
+   "question": "ಪ್ರತಿ irrigation ಗೆ ಎಷ್ಟು cm water ಹಾಕ್ಬೇಕು?",
+   "note": "Irrigation document.",
+   "status": 200,
+   "seconds": 5.51,
+   "pass": true,
+   "reasons": [],
+   "sources": [
+    {
+     "source": "irrigation/01_irrigation_water_management.md",
+     "section": "Sugarcane Irrigation Water Management — Summary",
+     "score": 0.9162,
+     "via": "groq"
+    },
+    {
+     "source": "irrigation/01_irrigation_water_management.md",
+     "section": "Sugarcane Irrigation Water Management — Key Facts",
+     "score": 0.9122,
+     "via": "groq"
+    },
+    {
+     "source": "irrigation/01_irrigation_water_management.md",
+     "section": "Sugarcane Irrigation Water Management — Main Information",
+     "score": 0.9077,
+     "via": "groq"
+    }
+   ],
+   "fact_check": "checked",
+   "caveats": [
+    "unsupported: After irrigation, observe the soil‑moisture sensor to confirm that the reading rises above the current 32.3 % level",
+    "unsupported: Note any visual signs of water stress (wilting, leaf rolling) over the next 3–5 days",
+    "unsupported: If the node remains offline for more than 24 hours, contact the technical support team to restore sensor communication",
+    "unsupported: If soil‑moisture does not increase after applying 7–8 cm of water, or if the crop shows persistent stress, request an agronomist visit"
+   ],
+   "answer": "ದಯವಿಟ್ಟು ಮುಂದುವರಿಯುವ ಮೊದಲು ಪರಿಶೀಲಿಸಿ: \"After irrigation, observe the soil‑moisture sensor to confirm that the reading rises above the current 32.3 % level\" (Gage ಮಾಹಿತಿ ದಾಖಲೆಗಳಲ್ಲಿ ಇಲ್ಲ); \"Note any visual signs of water stress (wilting, leaf rolling) over the next 3–5 days\" (Gage ಮಾಹಿತಿ ದಾಖಲೆಗಳಲ್ಲಿ ಇಲ್ಲ); \"If the node remains offline for more than 24 hours, contact the technical support team to restore sensor communication\" (Gage ಮಾಹಿತಿ ದಾಖಲೆಗಳಲ್ಲಿ ಇಲ್ಲ); +1.\n\n**Observation**  \n- Active alert: **[critical] Node offline (no contact for 49542 min)**.  \n- Agricultural knowledge states: *“Recommended irrigation depth per application: 7–8 cm.”*\n\n**Analysis**  \nThe guideline indicates that each irrigation event for sugarcane should apply water to a depth of 7 cm to 8 cm in the root zone, regardless of the current soil‑moisture reading.\n\n**Confidence**  \nHigh – the irrigation depth is explicitly given in the reference text.\n\n**Recommendations**  \n\n- **Immediate actions**  \n  1. Apply water to achieve a depth of **7–8 cm** for the upcoming irrigation.  \n  2. Record the amount applied (e.g., volume per hectare) for future reference.  \n\n- **Monitoring advice**  \n  1. After irrigation, observe the soil‑moisture sensor (once it is back online) to confirm that the reading rises above the current **32.3 %** level.  \n  2. Note any visual signs of water stress (wilting, leaf rolling) over the next 3–5 days.  \n\n- **When to seek expert help**  \n  1. If the node remains offline for more than 24 hours, contact the technical support team to restore sensor communication.  \n  2. If soil‑moisture does not increase after applying 7–8 cm of water, or if the crop shows persistent stress, request an agronomist visit.",
+   "raw_answer": "**Observation**  \n- Active alert: **[critical] Node offline (no contact for 49542 min)**.  \n- Agricultural knowledge states: *“Recommended irrigation depth per application: 7–8 cm.”*\n\n**Analysis**  \nThe guideline indicates that each irrigation event for sugarcane should apply water to a depth of 7 cm to 8 cm in the root zone, regardless of the current soil‑moisture reading.\n\n**Confidence**  \nHigh – the irrigation depth is explicitly given in the reference text.\n\n**Recommendations**  \n\n- **Immediate actions**  \n  1. Apply water to achieve a depth of **7–8 cm** for the upcoming irrigation.  \n  2. Record the amount applied (e.g., volume per hectare) for future reference.  \n\n- **Monitoring advice**  \n  1. After irrigation, observe the soil‑moisture sensor (once it is back online) to confirm that the reading rises above the current **32.3 %** level.  \n  2. Note any visual signs of water stress (wilting, leaf rolling) over the next 3–5 days.  \n\n- **When to seek expert help**  \n  1. If the node remains offline for more than 24 hours, contact the technical support team to restore sensor communication.  \n  2. If soil‑moisture does not increase after applying 7–8 cm of water, or if the crop shows persistent stress, request an agronomist visit.",
+   "error": null
+  },
+  {
+   "id": "Q5",
+   "question": "VKSA ಅಂತ ಒಂದು programme ಇದೆ ಅಂತ ಕೇಳಿದ್ದೀನಿ, ನಮ್ಮ ಕರ್ನಾಟಕದಲ್ಲಿ ಬಂತಾ?",
+   "note": "Must say 8 June 2025 and Bengaluru.",
+   "status": 200,
+   "seconds": 4.37,
+   "pass": true,
+   "reasons": [],
+   "sources": [
+    {
+     "source": "government_schemes/02_viksit_krishi_sankalp_abhiyan_vksa_2025.md",
+     "section": "Viksit Krishi Sankalp Abhiyan (VKSA-2025): Current National Farmer-Scientist Outreach Campaign — Summary",
+     "score": 0.8838,
+     "via": "groq"
+    },
+    {
+     "source": "government_schemes/02_viksit_krishi_sankalp_abhiyan_vksa_2025.md",
+     "section": "Viksit Krishi Sankalp Abhiyan (VKSA-2025): Current National Farmer-Scientist Outreach Campaign — Key Facts",
+     "score": 0.8812,
+     "via": "groq"
+    },
+    {
+     "source": "government_schemes/02_viksit_krishi_sankalp_abhiyan_vksa_2025.md",
+     "section": "Viksit Krishi Sankalp Abhiyan (VKSA-2025): Current National Farmer-Scientist Outreach Campaign — Important Recommendations",
+     "score": 0.8714,
+     "via": "groq"
+    }
+   ],
+   "fact_check": "checked",
+   "caveats": [],
+   "answer": "**Observation**  \n- The knowledge text states that Viksit Krishi Sankalp Abhiyan (VKSA) was an explicit part of the campaign in Karnataka, with the state launch held on **8 June 2025** at ICAR‑IIHR, Bengaluru.\n\n**Analysis**  \n- This indicates that the VKSA programme has indeed been introduced and operated in Karnataka.\n\n**Confidence**  \n- **High** – the information is directly provided in the reference text.\n\n**Recommendations**  \n- **Immediate actions**:  \n  1. Contact your nearest Krishi Vigyan Kendra (KVK) to learn about any upcoming VKSA workshops or farmer‑scientist interaction sessions.  \n  2. Register for any VKSA‑related events announced by the Karnataka Department of Agriculture.\n\n- **Monitoring advice**:  \n  1. Keep an eye on announcements from the Karnataka State Agriculture Department and local KVKs for future VKSA windows (the programme runs twice a year).  \n  2. Follow local agricultural bulletins or SMS alerts that often share VKSA schedules and topics.\n\n- **When to seek expert help**:  \n  1. If you need personalized advice on soil health, crop‑specific practices, or input recommendations that are discussed during VKSA sessions, schedule a visit to your KVK agronomist or extension officer.",
+   "raw_answer": "**Observation**  \n- The knowledge text states that Viksit Krishi Sankalp Abhiyan (VKSA) was an explicit part of the campaign in Karnataka, with the state launch held on **8 June 2025** at ICAR‑IIHR, Bengaluru.\n\n**Analysis**  \n- This indicates that the VKSA programme has indeed been introduced and operated in Karnataka.\n\n**Confidence**  \n- **High** – the information is directly provided in the reference text.\n\n**Recommendations**  \n- **Immediate actions**:  \n  1. Contact your nearest Krishi Vigyan Kendra (KVK) to learn about any upcoming VKSA workshops or farmer‑scientist interaction sessions.  \n  2. Register for any VKSA‑related events announced by the Karnataka Department of Agriculture.\n\n- **Monitoring advice**:  \n  1. Keep an eye on announcements from the Karnataka State Agriculture Department and local KVKs for future VKSA windows (the programme runs twice a year).  \n  2. Follow local agricultural bulletins or SMS alerts that often share VKSA schedules and topics.\n\n- **When to seek expert help**:  \n  1. If you need personalized advice on soil health, crop‑specific practices, or input recommendations that are discussed during VKSA sessions, schedule a visit to your KVK agronomist or extension officer.",
+   "error": null
+  },
+  {
+   "id": "Q6",
+   "question": "ನಾನು ಯಾವ ಕಬ್ಬಿನ ತಳಿ ಹಾಕೊಬೇಕು ಅಂತ confuse ಆಗಿದೀನಿ, ಸರಿಯಾದ variety ಹೇಗೆ ಆರಿಸ್ಕೊಳಿ ಅಂತ ಹೇಳಿ.",
+   "note": "Must not mention crossbreeding or germplasm.",
+   "status": 200,
+   "seconds": 5.93,
+   "pass": true,
+   "reasons": [],
+   "sources": [
+    {
+     "source": "sugarcane/04_planting_methods_and_nursery_techniques.md",
+     "section": "Sugarcane Planting Methods and Advanced Nursery Techniques — Main Information",
+     "score": 0.8683,
+     "via": "groq"
+    },
+    {
+     "source": "sugarcane/03_seed_selection_and_seed_treatment.md",
+     "section": "Sugarcane Seed Selection, Seed Rate, and Seed Treatment — Summary",
+     "score": 0.8644,
+     "via": "groq"
+    },
+    {
+     "source": "sugarcane/01_sugarcane_cultivation_overview_india_and_karnataka.md",
+     "section": "Sugarcane Cultivation in India: Agro-Climatic Overview (with Karnataka Focus) — Main Information",
+     "score": 0.8637,
+     "via": "groq"
+    }
+   ],
+   "fact_check": "checked",
+   "caveats": [
+    "unsupported: The reference text does not contain any information about specific sugarcane varieties or criteria for selecting the appropriate variety for Karnataka",
+    "unsupported: I cannot identify a particular variety or give a selection framework based on that text",
+    "unsupported: Contact your local agricultural science centre (KVK) or the organic agriculture department for a list of superior sugarcane varieties available in Karnataka",
+    "unsupported: Gather information about your soil type (e.g., pH, water holding capacity) and climate (average temperature 28‑32 °C, humidity 70‑85 %) to use in variety selection",
+    "unsupported: Observe the height, number of branches, and disease symptoms in the early growth stage of the chosen variety",
+    "unsupported: Regularly measure soil moisture and nutrient levels and adjust them according to the variety’s needs",
+    "unsupported: Seek expert help if doubts remain after local variety recommendations",
+    "unsupported: Seek expert guidance immediately if any disease, pest, or production problem appears"
+   ],
+   "answer": "ದಯವಿಟ್ಟು ಮುಂದುವರಿಯುವ ಮೊದಲು ಪರಿಶೀಲಿಸಿ: \"The reference text does not contain any information about specific sugarcane varieties or criteria for selecting the appropriate variety for Karnataka\" (Gage ಮಾಹಿತಿ ದಾಖಲೆಗಳಲ್ಲಿ ಇಲ್ಲ); \"I cannot identify a particular variety or give a selection framework based on that text\" (Gage ಮಾಹಿತಿ ದಾಖಲೆಗಳಲ್ಲಿ ಇಲ್ಲ); \"Contact your local agricultural science centre (KVK) or the organic agriculture department for a list of superior sugarcane varieties available in Karnataka\" (Gage ಮಾಹಿತಿ ದಾಖಲೆಗಳಲ್ಲಿ ಇಲ್ಲ); +5.\n\n**Observation**  \n- The provided agricultural knowledge text does not contain any information about specific sugarcane varieties or criteria for selecting the appropriate variety for Karnataka.\n\n**Analysis**  \n- Because the reference material lacks details on varieties, I cannot identify a particular variety or give a selection framework based on that text.\n\n**Confidence**  \n- Low – the required information on varieties is missing from the reference.\n\n**Recommendations**  \n- **Immediate actions**:  \n  1. ಸಂಪರ್ಕಿಸಿ ನಿಮ್ಮ ಸ್ಥಳೀಯ ಕೃಷಿ ವಿಜ್ಞಾನ ಕೇಂದ್ರ (KVK) ಅಥವಾ ಜೈವಿಕ ಕೃಷಿ ಇಲಾಖೆಯ ಅಧಿಕಾರಿ; ಅವರು ಕರ್ನಾಟಕದಲ್ಲಿ ಲಭ್ಯವಿರುವ ಶ್ರೇಷ್ಠ ಕಬ್ಬಿನ ತಳಿಗಳ ಪಟ್ಟಿಯನ್ನು ನೀಡಬಹುದು.  \n  2. ನಿಮ್ಮ ಮಣ್ಣಿನ ಪ್ರಕಾರ (ಉದಾ: ಮಣ್ಣಿನ pH, ಜಲಧಾರಿತ್ವ) ಮತ್ತು ಹವಾಮಾನ (ಸರಾಸರಿ ತಾಪಮಾನ 28‑32 °C, ಆರ್ದ್ರತೆ 70‑85 %) ಬಗ್ಗೆ ಮಾಹಿತಿ ಸಂಗ್ರಹಿಸಿ, ಇದನ್ನು ತಳಿ ಆಯ್ಕೆಗೆ ಬಳಸಿಕೊಳ್ಳಿ.  \n\n- **Monitoring advice**:  \n  1. ಆಯ್ದ ತಳಿಯ ಬೆಳವಣಿಗೆಯ ಆರಂಭಿಕ ಹಂತದಲ್ಲಿ ಗಿಡಗಳ ಎತ್ತರ, ಕೊಂಬೆಗಳ ಸಂಖ್ಯೆ ಮತ್ತು ರೋಗ ಲಕ್ಷಣಗಳನ್ನು ಗಮನಿಸಿ.  \n  2. ಮಣ್ಣಿನ ತೇವಾಂಶ ಮತ್ತು ಪೋಷಕಾಂಶ ಮಟ್ಟವನ್ನು ನಿಯಮಿತವಾಗಿ ಮಾಪಿಸಿ, ತಳಿಯ ಅವಶ್ಯಕತೆಗಳಿಗೆ ಅನುಗುಣವಾಗಿ ಸರಿಪಡಿಸಿ.  \n\n- **When to seek expert help**:  \n  1. ಸ್ಥಳೀಯ ತಳಿ ಶಿಫಾರಸುಗಳ ನಂತರವೂ ಅನುಮಾನವಿದ್ದರೆ, ಕ್ಷೇತ್ರದಲ್ಲಿ ನೇರವಾಗಿ ತಜ್ಞ ಕೃಷಿ ಅಧಿಕಾರಿ ಅಥವಾ ಖಾಸಗಿ ಸಲಹೆಗಾರರನ್ನು ಭೇಟಿ ಮಾಡಿ.  \n  2. ಯಾವುದೇ ರೋಗ, ಕೀಟ ಅಥವಾ ಉತ್ಪಾದನಾ ಸಮಸ್ಯೆ ಕಾಣಿಸಿದಾಗ ತಕ್ಷಣ ತಜ್ಞರ ಮಾರ್ಗದರ್ಶನ ಪಡೆಯಿರಿ.",
+   "raw_answer": "**Observation**  \n- The provided agricultural knowledge text does not contain any information about specific sugarcane varieties or criteria for selecting the appropriate variety for Karnataka.\n\n**Analysis**  \n- Because the reference material lacks details on varieties, I cannot identify a particular variety or give a selection framework based on that text.\n\n**Confidence**  \n- Low – the required information on varieties is missing from the reference.\n\n**Recommendations**  \n- **Immediate actions**:  \n  1. ಸಂಪರ್ಕಿಸಿ ನಿಮ್ಮ ಸ್ಥಳೀಯ ಕೃಷಿ ವಿಜ್ಞಾನ ಕೇಂದ್ರ (KVK) ಅಥವಾ ಜೈವಿಕ ಕೃಷಿ ಇಲಾಖೆಯ ಅಧಿಕಾರಿ; ಅವರು ಕರ್ನಾಟಕದಲ್ಲಿ ಲಭ್ಯವಿರುವ ಶ್ರೇಷ್ಠ ಕಬ್ಬಿನ ತಳಿಗಳ ಪಟ್ಟಿಯನ್ನು ನೀಡಬಹುದು.  \n  2. ನಿಮ್ಮ ಮಣ್ಣಿನ ಪ್ರಕಾರ (ಉದಾ: ಮಣ್ಣಿನ pH, ಜಲಧಾರಿತ್ವ) ಮತ್ತು ಹವಾಮಾನ (ಸರಾಸರಿ ತಾಪಮಾನ 28‑32 °C, ಆರ್ದ್ರತೆ 70‑85 %) ಬಗ್ಗೆ ಮಾಹಿತಿ ಸಂಗ್ರಹಿಸಿ, ಇದನ್ನು ತಳಿ ಆಯ್ಕೆಗೆ ಬಳಸಿಕೊಳ್ಳಿ.  \n\n- **Monitoring advice**:  \n  1. ಆಯ್ದ ತಳಿಯ ಬೆಳವಣಿಗೆಯ ಆರಂಭಿಕ ಹಂತದಲ್ಲಿ ಗಿಡಗಳ ಎತ್ತರ, ಕೊಂಬೆಗಳ ಸಂಖ್ಯೆ ಮತ್ತು ರೋಗ ಲಕ್ಷಣಗಳನ್ನು ಗಮನಿಸಿ.  \n  2. ಮಣ್ಣಿನ ತೇವಾಂಶ ಮತ್ತು ಪೋಷಕಾಂಶ ಮಟ್ಟವನ್ನು ನಿಯಮಿತವಾಗಿ ಮಾಪಿಸಿ, ತಳಿಯ ಅವಶ್ಯಕತೆಗಳಿಗೆ ಅನುಗುಣವಾಗಿ ಸರಿಪಡಿಸಿ.  \n\n- **When to seek expert help**:  \n  1. ಸ್ಥಳೀಯ ತಳಿ ಶಿಫಾರಸುಗಳ ನಂತರವೂ ಅನುಮಾನವಿದ್ದರೆ, ಕ್ಷೇತ್ರದಲ್ಲಿ ನೇರವಾಗಿ ತಜ್ಞ ಕೃಷಿ ಅಧಿಕಾರಿ ಅಥವಾ ಖಾಸಗಿ ಸಲಹೆಗಾರರನ್ನು ಭೇಟಿ ಮಾಡಿ.  \n  2. ಯಾವುದೇ ರೋಗ, ಕೀಟ ಅಥವಾ ಉತ್ಪಾದನಾ ಸಮಸ್ಯೆ ಕಾಣಿಸಿದಾಗ ತಕ್ಷಣ ತಜ್ಞರ ಮಾರ್ಗದರ್ಶನ ಪಡೆಯಿರಿ.",
+   "error": null
+  },
+  {
+   "id": "Q7",
+   "question": "Sir every time watering how much depth I give, any standard number?",
+   "note": "Irrigation document.",
+   "status": 200,
+   "seconds": 5.66,
+   "pass": true,
+   "reasons": [],
+   "sources": [
+    {
+     "source": "irrigation/01_irrigation_water_management.md",
+     "section": "Sugarcane Irrigation Water Management — Main Information",
+     "score": 0.9266,
+     "via": "groq"
+    },
+    {
+     "source": "sugarcane/02_land_preparation.md",
+     "section": "Land Preparation for Sugarcane Cultivation — Key Facts",
+     "score": 0.9053,
+     "via": "groq"
+    },
+    {
+     "source": "irrigation/01_irrigation_water_management.md",
+     "section": "Sugarcane Irrigation Water Management — Key Facts",
+     "score": 0.901,
+     "via": "groq"
+    }
+   ],
+   "fact_check": "checked",
+   "caveats": [],
+   "answer": "**Observation**  \nThe agricultural knowledge states: “Recommended irrigation depth per application: 7–8 cm.”\n\n**Analysis**  \nApplying water to a depth of 7–8 cm each time will meet the standard irrigation amount recommended for sugarcane.\n\n**Confidence**  \nHigh – the value is directly given in the reference text.\n\n**Recommendations**  \n- **Immediate actions:** Apply water so that the soil receives a depth of **7–8 cm** per irrigation event.  \n- **Monitoring advice:** After irrigation, check the soil‑moisture sensor to confirm the reading rises above the pre‑irrigation level; also look for any visual signs of water stress (wilting, leaf rolling).  \n- **When to seek expert help:** If soil‑moisture does not increase after applying 7–8 cm, or if the crop shows persistent stress despite proper watering, contact a field agronomist for further diagnosis.",
+   "raw_answer": "**Observation**  \nThe agricultural knowledge states: “Recommended irrigation depth per application: 7–8 cm.”\n\n**Analysis**  \nApplying water to a depth of 7–8 cm each time will meet the standard irrigation amount recommended for sugarcane.\n\n**Confidence**  \nHigh – the value is directly given in the reference text.\n\n**Recommendations**  \n- **Immediate actions:** Apply water so that the soil receives a depth of **7–8 cm** per irrigation event.  \n- **Monitoring advice:** After irrigation, check the soil‑moisture sensor to confirm the reading rises above the pre‑irrigation level; also look for any visual signs of water stress (wilting, leaf rolling).  \n- **When to seek expert help:** If soil‑moisture does not increase after applying 7–8 cm, or if the crop shows persistent stress despite proper watering, contact a field agronomist for further diagnosis.",
+   "error": null
+  },
+  {
+   "id": "Q8",
+   "question": "What is the FRP for sugarcane this season and how soon must the mill pay?",
+   "note": "Must say Rs 355 per quintal for 2025-26 and 14 days.",
+   "status": 200,
+   "seconds": 4.42,
+   "pass": false,
+   "reasons": [
+    "missing one of ['355']"
+   ],
+   "sources": [
+    {
+     "source": "market/01_sugarcane_fair_and_remunerative_price_frp.md",
+     "section": "Sugarcane Market Price: Fair and Remunerative Price (FRP) System — Important Recommendations",
+     "score": 0.9058,
+     "via": "original"
+    },
+    {
+     "source": "market/01_sugarcane_fair_and_remunerative_price_frp.md",
+     "section": "Sugarcane Market Price: Fair and Remunerative Price (FRP) System — Main Information",
+     "score": 0.8992,
+     "via": "original"
+    },
+    {
+     "source": "market/01_sugarcane_fair_and_remunerative_price_frp.md",
+     "section": "Sugarcane Market Price: Fair and Remunerative Price (FRP) System — Summary",
+     "score": 0.8921,
+     "via": "original"
+    }
+   ],
+   "fact_check": "checked",
+   "caveats": [],
+   "answer": "**Observation**  \n- The knowledge text states that the Fair and Remunerative Price (FRP) is announced annually by the Cabinet Committee on Economic Affairs (CCEA) before each crushing season (October – September cycle).  \n- It also states that payment to farmers is legally due **within 14 days of delivery**.  \n- The text does **not** provide the numeric FRP value for the current season.\n\n**Analysis**  \n- Since the FRP amount is set each year and published before the start of the crushing season, the exact figure for this season must be obtained from the latest official announcement (e.g., CCEA press release, state agriculture department circular, or mill notice).  \n- The 14‑day payment window is a statutory requirement; any delay beyond this gives the farmer a legal basis to seek interest and escalation.\n\n**Confidence**  \n- **Medium** – payment timeline is explicitly stated; FRP amount is missing from the reference, so we can only infer that it must be looked up.\n\n**Recommendations**  \n- **Immediate actions**  \n  1. Check the most recent CCEA or state agriculture department notification for the exact FRP figure for the current sugarcane season.  \n  2. Keep a copy of the FRP notice for reference in any payment disputes.  \n\n- **Monitoring advice**  \n  1. Record the date of each cane delivery and the date you receive payment.  \n  2. Compare the payment date against the 14‑day deadline; note any delays.  \n\n- **When to seek expert help**  \n  1. If the mill does not pay within 14 days, contact the sugar mill’s grievance officer or the state cane commissioner to claim statutory interest.  \n  2. If you cannot locate the official FRP announcement, consult the local agriculture extension office or a farmer‑producer organization for the correct figure.",
+   "raw_answer": "**Observation**  \n- The knowledge text states that the Fair and Remunerative Price (FRP) is announced annually by the Cabinet Committee on Economic Affairs (CCEA) before each crushing season (October – September cycle).  \n- It also states that payment to farmers is legally due **within 14 days of delivery**.  \n- The text does **not** provide the numeric FRP value for the current season.\n\n**Analysis**  \n- Since the FRP amount is set each year and published before the start of the crushing season, the exact figure for this season must be obtained from the latest official announcement (e.g., CCEA press release, state agriculture department circular, or mill notice).  \n- The 14‑day payment window is a statutory requirement; any delay beyond this gives the farmer a legal basis to seek interest and escalation.\n\n**Confidence**  \n- **Medium** – payment timeline is explicitly stated; FRP amount is missing from the reference, so we can only infer that it must be looked up.\n\n**Recommendations**  \n- **Immediate actions**  \n  1. Check the most recent CCEA or state agriculture department notification for the exact FRP figure for the current sugarcane season.  \n  2. Keep a copy of the FRP notice for reference in any payment disputes.  \n\n- **Monitoring advice**  \n  1. Record the date of each cane delivery and the date you receive payment.  \n  2. Compare the payment date against the 14‑day deadline; note any delays.  \n\n- **When to seek expert help**  \n  1. If the mill does not pay within 14 days, contact the sugar mill’s grievance officer or the state cane commissioner to claim statutory interest.  \n  2. If you cannot locate the official FRP announcement, consult the local agriculture extension office or a farmer‑producer organization for the correct figure.",
+   "error": null
+  },
+  {
+   "id": "Q9",
+   "question": "Why are the leaves of my cane turning yellow?",
+   "note": "Answered, not refused.",
+   "status": 200,
+   "seconds": 8.23,
+   "pass": true,
+   "reasons": [],
+   "sources": [
+    {
+     "source": "nutrient_deficiency/01_iron_chlorosis_and_micronutrient_deficiency.md",
+     "section": "Nutrient Deficiency Management in Sugarcane (Iron Chlorosis and Micronutrients) — Summary",
+     "score": 0.896,
+     "via": "groq"
+    },
+    {
+     "source": "nutrient_deficiency/01_iron_chlorosis_and_micronutrient_deficiency.md",
+     "section": "Nutrient Deficiency Management in Sugarcane (Iron Chlorosis and Micronutrients) — Important Recommendations",
+     "score": 0.8933,
+     "via": "groq"
+    },
+    {
+     "source": "diseases/01_disease_management.md",
+     "section": "Sugarcane Disease Management — Summary",
+     "score": 0.8903,
+     "via": "groq"
+    }
+   ],
+   "fact_check": "checked",
+   "caveats": [
+    "unsupported: If the field is on calcareous soil, consider a soil‑band application of iron sulfate (FeSO₄) at the rate suggested by a local extension officer, to complement the foliar spray",
+    "unsupported: Ensure irrigation maintains adequate soil moisture; avoid prolonged dry periods that exacerbate iron uptake problems",
+    "unsupported: Observe the treated leaves over the next 7‑10 days for improvement (green‑up of younger leaves)",
+    "unsupported: Record any changes in leaf colour, especially the disappearance of inter‑veinal yellowing",
+    "unsupported: Arrange a soil test for Fe (and other micronutrients) within the next two weeks to verify deficiency levels and adjust future applications",
+    "unsupported: If yellowing persists or spreads despite the foliar treatment, seek expert help",
+    "unsupported: If additional symptoms appear (e.g., stunted growth, leaf necrosis, pest damage), seek expert help",
+    "unsupported: If the node‑offline issue continues, preventing reliable sensor data, contact the technical support team to restore connectivity"
+   ],
+   "answer": "Please double-check before acting: \"If the field is on calcareous soil, consider a soil‑band application of iron sulfate (FeSO₄) at the rate suggested by a local extension officer, to complement the foliar spray\" (not in Gage's sources); \"Ensure irrigation maintains adequate soil moisture; avoid prolonged dry periods that exacerbate iron uptake problems\" (not in Gage's sources); \"Observe the treated leaves over the next 7‑10 days for improvement (green‑up of younger leaves)\" (not in Gage's sources); +5.\n\n**Observation**  \n- Active alert: **[critical] Node offline (no contact for 49542 min)**.  \n- Latest sensor readings (2026‑09‑23 04:25 UTC): Temperature 27.9 °C, Humidity 72.4 %, Soil moisture 32.3 %.  \n- Farmer reports: leaves of the sugarcane are turning yellow.  \n\n**Analysis**  \n- Yellowing of cane leaves, especially when it appears as inter‑veinal yellowing on younger leaves, is a classic sign of iron chlorosis, which is common on calcareous or high‑pH soils in Karnataka.  \n- The node‑offline alert means we have no recent sensor data beyond the single reading above, so we cannot confirm current moisture trends or possible drought stress.  \n- Without a recent soil‑test for Fe (critical threshold 4.2–6.3 ppm) we cannot be certain the deficiency is iron, but the symptom description aligns with the most frequent micronutrient issue in this region.  \n\n**Confidence** – **Medium** (symptom matches iron chlorosis, but lack of soil test and full sensor history limits certainty).  \n\n**Recommendations**  \n\n*Immediate actions*  \n1. Apply a combined foliar spray of FeSO₄ + ZnSO₄ + urea as recommended for drought‑related iron deficiency in sugarcane.  \n2. If the field is on calcareous soil, consider a soil‑band application of iron sulfate (FeSO₄) at the rate suggested by a local extension officer, to complement the foliar spray.  \n3. Ensure irrigation maintains adequate soil moisture; avoid prolonged dry periods that exacerbate iron uptake problems.  \n\n*Monitoring advice*  \n- Observe the treated leaves over the next 7‑10 days for improvement (green‑up of younger leaves).  \n- Record any changes in leaf colour, especially the disappearance of inter‑veinal yellowing.  \n- Arrange a soil test for Fe (and other micronutrients) within the next two weeks to verify deficiency levels and adjust future applications.  \n\n*When to seek expert help*  \n- If yellowing persists or spreads despite the foliar treatment.  \n- If additional symptoms appear (e.g., stunted growth, leaf necrosis, pest damage).  \n- If the node‑offline issue continues, preventing reliable sensor data, contact the technical support team to restore connectivity.",
+   "raw_answer": "**Observation**  \n- Active alert: **[critical] Node offline (no contact for 49542 min)**.  \n- Latest sensor readings (2026‑09‑23 04:25 UTC): Temperature 27.9 °C, Humidity 72.4 %, Soil moisture 32.3 %.  \n- Farmer reports: leaves of the sugarcane are turning yellow.  \n\n**Analysis**  \n- Yellowing of cane leaves, especially when it appears as inter‑veinal yellowing on younger leaves, is a classic sign of iron chlorosis, which is common on calcareous or high‑pH soils in Karnataka.  \n- The node‑offline alert means we have no recent sensor data beyond the single reading above, so we cannot confirm current moisture trends or possible drought stress.  \n- Without a recent soil‑test for Fe (critical threshold 4.2–6.3 ppm) we cannot be certain the deficiency is iron, but the symptom description aligns with the most frequent micronutrient issue in this region.  \n\n**Confidence** – **Medium** (symptom matches iron chlorosis, but lack of soil test and full sensor history limits certainty).  \n\n**Recommendations**  \n\n*Immediate actions*  \n1. Apply a combined foliar spray of FeSO₄ + ZnSO₄ + urea as recommended for drought‑related iron deficiency in sugarcane.  \n2. If the field is on calcareous soil, consider a soil‑band application of iron sulfate (FeSO₄) at the rate suggested by a local extension officer, to complement the foliar spray.  \n3. Ensure irrigation maintains adequate soil moisture; avoid prolonged dry periods that exacerbate iron uptake problems.  \n\n*Monitoring advice*  \n- Observe the treated leaves over the next 7‑10 days for improvement (green‑up of younger leaves).  \n- Record any changes in leaf colour, especially the disappearance of inter‑veinal yellowing.  \n- Arrange a soil test for Fe (and other micronutrients) within the next two weeks to verify deficiency levels and adjust future applications.  \n\n*When to seek expert help*  \n- If yellowing persists or spreads despite the foliar treatment.  \n- If additional symptoms appear (e.g., stunted growth, leaf necrosis, pest damage).  \n- If the node‑offline issue continues, preventing reliable sensor data, contact the technical support team to restore connectivity.",
+   "error": null
+  },
+  {
+   "id": "Q10",
+   "question": "Is my soil too dry right now?",
+   "note": "Uses the farm readings; says what is missing if data is thin.",
+   "status": 200,
+   "seconds": 6.42,
+   "pass": true,
+   "reasons": [],
+   "sources": [
+    {
+     "source": "sugarcane/01_sugarcane_cultivation_overview_india_and_karnataka.md",
+     "section": "Sugarcane Cultivation in India: Agro-Climatic Overview (with Karnataka Focus) — Main Information",
+     "score": 0.8792,
+     "via": "groq"
+    },
+    {
+     "source": "nutrient_deficiency/01_iron_chlorosis_and_micronutrient_deficiency.md",
+     "section": "Nutrient Deficiency Management in Sugarcane (Iron Chlorosis and Micronutrients) — Main Information",
+     "score": 0.8765,
+     "via": "groq"
+    },
+    {
+     "source": "sugarcane/02_land_preparation.md",
+     "section": "Land Preparation for Sugarcane Cultivation — Key Facts",
+     "score": 0.8759,
+     "via": "groq"
+    }
+   ],
+   "fact_check": "checked",
+   "caveats": [],
+   "answer": "**Observation**  \n- Active alert: **[critical] Node offline (no contact for 49542 min)**.  \n- Latest sensor reading (2026‑09‑23 04:25 UTC): Soil moisture **32.3 %**.  \n\n**Analysis**  \n- The node‑offline alert means the sensor may not be reliably communicating; the 32.3 % value could be outdated or inaccurate.  \n- Agricultural knowledge does not provide a specific soil‑moisture threshold for sugarcane, so we cannot definitively label 32.3 % as “too dry”. However, for many crops a value around 30 % often indicates moderate moisture, and sugarcane generally prefers a moist profile, especially during active growth.  \n\n**Confidence**  \n- **Low** – because the required moisture reference range is not given and the node‑offline condition casts doubt on the reading’s reliability.  \n\n**Recommendations**  \n\n*Immediate actions*  \n1. Inspect the sensor node (power, antenna, connectivity) and restore communication.  \n2. Verify soil moisture manually (feel the soil at 15‑20 cm depth; it should be moist but not soggy).  \n\n*Monitoring advice*  \n- After the node is back online, record soil‑moisture readings at least every 24 h.  \n- Observe the crop for wilting, leaf rolling, or slowed growth as field indicators of water stress.  \n\n*When to seek expert help*  \n- If the node cannot be re‑connected after two attempts or the manual check shows the soil is dry to the touch despite the 32.3 % reading.  \n- If visual symptoms of water stress appear and you are unsure about irrigation timing.",
+   "raw_answer": "**Observation**  \n- Active alert: **[critical] Node offline (no contact for 49542 min)**.  \n- Latest sensor reading (2026‑09‑23 04:25 UTC): Soil moisture **32.3 %**.  \n\n**Analysis**  \n- The node‑offline alert means the sensor may not be reliably communicating; the 32.3 % value could be outdated or inaccurate.  \n- Agricultural knowledge does not provide a specific soil‑moisture threshold for sugarcane, so we cannot definitively label 32.3 % as “too dry”. However, for many crops a value around 30 % often indicates moderate moisture, and sugarcane generally prefers a moist profile, especially during active growth.  \n\n**Confidence**  \n- **Low** – because the required moisture reference range is not given and the node‑offline condition casts doubt on the reading’s reliability.  \n\n**Recommendations**  \n\n*Immediate actions*  \n1. Inspect the sensor node (power, antenna, connectivity) and restore communication.  \n2. Verify soil moisture manually (feel the soil at 15‑20 cm depth; it should be moist but not soggy).  \n\n*Monitoring advice*  \n- After the node is back online, record soil‑moisture readings at least every 24 h.  \n- Observe the crop for wilting, leaf rolling, or slowed growth as field indicators of water stress.  \n\n*When to seek expert help*  \n- If the node cannot be re‑connected after two attempts or the manual check shows the soil is dry to the touch despite the 32.3 % reading.  \n- If visual symptoms of water stress appear and you are unsure about irrigation timing.",
+   "error": null
+  }
+ ],
+ "burst": []
+}

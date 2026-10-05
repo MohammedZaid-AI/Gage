@@ -1,5 +1,6 @@
 """Pydantic v2 request/response schemas."""
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -74,7 +75,9 @@ class NodeOut(BaseModel):
     farm_id: int
     name: str | None
     location: str | None
-    api_key: str  # the owner needs this to provision the device
+    # The device key, returned only when it is created or rotated (it is stored
+    # hashed and cannot be shown again). None in listings.
+    api_key: str | None = None
     created_at: datetime
     health: NodeHealthOut | None = None
 
@@ -122,6 +125,8 @@ class AlertOut(BaseModel):
     value: float | None
     resolved: bool
     created_at: datetime
+    resolved_at: datetime | None = None
+    resolution: str | None = None
 
 
 # --- observation ---
@@ -144,6 +149,8 @@ class ObservationOut(BaseModel):
 class ChatRequest(BaseModel):
     farm_id: int
     question: str
+    # Answer engine for this question; missing -> LLM_PROVIDER from .env.
+    provider: Literal["groq", "sarvam_finetuned"] | None = None
 
 
 class ChatResponse(BaseModel):
@@ -153,6 +160,15 @@ class ChatResponse(BaseModel):
     # Specific claims the grounding check could not find in the model's context
     # (the answer is already prefixed with a caveat when this is non-empty).
     unsupported_claims: list[str] = []
+    # Groq grounding check: checked | unavailable | skipped (token budget).
+    fact_check: str | None = None
+    provider: str | None = None          # the engine that wrote this answer
+    answer_seconds: float | None = None  # time in that engine
+    fact_check_seconds: float | None = None
+    # The model's own text before any caveat or note was added.
+    raw_answer: str | None = None
+    # Retrieved knowledge chunks: source document, section and score.
+    sources: list[dict] = []
 
 
 # --- voice ---
