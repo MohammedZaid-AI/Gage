@@ -10,8 +10,13 @@ What Gage does not do well yet, stated plainly. Evidence files are in
   per token.
 - In the verification runs it answered only 2 of 5 test questions correctly
   and ignored the retrieved text on others.
-- So Groq (`openai/gpt-oss-120b`) is the live answerer. The fine-tuned model
-  stays available with `LLM_PROVIDER=sarvam_finetuned` but is not used live.
+- On the ten acceptance questions (5 October 2026, test_runs/part8_finetuned.*)
+  it got 5 of 10 key facts against Groq's 9 of 10, at 18.5 s per answer: it often
+  does not use the retrieved text (for example "use general guidelines" instead
+  of 7-8 cm, an invented "Rs 2,800 per quintal").
+- So Groq (`openai/gpt-oss-120b`) is the default answerer. The fine-tuned model
+  can be chosen per question (`"provider": "sarvam_finetuned"` or the Answer
+  engine dropdown); it is loaded on first use and needs the GPU.
 - The validation set of that training run may contain copies of training
   records, so its reported validation loss is optimistic.
 

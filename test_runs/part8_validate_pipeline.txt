@@ -24,7 +24,7 @@
   [PASS] "Compare with yesterday." grounded (not generic) - references farm data
 
 == STEP 5: VOICE ==
-  [PASS] STT -> AI -> TTS (Kannada) - HTTP 200 lang=kn transcript='ನನ್ನ ಬೆಲೆ ಹೇಗಿದೆ?' audio=8139962b
+  [PASS] STT -> AI -> TTS (Kannada) - HTTP 200 lang=kn transcript='ನನ್ನ ಬೆಳೆ ಹೇಗಿದೆ?' audio=9620198b
 
 == STEP 6: FAILURE TESTS ==
   [PASS] Wrong API key -> 401
@@ -36,13 +36,13 @@
   [PASS] Invalid request body rejected (422, no crash)
 
 == PERFORMANCE (ms) ==
-  heartbeat        68.3 ms
-  sensors          68.5 ms
-  image            89.0 ms
-  summary          31.7 ms
-  chat           5843.4 ms
-  voice         34433.5 ms
+  heartbeat        29.7 ms
+  sensors          62.4 ms
+  image            74.0 ms
+  summary          24.6 ms
+  chat           5991.1 ms
+  voice        105924.8 ms
   ws_delay          0.0 ms
 
 SUMMARY: 24/24 passed, 0 failed
-JSON {"passed": 24, "total": 24, "failed": [], "timings_ms": {"heartbeat": 68.3, "sensors": 68.5, "image": 89.0, "ws_delay": 0.0, "summary": 31.7, "chat": 5843.4, "voice": 34433.5}}
+JSON {"passed": 24, "total": 24, "failed": [], "timings_ms": {"heartbeat": 29.7, "sensors": 62.4, "image": 74.0, "ws_delay": 0.0, "summary": 24.6, "chat": 5991.1, "voice": 105924.8}}
