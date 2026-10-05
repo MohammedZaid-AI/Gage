@@ -1,0 +1,55 @@
+{
+ "farm": 1,
+ "graph": "synthetic",
+ "data": {
+  "history": 549,
+  "clean": 183,
+  "excluded": 366,
+  "all_zero": 0,
+  "soil_zero_runs": 366
+ },
+ "clean_normal": 165,
+ "fit_readings": 40,
+ "normal_test_readings": 125,
+ "anomalies_per_type": 40,
+ "injections": [
+  "heat_spike",
+  "drought",
+  "humidity_jump"
+ ],
+ "flybrain_seconds_total": 70.7,
+ "flybrain_seconds_per_reading": 0.248,
+ "results": {
+  "flybrain": {
+   "auroc": 0.9952,
+   "recall_at_1pct_fpr": 0.8917,
+   "threshold": 0.3876,
+   "recall_by_type": {
+    "heat_spike": 0.975,
+    "drought": 0.9,
+    "humidity_jump": 0.8
+   }
+  },
+  "isolation_forest": {
+   "auroc": 0.7451,
+   "recall_at_1pct_fpr": 0.0,
+   "threshold": 0.7335,
+   "recall_by_type": {
+    "heat_spike": 0.0,
+    "drought": 0.0,
+    "humidity_jump": 0.0
+   }
+  },
+  "z_score": {
+   "auroc": 0.9681,
+   "recall_at_1pct_fpr": 0.3333,
+   "threshold": 8.45,
+   "recall_by_type": {
+    "heat_spike": 0.975,
+    "drought": 0.025,
+    "humidity_jump": 0.0
+   }
+  }
+ },
+ "note": "Recall at 1% FPR rests on the 99th percentile of 125 normal test readings, so it is coarse."
+}

@@ -570,13 +570,20 @@ def test_flybrain_anomaly() -> None:
         db.add(SensorReading(node_id=node.id, farm_id=farm.id, temperature=26 + r.uniform(-1, 1),
                              humidity=65 + r.uniform(-4, 4), soil_moisture=50 + r.uniform(-8, 8),
                              timestamp=datetime(2026, 9, 1) + timedelta(hours=i)))
+    for i in range(6):                          # a disconnected soil probe: a run of 0 %
+        db.add(SensorReading(node_id=node.id, farm_id=farm.id, temperature=26.0, humidity=65.0,
+                             soil_moisture=0.0, timestamp=datetime(2026, 9, 3) + timedelta(minutes=i)))
     db.commit()
-    env = {"FLYBRAIN_BASELINE_SIZE": "10", "FLYBRAIN_HELDOUT_SIZE": "10", "FLYBRAIN_SIM_STEPS": "400"}
+    env = {"FLYBRAIN_BASELINE_SIZE": "10", "FLYBRAIN_HELDOUT_SIZE": "10", "FLYBRAIN_SIM_STEPS": "400",
+           "FLYBRAIN_MIN_CLEAN_ROWS": "25"}
     os.environ.update(env)
     get_settings.cache_clear()
     try:
         bl = anomaly.fit_farm(db, farm.id)
         assert bl is not None and bl.graph == "synthetic" and len(bl.heldout_scores) == 10
+        info = anomaly._fit_info[farm.id]                 # zero-soil run left out of the fit
+        assert (info["history"], info["clean"], info["soil_zero_runs"]) == (36, 30, 6), info
+        assert bl.mins["soil_moisture"] > 0               # normalisation range from clean rows
         assert bl.threshold == max(bl.heldout_scores) or bl.threshold <= max(bl.heldout_scores)
         anomaly._baselines[farm.id] = bl
         normal = SensorReading(node_id=node.id, farm_id=farm.id, temperature=26.0, humidity=65.0,
@@ -592,6 +599,17 @@ def test_flybrain_anomaly() -> None:
         assert db.query(Alert).filter(Alert.type == "anomaly", Alert.resolved.is_(False)).count() == 1
         assert "synthetic test graph" in anomaly.describe(s_drought)
         assert anomaly.status(db, farm.id)["graph"] == "synthetic"
+        # A soil-moisture-0 reading is a sensor fault, not scored.
+        probe_off = SensorReading(node_id=node.id, farm_id=farm.id, temperature=26.0,
+                                  humidity=65.0, soil_moisture=0.0)
+        db.add(probe_off)
+        db.flush()
+        assert anomaly.score_reading(db, probe_off) is None
+        # Fewer clean rows than FLYBRAIN_MIN_CLEAN_ROWS -> no baseline, a stated reason.
+        os.environ["FLYBRAIN_MIN_CLEAN_ROWS"] = "100"
+        get_settings.cache_clear()
+        assert anomaly.fit_farm(db, farm.id) is None
+        assert anomaly._fit_info[farm.id]["reason"].startswith("not enough clean history")
         # Too little history -> no baseline (and so no scores), never a guess.
         empty_farm = Farm(farmer_id=farm.farmer_id, name="Empty")
         db.add(empty_farm)

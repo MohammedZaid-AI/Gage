@@ -1,0 +1,49 @@
+== before upload
+{"enabled":true,"graph":null,"graph_description":"no baseline fitted yet","data":null,"baseline":null,"latest":null,"note":"The sensor-to-neuron encoding is a design choice, not a biologically validated mapping; scores are relative to this farm's own history."}
+== upload abnormal-ish reading (30.5 C, 88 %, soil 16 %)
+HTTP 200 in 0.118139s
+== after background fit + score
+{
+    "enabled": true,
+    "graph": "synthetic",
+    "graph_description": "synthetic test graph (not the real fly connectome)",
+    "data": {
+        "history": 550,
+        "clean": 184,
+        "excluded": 366,
+        "all_zero": 0,
+        "soil_zero_runs": 366,
+        "normal": 165,
+        "fitted": true,
+        "reason": null
+    },
+    "baseline": {
+        "fitted_at": "2026-10-05T05:02:47.040556Z",
+        "history_readings": 184,
+        "normal_readings": 165,
+        "baseline_readings": 40,
+        "heldout_readings": 60,
+        "threshold": 0.3859,
+        "threshold_percentile": 99.0,
+        "channel_min": {
+            "temperature": 23.0,
+            "humidity": 55.0,
+            "soil_moisture": 0.0
+        },
+        "channel_max": {
+            "temperature": 30.5,
+            "humidity": 88.0,
+            "soil_moisture": 100.0
+        }
+    },
+    "latest": {
+        "reading_id": 550,
+        "score": 0.6351,
+        "threshold": 0.3859,
+        "is_anomalous": true,
+        "graph": "synthetic",
+        "at": "2026-10-05T05:02:47.324729",
+        "sentence": "The latest sensor reading scored 0.64 on the FlyBrain pattern check, above this farm's own normal threshold of 0.39: its combination of temperature, humidity and soil moisture is unusual for this field. This is a statistical flag from a synthetic test graph (not the real fly connectome) simulation, not a diagnosis."
+    },
+    "note": "The sensor-to-neuron encoding is a design choice, not a biologically validated mapping; scores are relative to this farm's own history."
+}

@@ -101,6 +101,11 @@ class Settings(BaseSettings):
     flybrain_threshold_percentile: float = 99.0
     flybrain_score_interval_minutes: int = 5   # score a farm at most this often
     flybrain_refit_hours: int = 24             # refit each farm's baseline this often
+    # Data cleaning: soil moisture exactly 0 for this many consecutive readings
+    # (or every channel 0) means a disconnected sensor, not a real field state;
+    # those rows are left out of fitting and calibration.
+    flybrain_zero_run: int = 3
+    flybrain_min_clean_rows: int = 100         # fewer clean rows -> no baseline, no flags
 
     # A node is considered offline if its last heartbeat is older than this.
     offline_seconds: int = 180

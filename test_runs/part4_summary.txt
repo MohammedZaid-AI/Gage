@@ -1,0 +1,32 @@
+PART 4 - FlyBrain data cleaning and baseline comparison
+
+4.1 Cleaning (services/anomaly.clean_rows): bad rows = soil moisture exactly 0 for >= 3
+    consecutive readings (FLYBRAIN_ZERO_RUN), or every channel 0. Excluded from fitting,
+    calibration and the normalisation range. A new reading with soil 0 is not scored.
+    Farm 1: 549 rows before, 183 after (366 excluded, all in zero-soil runs; 0 all-zero rows).
+    (part4_flybrain.txt / .json; live API shows 550 -> 184 after one upload, part4_api.txt)
+4.2 183 clean rows >= 100, so FlyBrain fits. 165 clean normal rows. Threshold (p99 of 60
+    held-out clean normal scores) = 0.3859, unchanged from before: the zero-soil rows were
+    never in the normal set (soil < 20 % trips the soil alert), so the fit used the same rows.
+    Below 100 clean rows FlyBrain returns "not enough clean history" and flags nothing
+    (selftest test_flybrain_anomaly).
+4.3 Reading 299 (26.9 C, 67.9 %, soil 61 %): 0.1534 -> normal.
+    Reading 534 (30.5 C, 88 %, soil 16 %): 0.6351 -> anomaly.
+    Alert rules on a soil = 0 reading: YES, soil_low fires ("Low soil moisture 0% (water
+    stress)"); 1 soil_low alert with value 0 is in the real DB. Alert rules not changed.
+4.4 scripts/eval_flybrain.py (scikit-learn in requirements-dev.txt only). Same 40 fit
+    readings, 125 normal test readings, 3 x 40 injected anomalies, same normalisation:
+      seed  method            AUROC   recall@1%FPR  (heat / drought / humidity)
+      0     flybrain          0.996   0.883  (0.975 / 0.900 / 0.775)
+      0     isolation_forest  0.889   0.000
+      0     z_score           0.979   0.492  (0.950 / 0.175 / 0.350)
+      1     flybrain          0.995   0.892 | isolation_forest 0.745 / 0.000 | z_score 0.968 / 0.333
+      2     flybrain          0.998   0.933 | isolation_forest 0.858 / 0.008 | z_score 0.990 / 0.650
+    FlyBrain did best on this data in all three seeds. Limits: injected anomalies are
+    synthetic and mostly push values outside the clean range (easy cases); the 1 % threshold
+    rests on 125 normal readings; one farm; IsolationForest with only 40 fit readings
+    saturates (its recall at 1 % FPR is ~0). (part4_eval*.json, part4_eval*.txt)
+4.5 API: GET /farm/{id}/anomaly names the graph and now the cleaning counts / reason.
+    Dashboard Home: new "Sensor pattern check" card (graph label, latest score vs threshold
+    or why nothing is scored, usable-row count); anomaly alerts already listed in Active
+    alerts. Visual check of the card is done in Part 6.
