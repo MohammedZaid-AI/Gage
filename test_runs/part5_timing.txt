@@ -1,0 +1,4 @@
+synthetic: load 0.0s, 1500 steps per reading: 0.23s, 0.23s
+malecns_v1 (no synapse positions): load 0.7s, 1500 steps per reading: 10.57s, 10.32s
+device: cuda | GPU memory after load MB: 295
+malecns_v1 torch/cuda: 1500 steps per reading: 5.16s, 4.43s, 4.29s; mean rate 0.416 Hz

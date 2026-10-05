@@ -30,3 +30,28 @@ hardware. Each says what was seen and where the evidence is.
 - Part 2 run 3: one request measured 5418 s on the client clock and one Groq
   call took 293 s, consistent with the PC sleeping mid-test. Wall-clock times
   that cross a sleep are not meaningful; server-log timings are.
+
+### Real MaleCNS graph runs, but does not yet separate normal from abnormal
+- Built without the 13 GB synapse-point table (flycns only uses that table for
+  synapse-centroid positions of neurons without a soma location; the
+  neuron-to-neuron graph needs annotations, transmitters and weights):
+  166,700 neurons, 25,582,938 connections, compiled in 51 s
+  (test_runs/part5_compile.log).
+- Time per reading (1500 steps): 10.3-10.6 s on the CPU (NumPy engine), 4.3-4.4 s
+  on the RTX 3050 with flycns's torch engine (test_runs/part5_timing.txt).
+- Scores on farm 1 (test_runs/part5_flybrain_real.txt): threshold 192,919 (p99 of
+  60 held-out clean normal readings); reading 299 (normal) 36,511; reading 534
+  (30.5 C, 88 %, soil 16 %) 185,454 -> NOT flagged. The synthetic graph flags 534.
+- Likely cause: the score is the RMS z-score over all neurons with a 1e-6 floor
+  on each neuron's baseline spread; on the real graph most neurons are almost
+  silent, so near-zero spreads produce huge, noisy z-scores. A fix to try: score
+  only neurons that fire in the baseline, or floor the spread (e.g. 0.1 Hz) —
+  a method change, so it needs re-evaluation with scripts/eval_flybrain.py.
+- FLYBRAIN_GRAPH stays "synthetic". To use the real graph anyway:
+  FLYBRAIN_GRAPH=malecns (FLYBRAIN_ENGINE=auto picks the GPU when CUDA exists).
+- The synapse-point table is still incomplete (93.7 MB of 13.06 GB). It is not
+  needed for the graph. To finish it on a faster connection (resumes in place):
+  curl -C - -L -o "models/malecns/raw/syn-points-male-cns-v1.0-minconf-0.5.feather" https://storage.googleapis.com/flyem-male-cns/v1.0/connectome-data/flat-connectome/syn-points-male-cns-v1.0-minconf-0.5.feather
+  The loader (backend/ai/flybrain.load_real_malecns) currently always compiles
+  without it; using it would mean passing synapse_centroids_for_missing=True and
+  deleting models/malecns/compiled. Positions do not change the connections.

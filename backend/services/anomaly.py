@@ -41,7 +41,37 @@ logger = logging.getLogger("gage.flybrain")
 
 CHANNELS = ("temperature", "humidity", "soil_moisture")
 GRAPH_LABELS = {"synthetic": "synthetic test graph (not the real fly connectome)",
-                "malecns_v1": "real MaleCNS v1.0 connectome"}
+                "malecns_v1": "real MaleCNS v1.0 connectome",
+                "malecns_v1_no_positions": "real MaleCNS v1.0 connections (without synapse "
+                                           "positions)"}
+
+
+def _compiled_name(compiled_dir: str) -> str:
+    """'malecns_v1', or 'malecns_v1_no_positions' when the compiled graph was
+    built without the synapse-point table (read from flycns's manifest)."""
+    import json
+    from pathlib import Path
+
+    manifest = json.loads((Path(compiled_dir) / "manifest.json").read_text(encoding="utf-8"))
+    keys = {src.get("key") for src in manifest.get("sources", [])}
+    return "malecns_v1" if "synapses" in keys else "malecns_v1_no_positions"
+
+
+def _engine(graph_name: str) -> str:
+    """flycns simulation engine: FLYBRAIN_ENGINE, or for 'auto' the GPU (torch)
+    for the real graph when CUDA is available, else the NumPy reference."""
+    choice = get_settings().flybrain_engine
+    if choice in ("numpy", "torch"):
+        return choice
+    if graph_name.startswith("malecns"):
+        try:
+            import torch
+
+            if torch.cuda.is_available():
+                return "torch"
+        except ImportError:
+            pass
+    return "numpy"
 
 
 @dataclass
@@ -77,7 +107,7 @@ def _graph():
         if s.flybrain_graph == "malecns":
             try:
                 _graph_cache = (flybrain.load_real_malecns(s.flybrain_raw_dir, s.flybrain_compiled_dir),
-                                "malecns_v1")
+                                _compiled_name(s.flybrain_compiled_dir))
             except Exception:
                 logger.exception("FLYBRAIN_GRAPH=malecns but the real connectome could not be "
                                  "loaded; using the synthetic test graph")
@@ -167,7 +197,8 @@ def fit_farm(db: Session, farm_id: int) -> FarmBaseline | None:
 
     graph, graph_name = _graph()
     det = flybrain.FlyBrainAnomalyDetector(
-        graph, flybrain.SensorEncoder(n_neurons=graph[3]), sim_steps=s.flybrain_sim_steps)
+        graph, flybrain.SensorEncoder(n_neurons=graph[3]), sim_steps=s.flybrain_sim_steps,
+        engine=_engine(graph_name))
     det.fit_baseline([_normalise(r, mins, maxs) for r in base])
     scores = [det.score(_normalise(r, mins, maxs))["anomaly_score"] for r in heldout]
     threshold = float(np.percentile(scores, s.flybrain_threshold_percentile))
