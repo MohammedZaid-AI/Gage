@@ -1,0 +1,48 @@
+
+== AUTH ==
+  [PASS] Farmer login -> JWT - status 200
+
+== STEP 1: ESP32 ==
+  [PASS] Node authentication + heartbeat - status 200
+  [PASS] Sensor upload (temp/humidity/soil/battery) - status 200
+  [PASS] Values arrived at backend - battery=87.0 wifi=-55 fw=1.0.0
+  [PASS] OLED / LED / buzzer - device-side (firmware) — driven after each successful POST
+
+== STEP 2/3: PHONE + OBSERVATION PIPELINE ==
+  [PASS] Image upload (+GPS, node id via key) - status 200
+  [PASS] Correct node & farm id - node=demo-node-1 farm=1
+  [PASS] Merged into ONE observation (image + sensors) - soil=16.0 img=yes
+  [PASS] AI summary generated (background) - present
+  [PASS] Dataset entry auto-created - quality=80 labels=['dry_soil', 'high_humidity', 'water_stress']
+  [PASS] WebSocket broadcast received - 0 ms
+  [PASS] Dashboard summary refreshed - health=Critical 55
+
+== STEP 4: AI CROP DOCTOR ==
+  [PASS] "How is my field?" grounded (not generic) - references farm data
+  [PASS] "Should I irrigate?" grounded (not generic) - references farm data
+  [PASS] "Any disease?" grounded (not generic) - references farm data
+  [PASS] "Compare with yesterday." grounded (not generic) - references farm data
+
+== STEP 5: VOICE ==
+  [PASS] STT -> AI -> TTS (Kannada) - HTTP 200 lang=kn transcript='ನನ್ನ ಬೆಲೆ ಹೇಗಿದೆ?' audio=8139962b
+
+== STEP 6: FAILURE TESTS ==
+  [PASS] Wrong API key -> 401
+  [PASS] Missing node key -> 401
+  [PASS] Expired JWT -> 401
+  [PASS] Missing image handled (sensor-only obs)
+  [PASS] Missing sensors handled (image-only obs)
+  [PASS] Duplicate uploads handled gracefully
+  [PASS] Invalid request body rejected (422, no crash)
+
+== PERFORMANCE (ms) ==
+  heartbeat        68.3 ms
+  sensors          68.5 ms
+  image            89.0 ms
+  summary          31.7 ms
+  chat           5843.4 ms
+  voice         34433.5 ms
+  ws_delay          0.0 ms
+
+SUMMARY: 24/24 passed, 0 failed
+JSON {"passed": 24, "total": 24, "failed": [], "timings_ms": {"heartbeat": 68.3, "sensors": 68.5, "image": 89.0, "ws_delay": 0.0, "summary": 31.7, "chat": 5843.4, "voice": 34433.5}}

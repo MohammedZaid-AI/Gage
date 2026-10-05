@@ -1,0 +1,2 @@
+answer 1 (FlyBrain baseline already fitted): {'uploads': 25, 'all_200': True, 'p50_ms': 71.9, 'p95_ms': 99.3, 'max_ms': 123.1}
+answer 2 (FlyBrain baseline already fitted): {'uploads': 27, 'all_200': True, 'p50_ms': 69.5, 'p95_ms': 107.7, 'max_ms': 110.1}

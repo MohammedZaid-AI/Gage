@@ -1,7 +1,7 @@
 """Final acceptance test against a RUNNING Gage server (it does not start one).
 
     python scripts/acceptance.py --base http://127.0.0.1:8000 \
-        --phone 9999999999 --password demo1234 --out test_runs/acceptance.json
+        --phone 9999999999 --password demo1234 --out test_runs/acceptance.json [--node-key KEY]
 
 Asks the ten questions below through POST /chat, SPACING seconds apart, and
 records for each: the retrieved documents and scores, the answer, its caveats,
@@ -10,6 +10,8 @@ the fact-check status and the time. Each question is judged against its notes.
 """
 import argparse
 import json
+import re
+import statistics
 import sys
 import threading
 import time
@@ -89,9 +91,48 @@ def judge(item: dict, res: dict) -> tuple[bool, list[str]]:
             reasons.append(f"mentions '{bad}'")
     if item.get("no_refusal") and any(r in low for r in REFUSAL):
         reasons.append("refused")
-    if body.get("unchecked_numbers"):
-        reasons.append(f"numbers not in sources and not caveated: {body['unchecked_numbers']}")
+    uncaveated = uncaveated_numbers(body, item["q"], res.get("readings", ""))
+    if uncaveated:
+        reasons.append(f"numbers not in the sources and not named in a caveat: {uncaveated}")
     return not reasons, reasons
+
+
+_CHUNKS: dict | None = None
+
+
+def _chunk_text(source: str, section: str) -> str:
+    """The text of retrieved chunks, re-read from knowledge_base/ on disk (the
+    server's chunking rule), so this check does not trust the server."""
+    global _CHUNKS
+    if _CHUNKS is None:
+        from backend.ai.knowledge import _chunk_document
+
+        root = ROOT / "knowledge_base"
+        _CHUNKS = {}
+        for f in root.rglob("*.md"):
+            for d in _chunk_document(f, root):
+                _CHUNKS.setdefault((d.source, d.title), []).append(d.text)
+    return "\n\n".join(_CHUNKS.get((source, section), []))
+
+
+def uncaveated_numbers(body: dict, question: str, readings: str) -> list[str]:
+    """Numbers with units in the model's raw answer that are in neither the
+    retrieved text, the question nor the farm readings, AND are not named in
+    the caveat the farmer sees."""
+    from backend.ai.number_check import _normalise_text, unsupported_numbers
+
+    raw = body.get("raw_answer") or ""
+    final = body.get("answer") or ""
+    knowledge = "\n\n".join(_chunk_text(s["source"], s["section"]) for s in body.get("sources", []))
+    missing = unsupported_numbers(raw, f"{knowledge}\n\n{readings}\n\n{question}")
+    caveat = _normalise_text(final[:max(0, final.find(raw[:40]))] if raw and raw[:40] in final else
+                             final.split("\n\n")[0])
+    out = []
+    for n in missing:
+        digits = re.findall(r"\d+(?:\.\d+)?", _normalise_text(n))
+        if not digits or not all(d in caveat for d in digits):
+            out.append(n)
+    return out
 
 
 def main() -> int:
@@ -103,6 +144,7 @@ def main() -> int:
     ap.add_argument("--burst", type=int, default=0)
     ap.add_argument("--only", default="", help="comma-separated ids, e.g. Q2,Q9")
     ap.add_argument("--out", default="test_runs/acceptance.json")
+    ap.add_argument("--node-key", default="", help="a node key of this farm: run the upload latency test")
     args = ap.parse_args()
 
     c = httpx.Client(base_url=args.base, timeout=60)
@@ -110,6 +152,11 @@ def main() -> int:
     r.raise_for_status()
     c.headers["Authorization"] = f"Bearer {r.json()['access_token']}"
     farm_id = c.get("/farms").json()[0]["id"]
+    s = c.get(f"/farm/{farm_id}/summary").json()
+    snap = s.get("sensor_snapshot") or {}
+    readings = (f"Temperature: {snap.get('temperature')} C\nHumidity: {snap.get('humidity')} %\n"
+                f"Soil moisture: {snap.get('soil_moisture')} %\n"
+                + "\n".join(a.get("message", "") for a in s.get("active_alerts") or []))
 
     items = [q for q in QUESTIONS if not args.only or q["id"] in args.only.split(",")]
     results = []
@@ -117,6 +164,7 @@ def main() -> int:
         if i:
             time.sleep(args.spacing)
         res = ask(c, farm_id, item["q"])
+        res["readings"] = readings
         ok, reasons = judge(item, res)
         b = res["body"]
         row = {"id": item["id"], "question": item["q"], "note": item["note"], "status": res["status"],
@@ -151,14 +199,63 @@ def main() -> int:
             print(f"burst {j + 1}: {res['status']} {res['seconds']}s fact_check={b.get('fact_check')} "
                   f"{b.get('detail') or ''}", flush=True)
 
+    latency = None
+    if args.node_key:
+        time.sleep(args.spacing)
+        latency = upload_latency_during_answer(args.base, args.node_key, c, farm_id)
+        print(f"sensor upload while answering: {latency}", flush=True)
+
     passed = sum(r["pass"] for r in results)
     checked = sum(r["fact_check"] == "checked" for r in results)
-    summary = {"passed": passed, "total": len(results), "fact_checks_completed": checked}
-    print(json.dumps(summary))
+    doc_ok = sum(not any("expected document" in x for x in r["reasons"]) and r["status"] == 200
+                 for r in results)
+    numbers_ok = all(not any("not named in a caveat" in x for x in r["reasons"]) for r in results)
+    q9 = next((r for r in results if r["id"] == "Q9"), None)
+    bar = {
+        "right_document_10_of_10": doc_ok == len(results) == 10,
+        "no_uncaveated_numbers": numbers_ok,
+        "q9_not_refused": bool(q9 and q9["status"] == 200 and not any("refused" in x for x in q9["reasons"])),
+        "grounding_at_least_8_of_10": checked >= 8,
+        "sensor_upload_p95_under_150ms": bool(latency and latency["p95_ms"] < 150),
+    }
+    summary = {"passed": passed, "total": len(results), "right_document": doc_ok,
+               "fact_checks_completed": checked, "latency": latency, "pass_bar": bar,
+               "pass_bar_met": all(bar.values())}
+    print(json.dumps(summary, indent=1))
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     Path(args.out).write_text(json.dumps({"summary": summary, "results": results, "burst": burst},
                                          ensure_ascii=False, indent=1), encoding="utf-8")
-    return 0 if passed == len(results) else 1
+    return 0 if summary["pass_bar_met"] else 1
+
+
+def upload_latency_during_answer(base: str, node_key: str, c: httpx.Client, farm_id: int) -> dict:
+    """POST /node/sensors every 0.25 s while one /chat answer is generating."""
+    done = threading.Event()
+    times, codes = [], []
+
+    def answer():
+        ask(c, farm_id, QUESTIONS[2]["q"])
+        done.set()
+
+    t = threading.Thread(target=answer)
+    t.start()
+    node = httpx.Client(base_url=base, timeout=30, headers={"X-Node-Key": node_key})
+    time.sleep(0.5)
+    while not done.is_set():
+        s = time.perf_counter()
+        r = node.post("/node/sensors", json={"temperature": 27.5, "humidity": 70.0,
+                                             "soil_moisture": 42.0})
+        times.append((time.perf_counter() - s) * 1000)
+        codes.append(r.status_code)
+        time.sleep(0.25)
+    t.join()
+    times.sort()
+    if not times:
+        return {"uploads": 0}
+    return {"uploads": len(times), "all_200": all(x == 200 for x in codes),
+            "p50_ms": round(statistics.median(times), 1),
+            "p95_ms": round(times[min(len(times) - 1, int(0.95 * len(times)))], 1),
+            "max_ms": round(times[-1], 1)}
 
 
 if __name__ == "__main__":

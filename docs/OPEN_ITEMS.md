@@ -66,3 +66,34 @@ hardware. Each says what was seen and where the evidence is.
   then run:
   sqlite3 storage/observations.db "UPDATE observations SET ai_summary = NULL WHERE ai_summary LIKE '%image analysis%';"
   (test_runs/part7_summary_endpoint.txt)
+
+### Final acceptance test (Part 8) failed its pass bar twice
+Both runs: scripts/acceptance.py, 10 questions 30 s apart, Groq server on a copy
+of the real database.
+
+| Criterion | Attempt 1 | Attempt 2 |
+|---|---|---|
+| Right document, 10 of 10 | 7 (Q6 wrong doc; Q8, Q9 HTTP 503) | 7 (Q1, Q2, Q8 HTTP 503) |
+| No uncaveated invented number | met | met |
+| Q9 answered, not refused | not met (HTTP 503) | met |
+| Grounding check on >= 8 of 10 | met (8) | not met (7; the 3 errors had no answer to check) |
+| Sensor upload p95 < 150 ms | not met (344 ms; p50 78.5) | not met (318.6 ms; p50 78.8) |
+
+- Every HTTP 503 was "Groq request failed: APIConnectionError: Connection error"
+  or "APITimeoutError": this machine's connection to api.groq.com dropped
+  (3 times in attempt 2). The server failed honestly and saved nothing. Every
+  question that got through was answered with the right document in attempt 2.
+- Q6 retrieved the seed-selection document in attempt 1; after hybrid
+  retrieval (keyword bonus) it retrieved the cultivation overview first in
+  attempt 2.
+- Upload latency: p95 is the single slowest of 17-19 uploads. In both attempts
+  the first upload started FlyBrain's daily baseline fit. Measured without the
+  fit running, p95 was 99-108 ms (test_runs/part8_latency_diag.txt). Moving the
+  simulation into a worker process did not remove the outlier, so its cause is
+  not proven (candidates: the worker process start-up and the fit competing for
+  this 4-core laptop's CPU). To check: run the latency test with the baseline
+  already fitted, or start the worker at server start-up.
+- Q8 expects ₹355 (2025-26); see "Q8 acceptance note conflicts with today's
+  date" above.
+- Evidence: test_runs/part8_attempt1_*, test_runs/part8_acceptance.*,
+  test_runs/part8_server.log.
