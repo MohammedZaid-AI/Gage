@@ -97,3 +97,7 @@ of the real database.
   date" above.
 - Evidence: test_runs/part8_attempt1_*, test_runs/part8_acceptance.*,
   test_runs/part8_server.log.
+- Revised Part 8 (after the per-request engine switch, 5 October 13:30-14:00):
+  the Groq run met every criterion (10/10 documents, 0 uncaveated numbers, Q9
+  answered, 10/10 grounding checks, upload p95 55.1 ms). The 318-344 ms upload
+  outlier did not recur, but its cause is still not proven.

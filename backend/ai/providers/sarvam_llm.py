@@ -3,7 +3,8 @@
 Selected with LLM_PROVIDER=sarvam_finetuned. The adapter (SARVAM_ADAPTER_PATH,
 default models/sarvam_agri_final) is loaded with PEFT's PeftModel.from_pretrained
 over the base model — never as a standalone model. Loading happens once, when
-the provider is constructed at startup; requests only run generation.
+the provider is constructed by the first chat request that asks for this engine
+(ai/service.get_llm; never at server startup); later requests only run generation.
 
 The prompt reproduces the training format from Gage_Sarvam_Finetune_Colab.ipynb
 exactly (### System / ### Context / ### Farmer / ### Assistant); measured on the
@@ -27,6 +28,13 @@ from backend.config import get_settings
 logger = logging.getLogger("gage.ai.sarvam_llm")
 
 # Verbatim from the training notebook (Cell 5).
+# The exact training system string (Gage_Sarvam_Finetune_Colab.ipynb, Cell 5).
+# This model mirrors the FARMER turn's language: a Kanglish question gives a
+# Kanglish answer, an English question an English answer. Instructions to always
+# use Kanglish (in this System turn or appended to the Farmer turn) do NOT hold
+# reliably -- tested 2026-10-05, it kept answering English questions in English
+# (test_runs/kanglish_steer.txt). To keep the demo in Kanglish, ask in Kanglish
+# (the suggestion chips are Kanglish).
 SYSTEM_PROMPT = ("You are Gage, an AI assistant that provides accurate, "
                  "practical agricultural advice in Kannada-English.")
 

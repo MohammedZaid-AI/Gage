@@ -3,7 +3,7 @@
   JWT_SECRET='': exit 1 -> REFUSED (ok)
   JWT_SECRET='short': exit 1 -> REFUSED (ok)
 == 2. export history isolation
-  farmer A export v20261005064128186186 | A sees it: True | B sees it: False | B's history: []
+  farmer A export v20261005082227063015 | A sees it: True | B sees it: False | B's history: []
 == 3. previously open endpoints without a valid token
   /api/state  no token: 401 | bad token: 401 | valid: 200
   /storage/images/cee473869d6142fab716c7bf16ee367a.jpg  no token: 401 | bad token: 401 | owner: 200 | other farmer: 404

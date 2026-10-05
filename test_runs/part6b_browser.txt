@@ -1,0 +1,4 @@
+engine options: ['Default (server setting)', 'Groq · gpt-oss-120b', 'Fine-tuned Sarvam-1 (local GPU)']
+engine tag on bubble: Answered by Fine-tuned Sarvam-1 · 4.5 s
+saved choice: sarvam_finetuned
+screenshot: test_runs/part6b_dashboard_engine.png

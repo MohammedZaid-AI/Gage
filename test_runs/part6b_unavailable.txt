@@ -1,0 +1,6 @@
+== provider=sarvam_finetuned with the adapter missing
+{"detail":"The fine-tuned engine (sarvam_finetuned) is unavailable: FileNotFoundError: LoRA adapter not found at D:\\Zaids Work\\Gage\\models\\no-such-adapter (expected adapter_config.json + adapter weights). Copy the trained adapter there or set SARVAM_ADAPTER_PATH.. Nothing was saved, and no other engine was used instead."}
+HTTP 503
+Groq answer calls during that request: 0
+== same server, provider=groq still works
+HTTP 200

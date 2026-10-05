@@ -267,7 +267,7 @@ def test_llm_failure_is_not_saved() -> None:
 
     db = _memory_session()
     farm, _node = _farm_with_node(db)
-    real, service._llm = service._llm, Broken()
+    real, service._engines["mock"] = service.get_llm("mock"), Broken()
     try:
         try:
             AIOrchestrator.answer(db, farm, "Should I irrigate?")
@@ -276,7 +276,7 @@ def test_llm_failure_is_not_saved() -> None:
             pass
         assert db.query(Conversation).count() == 0
     finally:
-        service._llm = real
+        service._engines["mock"] = real
 
 
 def test_compact_prompt_for_finetuned_model() -> None:
@@ -307,11 +307,11 @@ def test_compact_prompt_for_finetuned_model() -> None:
             return "Irrigate at 7-8 cm."
 
     _offline_translation()
-    real, service._llm = service._llm, Capture()
+    real, service._engines["mock"] = service.get_llm("mock"), Capture()
     try:
         AIOrchestrator.answer(db, farm, "How deep should each irrigation be for sugarcane?")
     finally:
-        service._llm = real
+        service._engines["mock"] = real
     model_input = seen["question"] + seen["context"]
     assert not any(v in model_input for v in ("19.0", "29.0", "60.0")), model_input
     assert seen["question"] == "How deep should each irrigation be for sugarcane?"
@@ -828,6 +828,63 @@ def test_groq_budget_and_rate_limits() -> None:
     print("ok  groq budget: priorities, 429 parsing, answer retry-once and 503")
 
 
+def test_answer_engine_switch() -> None:
+    """Per-request engine: lazy load, honoured choice, same checks, no silent fallback."""
+    import os
+
+    from backend.ai import service
+    from backend.ai.base import LLMProvider, LLMUnavailable
+    from backend.config import get_settings
+
+    # Never loaded at import/startup.
+    assert "sarvam_finetuned" not in service._engines
+
+    seen = {}
+
+    class FakeFinetuned(LLMProvider):
+        prompt_style = "compact"
+
+        def answer(self, question, context, language):
+            seen["context"] = context
+            return "Keep soil moisture at 30 to 35 % and apply 7-8 cm per irrigation."
+
+    db = _memory_session()
+    farm, _node = _farm_with_node(db)
+    _offline_translation()
+    service._engines["sarvam_finetuned"] = FakeFinetuned()
+    try:
+        r = AIOrchestrator.answer(db, farm, "How deep should each irrigation be for sugarcane?",
+                                  "sarvam_finetuned")
+        assert r.provider == "sarvam_finetuned"
+        # Same local checks and caveat as Groq answers: the invented range is named.
+        assert "number: 30 to 35 %" in r.unsupported and '"30 to 35 %"' in r.answer
+        r2 = AIOrchestrator.answer(db, farm, "How deep should each irrigation be?")
+        assert r2.provider == "mock"                      # default engine when not given
+    finally:
+        service._engines.pop("sarvam_finetuned", None)
+
+    # Model missing -> a clear error, nothing saved, no other engine answers.
+    os.environ["SARVAM_ADAPTER_PATH"] = "./models/does-not-exist"
+    get_settings.cache_clear()
+    before = db.query(Conversation).count()
+    try:
+        AIOrchestrator.answer(db, farm, "How deep should each irrigation be?", "sarvam_finetuned")
+        raise AssertionError("expected LLMUnavailable")
+    except LLMUnavailable as exc:
+        assert "fine-tuned engine (sarvam_finetuned) is unavailable" in str(exc)
+    finally:
+        os.environ.pop("SARVAM_ADAPTER_PATH")
+        get_settings.cache_clear()
+    assert db.query(Conversation).count() == before
+    assert "sarvam_finetuned" not in service._engines     # a failed load is not cached
+    try:
+        service.get_llm("gpt-x")
+        raise AssertionError("unknown engine accepted")
+    except LLMUnavailable:
+        pass
+    print("ok  answer engine switch: lazy load, per-request choice, same checks, no fallback")
+
+
 if __name__ == "__main__":
     _offline_translation()   # no network: translation, query rewrite and grounding are stubbed
     test_language_detection_and_routing()
@@ -853,4 +910,5 @@ if __name__ == "__main__":
     test_offline_detection()
     test_groq_budget_and_rate_limits()
     test_local_number_and_name_checks()
+    test_answer_engine_switch()
     print("OK — all self-checks passed")

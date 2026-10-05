@@ -374,3 +374,11 @@ def status(db: Session, farm_id: int) -> dict:
         "note": "The sensor-to-neuron encoding is a design choice, not a biologically "
                 "validated mapping; scores are relative to this farm's own history.",
     }
+
+
+def shutdown() -> None:
+    """Stop the FlyBrain worker process (called on server shutdown)."""
+    global _pool
+    if _pool is not None:
+        _pool.shutdown(wait=False, cancel_futures=True)
+        _pool = None

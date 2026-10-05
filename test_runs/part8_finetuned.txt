@@ -1,0 +1,45 @@
+warm-up (model load): HTTP 200 in 32.7s
+Q1: PASS 200 12.41s engine=sarvam_finetuned (8.08s) fact_check=checked top=pests/02_iisr_current_helpline_and_2024_2025_activities.md@0.8619 
+Q2: FAIL 200 15.52s engine=sarvam_finetuned (10.74s) fact_check=checked top=nutrient_deficiency/01_iron_chlorosis_and_micronutrient_deficiency.md@0.8984 missing one of ['iron', 'ಕಬ್ಬಿಣ', 'fe']
+Q3: PASS 200 28.6s engine=sarvam_finetuned (24.22s) fact_check=checked top=irrigation/01_irrigation_water_management.md@0.9309 
+Q4: PASS 200 22.94s engine=sarvam_finetuned (16.97s) fact_check=checked top=irrigation/01_irrigation_water_management.md@0.9062 
+Q5: FAIL 200 15.89s engine=sarvam_finetuned (12.36s) fact_check=checked top=government_schemes/02_viksit_krishi_sankalp_abhiyan_vksa_2025.md@0.8838 missing one of ['8', '೮']; missing one of ['june', 'ಜೂನ್']; missing one of ['bengaluru', 'bangalore', 'ಬೆಂಗಳೂರು']
+Q6: PASS 200 11.53s engine=sarvam_finetuned (7.95s) fact_check=checked top=sugarcane/04_planting_methods_and_nursery_techniques.md@0.8755 
+Q7: FAIL 200 11.06s engine=sarvam_finetuned (6.02s) fact_check=checked top=irrigation/01_irrigation_water_management.md@0.9128 missing one of ['7']; missing one of ['8']
+Q8: FAIL 200 23.43s engine=sarvam_finetuned (21.89s) fact_check=checked top=market/01_sugarcane_fair_and_remunerative_price_frp.md@0.9058 missing one of ['355']; missing one of ['14']
+Q9: PASS 200 21.95s engine=sarvam_finetuned (16.15s) fact_check=checked top=nutrient_deficiency/01_iron_chlorosis_and_micronutrient_deficiency.md@0.8933 
+Q10: FAIL 200 21.99s engine=sarvam_finetuned (16.81s) fact_check=checked top=nutrient_deficiency/01_iron_chlorosis_and_micronutrient_deficiency.md@0.8765 neither quotes the soil reading nor says what is missing
+sensor upload while answering: {'uploads': 109, 'all_200': True, 'p50_ms': 51.4, 'p95_ms': 56.8, 'max_ms': 191.3}
+{
+ "comparison": {
+  "engine": "sarvam_finetuned",
+  "answered": 10,
+  "right_document": 10,
+  "key_facts": 5,
+  "invented_numbers_uncaveated": 0,
+  "refusals": 0,
+  "seconds_per_answer_mean": 18.5,
+  "seconds_per_answer_max": 28.6,
+  "engine_seconds_mean": 14.1
+ },
+ "passed": 5,
+ "total": 10,
+ "right_document": 10,
+ "fact_checks_completed": 10,
+ "latency": {
+  "uploads": 109,
+  "all_200": true,
+  "p50_ms": 51.4,
+  "p95_ms": 56.8,
+  "max_ms": 191.3
+ },
+ "pass_bar": {
+  "right_document_10_of_10": true,
+  "no_uncaveated_numbers": true,
+  "q9_not_refused": true,
+  "grounding_at_least_8_of_10": true,
+  "sensor_upload_p95_under_150ms": true
+ },
+ "pass_bar_met": true
+}
+RUNS DONE

@@ -1,0 +1,539 @@
+{
+ "summary": {
+  "comparison": {
+   "engine": "sarvam_finetuned",
+   "answered": 10,
+   "right_document": 10,
+   "key_facts": 5,
+   "invented_numbers_uncaveated": 0,
+   "refusals": 0,
+   "seconds_per_answer_mean": 18.5,
+   "seconds_per_answer_max": 28.6,
+   "engine_seconds_mean": 14.1
+  },
+  "passed": 5,
+  "total": 10,
+  "right_document": 10,
+  "fact_checks_completed": 10,
+  "latency": {
+   "uploads": 109,
+   "all_200": true,
+   "p50_ms": 51.4,
+   "p95_ms": 56.8,
+   "max_ms": 191.3
+  },
+  "pass_bar": {
+   "right_document_10_of_10": true,
+   "no_uncaveated_numbers": true,
+   "q9_not_refused": true,
+   "grounding_at_least_8_of_10": true,
+   "sensor_upload_p95_under_150ms": true
+  },
+  "pass_bar_met": true
+ },
+ "results": [
+  {
+   "id": "Q1",
+   "question": "Nodi anna, sugarcane borer training IISR yavaga nadesidru confirm madi.",
+   "note": "Must not invent a date.",
+   "status": 200,
+   "seconds": 12.41,
+   "pass": true,
+   "reasons": [],
+   "doc_ok": true,
+   "key_facts_ok": true,
+   "uncaveated": [],
+   "refused": false,
+   "provider": "sarvam_finetuned",
+   "answer_seconds": 8.08,
+   "sources": [
+    {
+     "source": "pests/02_iisr_current_helpline_and_2024_2025_activities.md",
+     "section": "ICAR-IISR Current Farmer Helpline and 2024–2025 Institutional Activities — Key Facts",
+     "score": 0.8619,
+     "via": "sarvam"
+    },
+    {
+     "source": "pests/02_iisr_current_helpline_and_2024_2025_activities.md",
+     "section": "ICAR-IISR Current Farmer Helpline and 2024–2025 Institutional Activities — Main Information",
+     "score": 0.8617,
+     "via": "sarvam"
+    },
+    {
+     "source": "pests/02_iisr_current_helpline_and_2024_2025_activities.md",
+     "section": "ICAR-IISR Current Farmer Helpline and 2024–2025 Institutional Activities — Main Information",
+     "score": 0.8641,
+     "via": "sarvam"
+    },
+    {
+     "source": "pests/02_iisr_current_helpline_and_2024_2025_activities.md",
+     "section": "ICAR-IISR Current Farmer Helpline and 2024–2025 Institutional Activities — Important Recommendations",
+     "score": 0.8559,
+     "via": "sarvam"
+    }
+   ],
+   "fact_check": "checked",
+   "caveats": [
+    "unsupported: Training on mechanisms and biological controls was specifically conducted",
+    "unsupported: The information provided is correct"
+   ],
+   "answer": "Please double-check before acting: \"Training on mechanisms and biological controls was specifically conducted\" (not in Gage's sources); \"The information provided is correct\" (not in Gage's sources).\n\nAnna swamy, mekanizm indha kelida mattu biologicial controls ge specifically train maadirodu Sir -- ee information correct agide.",
+   "raw_answer": "Anna swamy, mekanizm indha kelida mattu biologicial controls ge specifically train maadirodu Sir -- ee information correct agide.",
+   "error": null
+  },
+  {
+   "id": "Q2",
+   "question": "Ratoon crop nalli chlorosis yaake jaasti aaguttade yenu madbeku heli.",
+   "note": "Must say iron.",
+   "status": 200,
+   "seconds": 15.52,
+   "pass": false,
+   "reasons": [
+    "missing one of ['iron', 'ಕಬ್ಬಿಣ', 'fe']"
+   ],
+   "doc_ok": true,
+   "key_facts_ok": false,
+   "uncaveated": [],
+   "refused": false,
+   "provider": "sarvam_finetuned",
+   "answer_seconds": 10.74,
+   "sources": [
+    {
+     "source": "nutrient_deficiency/01_iron_chlorosis_and_micronutrient_deficiency.md",
+     "section": "Nutrient Deficiency Management in Sugarcane (Iron Chlorosis and Micronutrients) — Summary",
+     "score": 0.8984,
+     "via": "groq"
+    },
+    {
+     "source": "nutrient_deficiency/01_iron_chlorosis_and_micronutrient_deficiency.md",
+     "section": "Nutrient Deficiency Management in Sugarcane (Iron Chlorosis and Micronutrients) — Important Recommendations",
+     "score": 0.8957,
+     "via": "groq"
+    },
+    {
+     "source": "nutrient_deficiency/01_iron_chlorosis_and_micronutrient_deficiency.md",
+     "section": "Nutrient Deficiency Management in Sugarcane (Iron Chlorosis and Micronutrients) — Main Information",
+     "score": 0.8882,
+     "via": "groq"
+    },
+    {
+     "source": "sugarcane/05_weed_management.md",
+     "section": "Weed Management in Sugarcane (Plant and Ratoon Crops) — Summary",
+     "score": 0.8691,
+     "via": "groq"
+    }
+   ],
+   "fact_check": "checked",
+   "caveats": [],
+   "answer": "Anna, Ratoon crop matte barthirodhu kondu chintisidre, Chlorosis Symptoms ge yeshtu important -- Interveen leafy young leaves symptoms irabeku -- follow maadi.",
+   "raw_answer": "Anna, Ratoon crop matte barthirodhu kondu chintisidre, Chlorosis Symptoms ge yeshtu important -- Interveen leafy young leaves symptoms irabeku -- follow maadi.",
+   "error": null
+  },
+  {
+   "id": "Q3",
+   "question": "Prathi irrigation ge eshtu cm neeru hakbeku.",
+   "note": "Must say 7 to 8 cm.",
+   "status": 200,
+   "seconds": 28.6,
+   "pass": true,
+   "reasons": [],
+   "doc_ok": true,
+   "key_facts_ok": true,
+   "uncaveated": [],
+   "refused": false,
+   "provider": "sarvam_finetuned",
+   "answer_seconds": 24.22,
+   "sources": [
+    {
+     "source": "irrigation/01_irrigation_water_management.md",
+     "section": "Sugarcane Irrigation Water Management — Main Information",
+     "score": 0.9309,
+     "via": "groq"
+    },
+    {
+     "source": "irrigation/01_irrigation_water_management.md",
+     "section": "Sugarcane Irrigation Water Management — Key Facts",
+     "score": 0.9066,
+     "via": "groq"
+    },
+    {
+     "source": "sugarcane/02_land_preparation.md",
+     "section": "Land Preparation for Sugarcane Cultivation — Key Facts",
+     "score": 0.9112,
+     "via": "groq"
+    },
+    {
+     "source": "irrigation/01_irrigation_water_management.md",
+     "section": "Sugarcane Irrigation Water Management — Summary",
+     "score": 0.901,
+     "via": "groq"
+    }
+   ],
+   "fact_check": "checked",
+   "caveats": [],
+   "answer": "Anna sir, Prati irrigation nalli suma 7-8 cm kramavaagi apply maadabeku, phasing prakaara mellam jarnnige hogutte -- germination indha prarambisidre 7 dina idakke time beku, thenringinda totalingge barodakke 10 din belle ide, ellaa phases nalloo yesuge same reetiyide just different timing follow maadbeku. Please confirm this information.",
+   "raw_answer": "Anna sir, Prati irrigation nalli suma 7-8 cm kramavaagi apply maadabeku, phasing prakaara mellam jarnnige hogutte -- germination indha prarambisidre 7 dina idakke time beku, thenringinda totalingge barodakke 10 din belle ide, ellaa phases nalloo yesuge same reetiyide just different timing follow maadbeku. Please confirm this information.",
+   "error": null
+  },
+  {
+   "id": "Q4",
+   "question": "ಪ್ರತಿ irrigation ಗೆ ಎಷ್ಟು cm water ಹಾಕ್ಬೇಕು?",
+   "note": "Irrigation document; key fact 7-8 cm.",
+   "status": 200,
+   "seconds": 22.94,
+   "pass": true,
+   "reasons": [],
+   "doc_ok": true,
+   "key_facts_ok": true,
+   "uncaveated": [],
+   "refused": false,
+   "provider": "sarvam_finetuned",
+   "answer_seconds": 16.97,
+   "sources": [
+    {
+     "source": "irrigation/01_irrigation_water_management.md",
+     "section": "Sugarcane Irrigation Water Management — Main Information",
+     "score": 0.9062,
+     "via": "groq"
+    },
+    {
+     "source": "irrigation/01_irrigation_water_management.md",
+     "section": "Sugarcane Irrigation Water Management — Summary",
+     "score": 0.9162,
+     "via": "groq"
+    },
+    {
+     "source": "irrigation/01_irrigation_water_management.md",
+     "section": "Sugarcane Irrigation Water Management — Key Facts",
+     "score": 0.9122,
+     "via": "groq"
+    },
+    {
+     "source": "irrigation/01_irrigation_water_management.md",
+     "section": "Sugarcane Irrigation Water Management — Main Information",
+     "score": 0.9077,
+     "via": "groq"
+    }
+   ],
+   "fact_check": "checked",
+   "caveats": [
+    "number: 35 DAP"
+   ],
+   "answer": "ದಯವಿಟ್ಟು ಮುಂದುವರಿಯುವ ಮೊದಲು ಪರಿಶೀಲಿಸಿ: \"35 DAP\" (ಈ ಸಂಖ್ಯೆ Gage ಮಾಹಿತಿ ದಾಖಲೆಗಳಲ್ಲಿ ಇಲ್ಲ).\n\nಪ್ರತಿ application ಗೆ 7 ರಿಂದ 8 cm ನೀರು ಹಾಕಿ, crop phase ಪ್ರಕಾರ vary ಮಾಡಿ -- 7 ದಿನಕ್ಕೆ germination (1 ಇಂದ 35 DAP) ಗೆ, 10 ದಿನಕ್ಕೆ tillering (36 ಇಂದ 100 DAP), 7 ದಿನಕ್ಕೆ grand growth (101 ಇಂದ 270 DAP), ಮತ್ತು 15 ದಿನಕ್ಕೆ maturity (271 DAP ಇಂದ harvest) ಗೆ.",
+   "raw_answer": "ಪ್ರತಿ application ಗೆ 7 ರಿಂದ 8 cm ನೀರು ಹಾಕಿ, crop phase ಪ್ರಕಾರ vary ಮಾಡಿ -- 7 ದಿನಕ್ಕೆ germination (1 ಇಂದ 35 DAP) ಗೆ, 10 ದಿನಕ್ಕೆ tillering (36 ಇಂದ 100 DAP), 7 ದಿನಕ್ಕೆ grand growth (101 ಇಂದ 270 DAP), ಮತ್ತು 15 ದಿನಕ್ಕೆ maturity (271 DAP ಇಂದ harvest) ಗೆ.",
+   "error": null
+  },
+  {
+   "id": "Q5",
+   "question": "VKSA ಅಂತ ಒಂದು programme ಇದೆ ಅಂತ ಕೇಳಿದ್ದೀನಿ, ನಮ್ಮ ಕರ್ನಾಟಕದಲ್ಲಿ ಬಂತಾ?",
+   "note": "Must say 8 June 2025 and Bengaluru.",
+   "status": 200,
+   "seconds": 15.89,
+   "pass": false,
+   "reasons": [
+    "missing one of ['8', '೮']",
+    "missing one of ['june', 'ಜೂನ್']",
+    "missing one of ['bengaluru', 'bangalore', 'ಬೆಂಗಳೂರು']"
+   ],
+   "doc_ok": true,
+   "key_facts_ok": false,
+   "uncaveated": [],
+   "refused": false,
+   "provider": "sarvam_finetuned",
+   "answer_seconds": 12.36,
+   "sources": [
+    {
+     "source": "government_schemes/02_viksit_krishi_sankalp_abhiyan_vksa_2025.md",
+     "section": "Viksit Krishi Sankalp Abhiyan (VKSA-2025): Current National Farmer-Scientist Outreach Campaign — Summary",
+     "score": 0.8838,
+     "via": "groq"
+    },
+    {
+     "source": "government_schemes/02_viksit_krishi_sankalp_abhiyan_vksa_2025.md",
+     "section": "Viksit Krishi Sankalp Abhiyan (VKSA-2025): Current National Farmer-Scientist Outreach Campaign — Key Facts",
+     "score": 0.8812,
+     "via": "groq"
+    },
+    {
+     "source": "government_schemes/02_viksit_krishi_sankalp_abhiyan_vksa_2025.md",
+     "section": "Viksit Krishi Sankalp Abhiyan (VKSA-2025): Current National Farmer-Scientist Outreach Campaign — Important Recommendations",
+     "score": 0.8714,
+     "via": "groq"
+    },
+    {
+     "source": "government_schemes/02_viksit_krishi_sankalp_abhiyan_vksa_2025.md",
+     "section": "Viksit Krishi Sankalp Abhiyan (VKSA-2025): Current National Farmer-Scientist Outreach Campaign — Important Recommendations",
+     "score": 0.8686,
+     "via": "groq"
+    }
+   ],
+   "fact_check": "checked",
+   "caveats": [
+    "contradicted: VKSA runs every two years"
+   ],
+   "answer": "ದಯವಿಟ್ಟು ಮುಂದುವರಿಯುವ ಮೊದಲು ಪರಿಶೀಲಿಸಿ: \"VKSA runs every two years\" (Gage ಮಾಹಿತಿ ದಾಖಲೆಗಳಿಗೆ ವಿರುದ್ಧವಾಗಿದೆ).\n\nಹೌದು, VKSA ಅಂದ್ರೆ Viksit Krishi Sankalp Abhiyan, ಇದು ಪ್ರತಿ ಎರಡು ವರ್ಷಕ್ಕೊಮ್ಮೆ ನಡೆಯುತ್ತೆ, 2025 ರಲ್ಲಿ nationwide launch ಆಯ್ತು, ಮತ್ತು Karnataka ಕೂಡ ಈ campaign ನ ಒಂದು ಭಾಗ ಆಗಿತ್ತು.",
+   "raw_answer": "ಹೌದು, VKSA ಅಂದ್ರೆ Viksit Krishi Sankalp Abhiyan, ಇದು ಪ್ರತಿ ಎರಡು ವರ್ಷಕ್ಕೊಮ್ಮೆ ನಡೆಯುತ್ತೆ, 2025 ರಲ್ಲಿ nationwide launch ಆಯ್ತು, ಮತ್ತು Karnataka ಕೂಡ ಈ campaign ನ ಒಂದು ಭಾಗ ಆಗಿತ್ತು.",
+   "error": null
+  },
+  {
+   "id": "Q6",
+   "question": "ನಾನು ಯಾವ ಕಬ್ಬಿನ ತಳಿ ಹಾಕೊಬೇಕು ಅಂತ confuse ಆಗಿದೀನಿ, ಸರಿಯಾದ variety ಹೇಗೆ ಆರಿಸ್ಕೊಳಿ ಅಂತ ಹೇಳಿ.",
+   "note": "Must not mention crossbreeding or germplasm.",
+   "status": 200,
+   "seconds": 11.53,
+   "pass": true,
+   "reasons": [],
+   "doc_ok": true,
+   "key_facts_ok": true,
+   "uncaveated": [],
+   "refused": false,
+   "provider": "sarvam_finetuned",
+   "answer_seconds": 7.95,
+   "sources": [
+    {
+     "source": "sugarcane/04_planting_methods_and_nursery_techniques.md",
+     "section": "Sugarcane Planting Methods and Advanced Nursery Techniques — Main Information",
+     "score": 0.8755,
+     "via": "sarvam"
+    },
+    {
+     "source": "sugarcane/01_sugarcane_cultivation_overview_india_and_karnataka.md",
+     "section": "Sugarcane Cultivation in India: Agro-Climatic Overview (with Karnataka Focus) — Important Recommendations",
+     "score": 0.863,
+     "via": "groq"
+    },
+    {
+     "source": "sugarcane/03_seed_selection_and_seed_treatment.md",
+     "section": "Sugarcane Seed Selection, Seed Rate, and Seed Treatment — Main Information",
+     "score": 0.8692,
+     "via": "groq"
+    },
+    {
+     "source": "sugarcane/03_seed_selection_and_seed_treatment.md",
+     "section": "Sugarcane Seed Selection, Seed Rate, and Seed Treatment — Important Recommendations",
+     "score": 0.8672,
+     "via": "groq"
+    }
+   ],
+   "fact_check": "checked",
+   "caveats": [
+    "unsupported: A sugarcane variety should match the farmer's specific agro-climatic zone and planting season, because one variety does not work in all conditions."
+   ],
+   "answer": "ದಯವಿಟ್ಟು ಮುಂದುವರಿಯುವ ಮೊದಲು ಪರಿಶೀಲಿಸಿ: \"A sugarcane variety should match the farmer's specific agro-climatic zone and planting season, because one variety does not work in all conditions.\" (Gage ಮಾಹಿತಿ ದಾಖಲೆಗಳಲ್ಲಿ ಇಲ್ಲ).\n\nಕಬ್ಬಿನ ತಳಿ ಆಯ್ಕೆ ಮಾಡುವಾಗ, ನಿಮ್ಮ specific agro-climatic zone ಮತ್ತು planting season ಗೆ match ಆಗೋ ಹಾಗೆ ನೋಡಿ, ಯಾಕೆಂದರೆ ಒಂದೇ variety ಎಲ್ಲಾ conditions ಅಲ್ಲೂ work ಮಾಡಲ್ಲ.",
+   "raw_answer": "ಕಬ್ಬಿನ ತಳಿ ಆಯ್ಕೆ ಮಾಡುವಾಗ, ನಿಮ್ಮ specific agro-climatic zone ಮತ್ತು planting season ಗೆ match ಆಗೋ ಹಾಗೆ ನೋಡಿ, ಯಾಕೆಂದರೆ ಒಂದೇ variety ಎಲ್ಲಾ conditions ಅಲ್ಲೂ work ಮಾಡಲ್ಲ.",
+   "error": null
+  },
+  {
+   "id": "Q7",
+   "question": "Sir every time watering how much depth I give, any standard number?",
+   "note": "Irrigation document; key fact 7-8 cm.",
+   "status": 200,
+   "seconds": 11.06,
+   "pass": false,
+   "reasons": [
+    "missing one of ['7']",
+    "missing one of ['8']"
+   ],
+   "doc_ok": true,
+   "key_facts_ok": false,
+   "uncaveated": [],
+   "refused": false,
+   "provider": "sarvam_finetuned",
+   "answer_seconds": 6.02,
+   "sources": [
+    {
+     "source": "irrigation/01_irrigation_water_management.md",
+     "section": "Sugarcane Irrigation Water Management — Main Information",
+     "score": 0.9128,
+     "via": "groq"
+    },
+    {
+     "source": "sugarcane/02_land_preparation.md",
+     "section": "Land Preparation for Sugarcane Cultivation — Key Facts",
+     "score": 0.8991,
+     "via": "groq"
+    },
+    {
+     "source": "irrigation/01_irrigation_water_management.md",
+     "section": "Sugarcane Irrigation Water Management — Key Facts",
+     "score": 0.885,
+     "via": "groq"
+    },
+    {
+     "source": "sugarcane/02_land_preparation.md",
+     "section": "Land Preparation for Sugarcane Cultivation — Important Recommendations",
+     "score": 0.8783,
+     "via": "groq"
+    }
+   ],
+   "fact_check": "checked",
+   "caveats": [],
+   "answer": "No problem Sir, you can use general guidelines from what's been shared here as reference while applying it at your own farm level.",
+   "raw_answer": "No problem Sir, you can use general guidelines from what's been shared here as reference while applying it at your own farm level.",
+   "error": null
+  },
+  {
+   "id": "Q8",
+   "question": "What is the FRP for sugarcane this season and how soon must the mill pay?",
+   "note": "Must say Rs 355 per quintal for 2025-26 and 14 days.",
+   "status": 200,
+   "seconds": 23.43,
+   "pass": false,
+   "reasons": [
+    "missing one of ['355']",
+    "missing one of ['14']"
+   ],
+   "doc_ok": true,
+   "key_facts_ok": false,
+   "uncaveated": [],
+   "refused": false,
+   "provider": "sarvam_finetuned",
+   "answer_seconds": 21.89,
+   "sources": [
+    {
+     "source": "market/01_sugarcane_fair_and_remunerative_price_frp.md",
+     "section": "Sugarcane Market Price: Fair and Remunerative Price (FRP) System — Important Recommendations",
+     "score": 0.9058,
+     "via": "original"
+    },
+    {
+     "source": "market/01_sugarcane_fair_and_remunerative_price_frp.md",
+     "section": "Sugarcane Market Price: Fair and Remunerative Price (FRP) System — Main Information",
+     "score": 0.8992,
+     "via": "original"
+    },
+    {
+     "source": "market/01_sugarcane_fair_and_remunerative_price_frp.md",
+     "section": "Sugarcane Market Price: Fair and Remunerative Price (FRP) System — Summary",
+     "score": 0.8921,
+     "via": "original"
+    },
+    {
+     "source": "market/01_sugarcane_fair_and_remunerative_price_frp.md",
+     "section": "Sugarcane Market Price: Fair and Remunerative Price (FRP) System — Main Information",
+     "score": 0.886,
+     "via": "original"
+    }
+   ],
+   "fact_check": "checked",
+   "caveats": [
+    "number: Rs 2,800",
+    "number: Rs 1,800",
+    "unsupported: FRP for this season is Rs 2,800 per quintal between Oct-Nov 2025 through Dec 2025",
+    "unsupported: Confirmed purchase prices were Rs 2,800 per quintal",
+    "unsupported: Purchase prices were around Rs 1,800 at other times",
+    "unsupported: Payments will be more immediate once good news is announced",
+    "unsupported: There is no change over time in FRP"
+   ],
+   "answer": "Please double-check before acting: \"Rs 2,800\" (this number is not in Gage's sources); \"Rs 1,800\" (this number is not in Gage's sources); \"FRP for this season is Rs 2,800 per quintal between Oct-Nov 2025 through Dec 2025\" (not in Gage's sources); +2.\n\nThe latest official announcement specifies that during the period between Octo-Nov 2025 through Dec 2025, confirmed purchase prices were Rs 2,800 per quintal as compared to only around Rs 1,800 at other times when there wasn’t any confirmation or movement in supply conditions. This indicates why you would expect more immediate payments once good news comes out into public domain versus what I posted here indicating no change over time.",
+   "raw_answer": "The latest official announcement specifies that during the period between Octo-Nov 2025 through Dec 2025, confirmed purchase prices were Rs 2,800 per quintal as compared to only around Rs 1,800 at other times when there wasn’t any confirmation or movement in supply conditions. This indicates why you would expect more immediate payments once good news comes out into public domain versus what I posted here indicating no change over time.",
+   "error": null
+  },
+  {
+   "id": "Q9",
+   "question": "Why are the leaves of my cane turning yellow?",
+   "note": "Answered, not refused.",
+   "status": 200,
+   "seconds": 21.95,
+   "pass": true,
+   "reasons": [],
+   "doc_ok": true,
+   "key_facts_ok": true,
+   "uncaveated": [],
+   "refused": false,
+   "provider": "sarvam_finetuned",
+   "answer_seconds": 16.15,
+   "sources": [
+    {
+     "source": "nutrient_deficiency/01_iron_chlorosis_and_micronutrient_deficiency.md",
+     "section": "Nutrient Deficiency Management in Sugarcane (Iron Chlorosis and Micronutrients) — Important Recommendations",
+     "score": 0.8933,
+     "via": "groq"
+    },
+    {
+     "source": "nutrient_deficiency/01_iron_chlorosis_and_micronutrient_deficiency.md",
+     "section": "Nutrient Deficiency Management in Sugarcane (Iron Chlorosis and Micronutrients) — Summary",
+     "score": 0.896,
+     "via": "groq"
+    },
+    {
+     "source": "diseases/01_disease_management.md",
+     "section": "Sugarcane Disease Management — Summary",
+     "score": 0.8903,
+     "via": "groq"
+    },
+    {
+     "source": "diseases/01_disease_management.md",
+     "section": "Sugarcane Disease Management — Important Recommendations",
+     "score": 0.8879,
+     "via": "groq"
+    }
+   ],
+   "fact_check": "checked",
+   "caveats": [
+    "unsupported: Chlorosis due to prolonged dry weather conditions during crop recovery phase",
+    "unsupported: Moisture stress reduces photosynthetic activity which affects carbohydrate synthesis and translocation within plant tissues leading to reduced sugar formation coupled with poor nutrient assimilation resulting in lower yield potential"
+   ],
+   "answer": "Please double-check before acting: \"Chlorosis due to prolonged dry weather conditions during crop recovery phase\" (not in Gage's sources); \"Moisture stress reduces photosynthetic activity which affects carbohydrate synthesis and translocation within plant tissues leading to reduced sugar formation coupled with poor nutrient assimilation resulting in lower yield potential\" (not in Gage's sources).\n\nAnswer: Chlorosis due to prolonged dry weather conditions during crop recovery phase; this would affect both sucrose accumulation and nutrient uptake efficiency because moisture stress reduces photosynthetic activity which affects carbohydrate synthesis & translocation within plant tissues leading to reduced sugar formation coupled with poor nutrient assimilation resulting in lower yield potential.",
+   "raw_answer": "Answer: Chlorosis due to prolonged dry weather conditions during crop recovery phase; this would affect both sucrose accumulation and nutrient uptake efficiency because moisture stress reduces photosynthetic activity which affects carbohydrate synthesis & translocation within plant tissues leading to reduced sugar formation coupled with poor nutrient assimilation resulting in lower yield potential.",
+   "error": null
+  },
+  {
+   "id": "Q10",
+   "question": "Is my soil too dry right now?",
+   "note": "Uses the farm readings; says what is missing if data is thin.",
+   "status": 200,
+   "seconds": 21.99,
+   "pass": false,
+   "reasons": [
+    "neither quotes the soil reading nor says what is missing"
+   ],
+   "doc_ok": true,
+   "key_facts_ok": false,
+   "uncaveated": [],
+   "refused": false,
+   "provider": "sarvam_finetuned",
+   "answer_seconds": 16.81,
+   "sources": [
+    {
+     "source": "nutrient_deficiency/01_iron_chlorosis_and_micronutrient_deficiency.md",
+     "section": "Nutrient Deficiency Management in Sugarcane (Iron Chlorosis and Micronutrients) — Main Information",
+     "score": 0.8765,
+     "via": "groq"
+    },
+    {
+     "source": "sugarcane/01_sugarcane_cultivation_overview_india_and_karnataka.md",
+     "section": "Sugarcane Cultivation in India: Agro-Climatic Overview (with Karnataka Focus) — Main Information",
+     "score": 0.8792,
+     "via": "groq"
+    },
+    {
+     "source": "harvesting/02_post_harvest_management_and_sucrose_loss.md",
+     "section": "Post-Harvest Management of Sugarcane: Preventing Sucrose Loss — Key Facts",
+     "score": 0.8695,
+     "via": "groq"
+    },
+    {
+     "source": "irrigation/01_irrigation_water_management.md",
+     "section": "Sugarcane Irrigation Water Management — Important Recommendations",
+     "score": 0.8726,
+     "via": "groq"
+    }
+   ],
+   "fact_check": "checked",
+   "caveats": [
+    "unsupported: The soil is not too dry",
+    "unsupported: The question is not about whether you have enough moisture",
+    "unsupported: It is about how much rain fell this month compared to normal over three years",
+    "unsupported: There were no significant changes since last year",
+    "unsupported: The current situation matches one documented as having good yield potential",
+    "unsupported: There is no specific reason why it shouldn't be fine yet",
+    "unsupported: More information is needed before making judgments on actual risk"
+   ],
+   "answer": "Please double-check before acting: \"The soil is not too dry\" (not in Gage's sources); \"The question is not about whether you have enough moisture\" (not in Gage's sources); \"It is about how much rain fell this month compared to normal over three years\" (not in Gage's sources); +4.\n\nNo problem! This isn't about whether you have enough moisture — it's just how much rain fell this month compared to what was normal over three years combined. If there were no significant changes since last year or if your current situation matches one documented as having good yield potential without any specific reason why it shouldn't be fine yet, then I think we need more information before making judgments on actual risk here.",
+   "raw_answer": "No problem! This isn't about whether you have enough moisture — it's just how much rain fell this month compared to what was normal over three years combined. If there were no significant changes since last year or if your current situation matches one documented as having good yield potential without any specific reason why it shouldn't be fine yet, then I think we need more information before making judgments on actual risk here.",
+   "error": null
+  }
+ ],
+ "burst": []
+}

@@ -431,7 +431,13 @@ VIEWS.detail = async (id) => {
 };
 
 // ---------- ASK GAGE ----------
-const SUGGESTIONS = ["Should I irrigate?", "How is my crop?", "Any disease?", "Is soil moisture okay?", "ನನ್ನ ಬೆಳೆ ಹೇಗಿದೆ?"];
+// "" = the server default (LLM_PROVIDER). The fine-tuned model loads on its first use.
+const ENGINES = [["", "Default (server setting)"], ["groq", "Groq · gpt-oss-120b"],
+                 ["sarvam_finetuned", "Fine-tuned Sarvam-1 (local GPU)"]];
+const engineName = (p) => ({ groq: "Groq · gpt-oss-120b", sarvam_finetuned: "Fine-tuned Sarvam-1", mock: "Offline test engine" }[p] || p || "unknown");
+// Kanglish prompts: the fine-tuned engine answers in Kanglish, and Groq matches
+// the question's language, so these keep the demo in Kannada-English.
+const SUGGESTIONS = ["Naanu irrigation madbeka?", "Nanna crop hegide?", "Yavudadru disease ide na?", "Soil moisture sari ideya?", "ನನ್ನ ಬೆಳೆ ಹೇಗಿದೆ?"];
 VIEWS.ask = async () => `
   <div class="card">
     <div class="mic-wrap"><button class="mic" id="mic" aria-label="Record a question">${icon("mic")}</button>
@@ -441,6 +447,9 @@ VIEWS.ask = async () => `
   <div class="chips" id="chips">${SUGGESTIONS.map((q) => `<button class="chip-btn">${esc(q)}</button>`).join("")}</div>
   <div id="ask-log" style="margin-top:18px"></div>
   <div class="card glass" style="position:sticky;bottom:calc(var(--nav-h) + 10px);z-index:5;padding:12px">
+    <label class="engine-pick">Answer engine
+      <select id="ask-engine">${ENGINES.map(([v, l]) => `<option value="${v}"${(state.prefs.engine || "") === v ? " selected" : ""}>${esc(l)}</option>`).join("")}</select>
+    </label>
     <div class="row"><input id="ask-input" placeholder="Type your question…" />
       <button class="btn" id="ask-send" style="flex:0 0 auto">Ask</button></div>
   </div>`;
@@ -449,6 +458,7 @@ WIRE.ask = () => {
   $("#ask-send").onclick = () => { const v = $("#ask-input").value.trim(); if (v) { $("#ask-input").value = ""; askText(v); } };
   $("#ask-input").addEventListener("keydown", (e) => { if (e.key === "Enter") $("#ask-send").click(); });
   $("#mic").onclick = toggleMic;
+  $("#ask-engine").onchange = (e) => { state.prefs.engine = e.target.value; savePrefs(); };
 };
 function logBubble(html, who) {
   const log = $("#ask-log"); if (!log) return null;
@@ -458,9 +468,18 @@ function logBubble(html, who) {
 async function askText(q) {
   logBubble(esc(q), "user");
   const pending = logBubble(`<span class="typing"><span></span><span></span><span></span></span>`, "bot");
-  try { const r = await jpost("/chat", { farm_id: state.farmId, question: q });
-    pending.innerHTML = docInline(r.answer); attachPlay(pending, r.answer, r.language);
-  } catch { pending.textContent = "Sorry, I'm unavailable right now."; }
+  const body = { farm_id: state.farmId, question: q };
+  if (state.prefs.engine) body.provider = state.prefs.engine;
+  try { const r = await jpost("/chat", body);
+    pending.innerHTML = docInline(r.answer) +
+      `<div class="engine-tag">Answered by ${esc(engineName(r.provider))}${r.answer_seconds != null ? ` · ${(+r.answer_seconds).toFixed(1)} s` : ""}</div>`;
+    attachPlay(pending, r.answer, r.language);
+  } catch (e) {
+    // Show the server's reason (e.g. the fine-tuned engine is unavailable), not a guess.
+    let msg = "Sorry, I'm unavailable right now.";
+    try { msg = JSON.parse(e.message).detail || msg; } catch { /* not JSON */ }
+    pending.textContent = msg;
+  }
 }
 function parseDoc(text) {
   const grab = (n, stops) => { const m = text.match(new RegExp(`${n}\\s*:?\\s*([\\s\\S]*?)(?=(?:${stops.join("|")})\\s*:|$)`, "i")); return m ? m[1].trim() : ""; };

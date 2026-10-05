@@ -1,0 +1,29 @@
+Can the fine-tuned Sarvam-1 model be forced to answer an ENGLISH question in
+Kanglish? Tested 2026-10-05 against the live /chat endpoint (provider=sarvam_finetuned).
+
+The model mirrors the FARMER turn's language. Attempts to force Kanglish:
+
+1. Baseline (no steer), English question "Should I irrigate?":
+   -> "Yes, you must keep checking whether your field needs any additional
+      irrigation because it depends upon rain timing as well."   [English]
+
+2. System-prompt directive ("Always reply in Kanglish ... even when the farmer
+   writes in English"), same English question:
+   -> "Yes, you must apply irrigation at least once every week until crops
+      mature unless there's good rain."                          [English - ignored]
+   -> "Is soil moisture okay?" -> "No problem! Moisture control is crucial..."  [English - ignored]
+   (Worse: the directive's example text leaked verbatim into unrelated answers.)
+
+3. Farmer-turn hint appended to the question:
+   -> "Should I irrigate?"      -> drifts to English after a Kanglish opener  [unreliable]
+   -> "How is my crop?"         -> pure English                              [ignored]
+   -> "Is soil moisture okay?"  -> parroted the system-prompt example        [bad]
+
+Conclusion: always-Kanglish cannot be forced by instruction on this model.
+Reverted the system prompt to the training string.
+
+What IS reliable: a Kanglish question gives a Kanglish answer.
+   "Naanu irrigation madbeka?"
+   -> "Idu nodi yes sir, Skip Furrow method inda kelidri, idinda suma 30-40%
+      water save maadoke saakagutte."                            [Kanglish]
+So the suggestion chips were changed to Kanglish.

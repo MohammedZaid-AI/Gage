@@ -1,5 +1,6 @@
 """Pydantic v2 request/response schemas."""
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -148,6 +149,8 @@ class ObservationOut(BaseModel):
 class ChatRequest(BaseModel):
     farm_id: int
     question: str
+    # Answer engine for this question; missing -> LLM_PROVIDER from .env.
+    provider: Literal["groq", "sarvam_finetuned"] | None = None
 
 
 class ChatResponse(BaseModel):
@@ -159,6 +162,8 @@ class ChatResponse(BaseModel):
     unsupported_claims: list[str] = []
     # Groq grounding check: checked | unavailable | skipped (token budget).
     fact_check: str | None = None
+    provider: str | None = None          # the engine that wrote this answer
+    answer_seconds: float | None = None  # time in that engine
     fact_check_seconds: float | None = None
     # The model's own text before any caveat or note was added.
     raw_answer: str | None = None

@@ -1,0 +1,43 @@
+Q1: PASS 200 6.85s engine=groq (1.56s) fact_check=checked top=pests/02_iisr_current_helpline_and_2024_2025_activities.md@0.8619 
+Q2: PASS 200 8.09s engine=groq (2.93s) fact_check=checked top=nutrient_deficiency/01_iron_chlorosis_and_micronutrient_deficiency.md@0.8984 
+Q3: PASS 200 6.38s engine=groq (1.6s) fact_check=checked top=irrigation/01_irrigation_water_management.md@0.9248 
+Q4: PASS 200 4.3s engine=groq (1.61s) fact_check=checked top=irrigation/01_irrigation_water_management.md@0.9062 
+Q5: PASS 200 5.53s engine=groq (2.0s) fact_check=checked top=government_schemes/02_viksit_krishi_sankalp_abhiyan_vksa_2025.md@0.8838 
+Q6: PASS 200 6.58s engine=groq (3.12s) fact_check=checked top=sugarcane/01_sugarcane_cultivation_overview_india_and_karnataka.md@0.863 
+Q7: PASS 200 7.47s engine=groq (1.9s) fact_check=checked top=irrigation/01_irrigation_water_management.md@0.9128 
+Q8: FAIL 200 4.51s engine=groq (2.83s) fact_check=checked top=market/01_sugarcane_fair_and_remunerative_price_frp.md@0.9058 missing one of ['355']
+Q9: PASS 200 19.29s engine=groq (13.57s) fact_check=checked top=nutrient_deficiency/01_iron_chlorosis_and_micronutrient_deficiency.md@0.8933 
+Q10: PASS 200 7.58s engine=groq (2.2s) fact_check=checked top=nutrient_deficiency/01_iron_chlorosis_and_micronutrient_deficiency.md@0.8765 
+sensor upload while answering: {'uploads': 153, 'all_200': True, 'p50_ms': 47.7, 'p95_ms': 55.1, 'max_ms': 154.8}
+{
+ "comparison": {
+  "engine": "groq",
+  "answered": 10,
+  "right_document": 10,
+  "key_facts": 9,
+  "invented_numbers_uncaveated": 0,
+  "refusals": 0,
+  "seconds_per_answer_mean": 7.7,
+  "seconds_per_answer_max": 19.3,
+  "engine_seconds_mean": 3.3
+ },
+ "passed": 9,
+ "total": 10,
+ "right_document": 10,
+ "fact_checks_completed": 10,
+ "latency": {
+  "uploads": 153,
+  "all_200": true,
+  "p50_ms": 47.7,
+  "p95_ms": 55.1,
+  "max_ms": 154.8
+ },
+ "pass_bar": {
+  "right_document_10_of_10": true,
+  "no_uncaveated_numbers": true,
+  "q9_not_refused": true,
+  "grounding_at_least_8_of_10": true,
+  "sensor_upload_p95_under_150ms": true
+ },
+ "pass_bar_met": true
+}

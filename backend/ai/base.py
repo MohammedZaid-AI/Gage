@@ -7,6 +7,11 @@ class LLMError(RuntimeError):
     so a failure is never shown to a farmer or saved as if it were advice."""
 
 
+class LLMUnavailable(LLMError):
+    """The requested answer engine cannot run (model or GPU missing, failed to
+    load, unknown name). Reported as such; never answered by another engine."""
+
+
 class LLMBusy(LLMError):
     """The model service is rate-limited; `retry_after` says how long to wait."""
 
