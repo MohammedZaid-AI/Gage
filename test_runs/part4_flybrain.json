@@ -1,0 +1,98 @@
+{
+ "fit_seconds": 25.2,
+ "cleaning": {
+  "history": 549,
+  "clean": 183,
+  "excluded": 366,
+  "all_zero": 0,
+  "soil_zero_runs": 366,
+  "normal": 165,
+  "fitted": true,
+  "reason": null
+ },
+ "threshold": 0.3859,
+ "heldout": {
+  "min": 0.1472,
+  "median": 0.1666,
+  "p95": 0.2413,
+  "max": 0.3888
+ },
+ "channel_min": {
+  "temperature": 23.0,
+  "humidity": 55.0,
+  "soil_moisture": 0.0
+ },
+ "channel_max": {
+  "temperature": 30.5,
+  "humidity": 88.0,
+  "soil_moisture": 100.0
+ },
+ "reading_299": {
+  "temp": 26.9,
+  "humidity": 67.9,
+  "soil": 61.0,
+  "score": 0.1534,
+  "threshold": 0.3859,
+  "anomalous": false
+ },
+ "reading_534": {
+  "temp": 30.5,
+  "humidity": 88.0,
+  "soil": 16.0,
+  "score": 0.6351,
+  "threshold": 0.3859,
+  "anomalous": true
+ },
+ "alert_rules_on_zero_reading": [
+  [
+   "soil_low",
+   "Low soil moisture 0% (water stress)"
+  ]
+ ],
+ "scored_zero_reading": false,
+ "historical_soil_low_alerts_at_0": 1,
+ "api_status": {
+  "enabled": true,
+  "graph": "synthetic",
+  "graph_description": "synthetic test graph (not the real fly connectome)",
+  "data": {
+   "history": 549,
+   "clean": 183,
+   "excluded": 366,
+   "all_zero": 0,
+   "soil_zero_runs": 366,
+   "normal": 165,
+   "fitted": true,
+   "reason": null
+  },
+  "baseline": {
+   "fitted_at": "2026-10-05 04:52:46.872663+00:00",
+   "history_readings": 183,
+   "normal_readings": 165,
+   "baseline_readings": 40,
+   "heldout_readings": 60,
+   "threshold": 0.3859,
+   "threshold_percentile": 99.0,
+   "channel_min": {
+    "temperature": 23.0,
+    "humidity": 55.0,
+    "soil_moisture": 0.0
+   },
+   "channel_max": {
+    "temperature": 30.5,
+    "humidity": 88.0,
+    "soil_moisture": 100.0
+   }
+  },
+  "latest": {
+   "reading_id": 534,
+   "score": 0.6351,
+   "threshold": 0.3859,
+   "is_anomalous": true,
+   "graph": "synthetic",
+   "at": "2026-10-05 04:52:47.433449",
+   "sentence": "The latest sensor reading scored 0.64 on the FlyBrain pattern check, above this farm's own normal threshold of 0.39: its combination of temperature, humidity and soil moisture is unusual for this field. This is a statistical flag from a synthetic test graph (not the real fly connectome) simulation, not a diagnosis."
+  },
+  "note": "The sensor-to-neuron encoding is a design choice, not a biologically validated mapping; scores are relative to this farm's own history."
+ }
+}

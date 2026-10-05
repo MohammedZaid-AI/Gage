@@ -1,0 +1,114 @@
+{
+ "question": "Prathi irrigation ge eshtu cm neeru hakbeku",
+ "answer_seconds": 7.46,
+ "answer_prompt_chars": 4758,
+ "final_answer": "**Observation**  \n- ಸಮಯ: 2026‑09‑23 04:25 UTC (node demo‑node‑1)  \n- ತಾಪಮಾನ: 27.9 °C  \n- ಆರ್ದ್ರತೆ: 72.4 %  \n- ಮಣ್ಣಿನ ತೇವಾಂಶ: 32.3 % (ವಾಲ್ಯೂಮೆಟ್ರಿಕ್)  \n- ಸಕ್ರಿಯ ಎಚ್ಚರಿಕೆ: ಇಲ್ಲ  \n\n**Analysis**  \n- 32.3 % ಮಣ್ಣಿನ ತೇವಾಂಶ ಮಧ್ಯಮ ಮಟ್ಟವನ್ನು ಸೂಚಿಸುತ್ತದೆ; ಮಣ್ಣಿನ ನೀರಿನ ಲಭ್ಯತೆ ಇನ್ನೂ ಸಂಪೂರ್ಣವಾಗಿಲ್ಲ, ಆದರೆ ಒಣಗುವಿಕೆ ಪ್ರಾರಂಭವಾಗುವ ಸಾಧ್ಯತೆ ಇದೆ.  \n- ಇತ್ತೀಚಿನ ಇತಿಹಾಸದಲ್ಲಿ ಯಾವುದೇ ಹೋಲಿಕೆ ಇಲ್ಲ, ಆದ್ದರಿಂದ ತೇವಾಂಶದ ಪ್ರವೃತ್ತಿ (ಇಳಿಕೆ/ಏರಿಕೆ) ತಿಳಿಯುವುದಿಲ್ಲ.  \n- ಬೆಳೆ ಹಂತ (DAP) ತಿಳಿಯದಿರುವುದರಿಂದ, ಹಂತ‑ಆಧಾರಿತ ನೀರಿನ ಅವಶ್ಯಕತೆಯನ್ನು ನಿಖರವಾಗಿ ನಿರ್ಧರಿಸಲಾಗುವುದಿಲ್ಲ.  \n\n**Confidence** – **Medium** (ಮಣ್ಣಿನ ತೇವಾಂಶದ ಪ್ರಮಾಣ ಸ್ಪಷ್ಟ, ಆದರೆ ಪ್ರವೃತ್ತಿ ಮತ್ತು ಬೆಳೆ ಹಂತದ ಮಾಹಿತಿ欠缺).\n\n**Recommendations**  \n\n- **Immediate actions**  \n  1. ಪ್ರಸ್ತುತ ಮಣ್ಣಿನ ತೇವಾಂಶವನ್ನು ಗಮನಿಸಿ, ಮಣ್ಣಿನ ಮೇಲ್ಮೈ 5‑10 ಸೆಂ.ಮೀ ಆಳದಲ್ಲಿ ಒಣಗಿರುವುದನ್ನು ಅನುಭವಿಸಿದರೆ, ಪ್ರತಿ ಇರ್ರಿಗೇಶನ್‌ಗೆ **7 – 8 ಸೆಂ.ಮೀ** ನೀರನ್ನು ಹಂಚಿ (ಸಾಮಾನ್ಯ ಶಿಫಾರಸು).  \n  2. ಮಣ್ಣಿನ ನೀರಿನ ಸಂಗ್ರಹಣೆಗೆ ಸಮಾನವಾಗಿ ಹಂಚುವಂತೆ, ಸ್ಪ್ರಿಂಕ್ಲರ್/ಡ್ರಿಪ್ ವ್ಯವಸ್ಥೆ ಬಳಸಿದರೆ 7 – 8 ಸೆಂ.ಮೀ ನೀರಿನ ಪ್ರಮಾಣವನ್ನು ಸಮಾನವಾಗಿ ಹಂಚಿ.  \n\n- **Monitoring advice**  \n  1. ಪ್ರತಿ ದಿನ ಮಣ್ಣಿನ ತೇವಾಂಶವನ್ನು 5 ಸೆಂ.ಮೀ ಆಳದಲ್ಲಿ ಮಾಪಿಸಿ; 30 % ಕ್ಕಿಂತ ಕೆಳಗೆ ಇಳಿದರೆ ಮುಂದಿನ ಇರ್ರಿಗೇಶನ್‌ಗೆ ತಯಾರಿ ಮಾಡಿ.  \n  2. ಮಣ್ಣಿನ ತೇವಾಂಶ 35 %‑40 % ನಡುವೆ ಸ್ಥಿರವಾಗಿದ್ದರೆ, 7 – 8 ಸೆಂ.ಮೀ ನೀರಿನ ಪ್ರಮಾಣವನ್ನು ಮುಂದುವರಿಸಿ, ಆದರೆ 7 ದಿನಗಳಿಗೊಮ್ಮೆ (ಗರ್ಮಿನೇಶನ್) ಅಥವಾ 10 ದಿನಗಳಿಗೊಮ್ಮೆ (ಟಿಲ್ಲರಿಂಗ್) ಮರುಮೌಲ್ಯಮಾಪನ ಮಾಡಿ.  \n\n- **When to seek expert help**  \n  1. ಮಣ್ಣಿನ ತೇವಾಂಶ 20 % ಕ್ಕಿಂತ ಕಡಿಮೆಯಾಗಿದೆಯೆಂದು ನಿರಂತರವಾಗಿ ಗಮನಿಸಿದರೆ, ಅಥವಾ ಬೆಳೆ ಎಲೆಗಳು ಮಡಚು, ಹಳದಿ, ಮಡಚು ಮುಂತಾದ ಲಕ್ಷಣಗಳು ಕಾಣಿಸಿದರೆ, ಸ್ಥಳೀಯ ಕೃಷಿ ವಿಸ್ತಾರಕ ಅಥವಾ ಅಗ್ರೋನಾಮಿಸ್ಟ್‌ನ್ನು ಸಂಪರ್ಕಿಸಿ.  \n  2. ನೀರಿನ ಹಂಚಿಕೆ ವ್ಯವಸ್ಥೆಯಲ್ಲಿ ಅಸಮತೋಲನ (ಉದಾ: ಕೆಲವು ಸಾಲುಗಳಲ್ಲಿ ನೀರು ಹೆಚ್ಚು, ಇತರಲ್ಲಿ ಕಡಿಮೆ) ಕಂಡುಬಂದರೆ, ತಾಂತ್ರಿಕ ಸಹಾಯ ಪಡೆಯಿರಿ.",
+ "summary": "The field is warm at 27.1 °C with 70 % humidity, but soil moisture is at 0 %. Watch the soil moisture and consider irrigating if it remains dry.",
+ "groq_calls": [
+  {
+   "t": 1791135075.93,
+   "model": "openai/gpt-oss-20b",
+   "max_completion_tokens": 160,
+   "prompt_chars": 513,
+   "purpose": "rewrite",
+   "status": 200,
+   "seconds": 0.52,
+   "headers": {
+    "x-groq-region": "bom",
+    "x-ratelimit-limit-requests": "1000",
+    "x-ratelimit-limit-tokens": "8000",
+    "x-ratelimit-remaining-requests": "999",
+    "x-ratelimit-remaining-tokens": "7643",
+    "x-ratelimit-reset-requests": "1m26.4s",
+    "x-ratelimit-reset-tokens": "2.677s"
+   },
+   "prompt_tokens": 197,
+   "completion_tokens": 40,
+   "reasoning_tokens": 17
+  },
+  {
+   "t": 1791135080.11,
+   "model": "openai/gpt-oss-120b",
+   "max_completion_tokens": null,
+   "prompt_chars": 4972,
+   "purpose": "answer",
+   "status": 200,
+   "seconds": 3.01,
+   "headers": {
+    "x-groq-region": "bom",
+    "x-ratelimit-limit-requests": "1000",
+    "x-ratelimit-limit-tokens": "8000",
+    "x-ratelimit-remaining-requests": "999",
+    "x-ratelimit-remaining-tokens": "6144",
+    "x-ratelimit-reset-requests": "1m26.4s",
+    "x-ratelimit-reset-tokens": "13.92s"
+   },
+   "prompt_tokens": 1402,
+   "completion_tokens": 1234,
+   "reasoning_tokens": 495
+  },
+  {
+   "t": 1791135081.38,
+   "model": "openai/gpt-oss-20b",
+   "max_completion_tokens": 900,
+   "prompt_chars": 4131,
+   "purpose": "fact_check",
+   "status": 200,
+   "seconds": 1.27,
+   "headers": {
+    "x-groq-region": "bom",
+    "x-ratelimit-limit-requests": "1000",
+    "x-ratelimit-limit-tokens": "8000",
+    "x-ratelimit-remaining-requests": "998",
+    "x-ratelimit-remaining-tokens": "6546",
+    "x-ratelimit-reset-requests": "2m52.8s",
+    "x-ratelimit-reset-tokens": "10.905s"
+   },
+   "prompt_tokens": 1414,
+   "completion_tokens": 747,
+   "reasoning_tokens": 244
+  },
+  {
+   "t": 1791135082.03,
+   "model": "openai/gpt-oss-120b",
+   "max_completion_tokens": null,
+   "prompt_chars": 509,
+   "purpose": "summary",
+   "status": 200,
+   "seconds": 0.59,
+   "headers": {
+    "x-groq-region": "bom",
+    "x-ratelimit-limit-requests": "1000",
+    "x-ratelimit-limit-tokens": "8000",
+    "x-ratelimit-remaining-requests": "998",
+    "x-ratelimit-remaining-tokens": "4518",
+    "x-ratelimit-reset-requests": "2m52.8s",
+    "x-ratelimit-reset-tokens": "26.115s"
+   },
+   "prompt_tokens": 189,
+   "completion_tokens": 218,
+   "reasoning_tokens": 169
+  },
+  {
+   "t": 1791135082.6,
+   "model": "openai/gpt-oss-20b",
+   "max_completion_tokens": 900,
+   "prompt_chars": 1377,
+   "purpose": "fact_check",
+   "status": 200,
+   "seconds": 0.57,
+   "headers": {
+    "x-groq-region": "bom",
+    "x-ratelimit-limit-requests": "1000",
+    "x-ratelimit-limit-tokens": "8000",
+    "x-ratelimit-remaining-requests": "997",
+    "x-ratelimit-remaining-tokens": "5639",
+    "x-ratelimit-reset-requests": "4m19.2s",
+    "x-ratelimit-reset-tokens": "17.707s"
+   },
+   "prompt_tokens": 413,
+   "completion_tokens": 157,
+   "reasoning_tokens": 70
+  }
+ ]
+}

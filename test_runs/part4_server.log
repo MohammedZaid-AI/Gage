@@ -1,0 +1,37 @@
+INFO:     Started server process [14768]
+INFO:     Waiting for application startup.
+W1005 10:31:45.805000 14768 site-packages\torch\utils\flop_counter.py:29] triton not found; flop counting will not work for triton kernels
+2026-10-05 10:31:47,403 sentence_transformers.SentenceTransformer INFO Load pretrained SentenceTransformer: ./models/embeddings/multilingual-e5-small
+Batches:   0%|          | 0/6 [00:00<?, ?it/s]Batches:  17%|█▋        | 1/6 [00:04<00:23,  4.63s/it]Batches:  33%|███▎      | 2/6 [00:08<00:17,  4.37s/it]Batches:  50%|█████     | 3/6 [00:11<00:11,  3.79s/it]Batches:  67%|██████▋   | 4/6 [00:14<00:06,  3.31s/it]Batches:  83%|████████▎ | 5/6 [00:16<00:02,  2.83s/it]Batches: 100%|██████████| 6/6 [00:16<00:00,  1.98s/it]Batches: 100%|██████████| 6/6 [00:16<00:00,  2.80s/it]
+2026-10-05 10:32:05,667 gage.knowledge INFO knowledge index built: 167 chunks from 25 documents (./models/embeddings/multilingual-e5-small)
+2026-10-05 10:32:05,716 gage.offline INFO offline watcher started: every 60s, offline after 180s silence
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8874 (Press CTRL+C to quit)
+2026-10-05 10:32:05,770 gage.alerts INFO node demo-node-1 offline: no contact for 3013118s
+2026-10-05 10:32:05,772 gage.alerts INFO alert raised: node_offline node=demo-node-1 value=None
+2026-10-05 10:32:05,815 gage.realtime INFO dashboard updated: broadcast 'node_health' -> 0 client(s)
+2026-10-05 10:32:05,816 gage.realtime INFO dashboard updated: broadcast 'alert' -> 0 client(s)
+INFO:     127.0.0.1:49906 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50301 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50302 - "GET /farm/1/anomaly HTTP/1.1" 200 OK
+2026-10-05 10:32:18,186 gage.alerts INFO alert raised: humidity_high node=demo-node-1 value=88.0
+2026-10-05 10:32:18,187 gage.alerts INFO alert raised: soil_low node=demo-node-1 value=16.0
+2026-10-05 10:32:18,216 gage.dataset INFO dataset entry for obs 8e8dca7fd2b04a85af486c5bfbd006e7 (q=40, NEW, labels=['dry_soil', 'high_humidity', 'water_stress'])
+2026-10-05 10:32:18,217 gage.observation_service INFO sensors merged into observation 8e8dca7fd2b04a85af486c5bfbd006e7 (node=demo-node-1, 2 alert(s))
+2026-10-05 10:32:18,219 gage.alerts INFO alert resolved: #3 node_offline node=demo-node-1 (auto: node back online)
+2026-10-05 10:32:18,235 gage.realtime INFO dashboard updated: broadcast 'observation' -> 0 client(s)
+2026-10-05 10:32:18,236 gage.realtime INFO dashboard updated: broadcast 'alert' -> 0 client(s)
+2026-10-05 10:32:18,237 gage.realtime INFO dashboard updated: broadcast 'alert' -> 0 client(s)
+2026-10-05 10:32:18,239 gage.realtime INFO dashboard updated: broadcast 'alert_resolved' -> 0 client(s)
+INFO:     127.0.0.1:50303 - "POST /node/sensors HTTP/1.1" 200 OK
+2026-10-05 10:32:18,316 gage.flybrain INFO farm 1: FlyBrain data cleaning: 550 rows before, 184 after (366 excluded: 366 in soil-moisture-zero runs of >= 3, 0 all-zero); 165 clean normal rows
+2026-10-05 10:32:18,321 gage.flybrain INFO flybrain graph: synthetic (2000 neurons)
+2026-10-05 10:32:24,212 httpx INFO HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-05 10:32:24,226 gage.ai.groq_client INFO groq fact_check on openai/gpt-oss-20b: 452 prompt + 211 completion tokens in 3.88s (7200 left)
+2026-10-05 10:32:24,227 gage.claim_check INFO grounding checked in 5.97s: 1 claims, 1 flagged
+2026-10-05 10:32:24,249 gage.dataset INFO dataset entry for obs 8e8dca7fd2b04a85af486c5bfbd006e7 (q=40, NEW, labels=['dry_soil', 'high_humidity', 'water_stress'])
+2026-10-05 10:32:24,250 gage.observation_service INFO AI summary generated for observation 8e8dca7fd2b04a85af486c5bfbd006e7
+2026-10-05 10:32:47,040 gage.flybrain INFO farm 1: FlyBrain baseline fitted on synthetic from 40 normal readings; held-out scores 0.147..0.389, threshold (p99) 0.386
+2026-10-05 10:32:47,291 gage.alerts INFO alert raised: anomaly node=demo-node-1 value=0.6351
+2026-10-05 10:32:47,292 gage.flybrain INFO farm 1 reading 550: FlyBrain score 0.635 vs 0.386 -> ANOMALY
+INFO:     127.0.0.1:59258 - "GET /farm/1/anomaly HTTP/1.1" 200 OK

@@ -1,0 +1,5 @@
+Q1: PASS 200 6.64s fact_check=checked top=pests/02_iisr_current_helpline_and_2024_2025_activities.md@0.8641 
+Q2: PASS 200 9.01s fact_check=checked top=nutrient_deficiency/01_iron_chlorosis_and_micronutrient_deficiency.md@0.8871 
+Q3: FAIL 503 415.36s fact_check=None top=None@None HTTP 503: {'detail': 'The assistant could not answer right now: Groq request failed: APIConnectionError: Connection error.'}
+Q4: PASS 200 4.77s fact_check=checked top=irrigation/01_irrigation_water_management.md@0.9162 
+Q5: PASS 200 5.44s fact_check=checked top=government_schemes/02_viksit_krishi_sankalp_abhiyan_vksa_2025.md@0.8838 

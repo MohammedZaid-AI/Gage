@@ -6,6 +6,9 @@ experienced agricultural field officer: it states Observed Facts, then separate
 Inference, a Confidence level, and Recommendations — and refuses to guess when
 the evidence is thin.
 """
+import re
+from datetime import date
+
 from backend.ai.knowledge import KnowledgeDoc
 from backend.models import Observation
 from backend.services.farm_context import FarmContext, Trend
@@ -30,8 +33,14 @@ _RESPONSE_CONTRACT = (
     "  - When to seek expert help\n\n"
     "Hard rules:\n"
     "- Never mix Observed Facts, Inference, and Recommendation.\n"
-    "- If the evidence is insufficient, reply exactly: \"I don't have enough "
-    "evidence from the latest observation.\" then name what is missing. Do not guess.\n"
+    "- State only numbers (amounts, doses, ranges, depths, dates, prices, days) that "
+    "appear in AGRICULTURAL KNOWLEDGE, in the farm data, or in the question. Never "
+    "make up a number or a range.\n"
+    "- Quote farm readings exactly as given (same value, same unit).\n"
+    "- Never call a reading good, bad, low, high or optimal unless AGRICULTURAL "
+    "KNOWLEDGE gives the range that makes it so; otherwise just report the value.\n"
+    "- When you name an input (for example gypsum, ferrous sulphate, urea), say only "
+    "what AGRICULTURAL KNOWLEDGE says it is for.\n"
     "- If there are active alerts, address them FIRST.\n"
     "- Gage does not analyse photos. Never claim to have seen the crop; name a "
     "disease only as a possibility consistent with the sensor readings and the "
@@ -58,7 +67,8 @@ _INTENT_TEMPLATES = {
               "sensor history. Advise on tillering / grand-growth management.",
     "weather": "Give advice that depends only on this farm's own observations, not on "
                "external weather forecasts.",
-    "general": "Answer the farmer's question grounded strictly in this farm's data.",
+    "general": "Answer the farmer's question from the knowledge text, using this farm's "
+               "data where it is relevant.",
 }
 
 _INTENT_KEYWORDS = {
@@ -75,6 +85,45 @@ _INTENT_KEYWORDS = {
 }
 
 
+# --- question type: about THIS farm right now, or general knowledge ---
+# Simple keyword rules, no model call. Whole words only ("my" not "mysore").
+_FARM_WORDS = ("my", "now", "today", "currently", "nanna", "nana", "iga", "ivattu",
+               "ನನ್ನ", "ಈಗ", "ಇವತ್ತು")
+_FARM_PHRASES = ("right now",)
+_WORD = re.compile(r"[\wಀ-೿]+")
+
+_QUESTION_TYPE_RULES = {
+    "knowledge": (
+        "QUESTION TYPE: knowledge (a general farming question, not about this farm's "
+        "current state).\n"
+        "- Answer it from AGRICULTURAL KNOWLEDGE. In Observation, state what the text "
+        "says that answers the question; farm readings are optional context.\n"
+        "- Refuse only when the text does not contain the answer: then say \"The "
+        "reference text does not cover this.\" and name exactly what is missing. Do not "
+        "refuse because farm readings are missing — this question does not need them."
+    ),
+    "farm": (
+        "QUESTION TYPE: farm (about this farm now).\n"
+        "- Use the farm's sensor readings, alerts and history as the Observed Facts, and "
+        "AGRICULTURAL KNOWLEDGE for what they mean.\n"
+        "- If the readings are missing, old or not enough to answer, still say what they "
+        "do show, then name exactly what is missing (for example a soil-moisture reading, "
+        "the crop stage, a description of the symptom). Use Confidence Low in that case. "
+        "Do not refuse outright."
+    ),
+}
+
+
+def question_type(question: str) -> str:
+    """'farm' if the question asks about this farm now (my / now / today / nanna /
+    iga / ಈಗ ...), else 'knowledge'."""
+    q = question.lower()
+    words = set(_WORD.findall(q))
+    if words & set(_FARM_WORDS) or any(p in q for p in _FARM_PHRASES):
+        return "farm"
+    return "knowledge"
+
+
 def detect_intent(question: str) -> str:
     q = question.lower()
     for intent, kws in _INTENT_KEYWORDS.items():
@@ -88,16 +137,23 @@ def _fmt(v: float | None, unit: str) -> str:
     return f"{v}{unit}" if v is not None else "n/a"
 
 
-def _observation_block(obs: Observation | None) -> str:
+def _same_values(a, b) -> bool:
+    return all(getattr(a, f) == getattr(b, f) for f in ("temperature", "humidity", "soil_moisture"))
+
+
+def _observation_block(obs: Observation | None, sensors=None) -> str:
     if obs is None:
         return "No observation recorded yet."
-    return (
-        f"- Time: {obs.timestamp:%Y-%m-%d %H:%M} UTC (node {obs.node_id})\n"
-        f"- Temperature: {_fmt(obs.temperature, ' C')}\n"
-        f"- Humidity: {_fmt(obs.humidity, ' %')}\n"
-        f"- Soil moisture: {_fmt(obs.soil_moisture, ' %')}\n"
-        f"- GPS: {_fmt(obs.gps_lat, '')}, {_fmt(obs.gps_long, '')}"
-    )
+    lines = [f"- Time: {obs.timestamp:%Y-%m-%d %H:%M} UTC (node {obs.node_id})"]
+    if sensors is not None and sensors is not obs and _same_values(obs, sensors):
+        # Same numbers as SENSOR READINGS below: say so instead of repeating them.
+        lines.append("- Sensor values: as in SENSOR READINGS below")
+    else:
+        lines += [f"- Temperature: {_fmt(obs.temperature, ' C')}",
+                  f"- Humidity: {_fmt(obs.humidity, ' %')}",
+                  f"- Soil moisture: {_fmt(obs.soil_moisture, ' %')}"]
+    lines.append(f"- GPS: {_fmt(obs.gps_lat, '')}, {_fmt(obs.gps_long, '')}")
+    return "\n".join(lines)
 
 
 def _sensor_source(ctx: FarmContext) -> Observation | None:
@@ -180,10 +236,25 @@ def _knowledge_block(docs: list[KnowledgeDoc]) -> str:
     return "\n\n".join(f"{d.title}:\n{d.text}" for d in docs)
 
 
+_MEMORY_TURNS = 3
+_MEMORY_ANSWER_CHARS = 240
+
+
+def _clip(text: str, n: int) -> str:
+    text = " ".join(text.split())
+    return text if len(text) <= n else text[:n].rsplit(" ", 1)[0] + " ..."
+
+
 def _conversation_block(ctx: FarmContext) -> str:
+    """Recent turns, so a follow-up question makes sense. Earlier answers are
+    clipped: they are Gage's own words, already given, and repeating five of
+    them in full made the prompt over 5000 tokens (most of a minute's Groq
+    budget)."""
     if not ctx.conversation:
         return ""
-    turns = "\n".join(f"Farmer: {c.question}\nGage: {c.answer}" for c in ctx.conversation)
+    recent = ctx.conversation[-_MEMORY_TURNS:]
+    turns = "\n".join(f"Farmer: {c.question}\nGage (earlier, shortened): "
+                      f"{_clip(c.answer, _MEMORY_ANSWER_CHARS)}" for c in recent)
     return f"\n\n# CONVERSATION MEMORY (recent turns, for context)\n{turns}"
 
 
@@ -200,19 +271,62 @@ def build_compact(docs: list[KnowledgeDoc], question: str) -> tuple[str, str]:
     return context, question
 
 
+_NUM = re.compile(r"\d+(?:\.\d+)?")
+
+
+def _top_for_check(docs: list[KnowledgeDoc], answer: str, n: int = 2) -> list[KnowledgeDoc]:
+    """The n retrieved chunks most relevant to the ANSWER: most numbers shared
+    with it first, then retrieval score. (The model may have used chunk 4.)"""
+    nums = set(_NUM.findall(answer))
+    return sorted(docs, key=lambda d: (len(nums & set(_NUM.findall(d.text))), d.score),
+                  reverse=True)[:n]
+
+
+def build_check_context(ctx: FarmContext | None, docs: list[KnowledgeDoc], question: str,
+                        answer: str = "") -> str:
+    """What the grounding check compares an answer against: the two retrieved
+    chunks most relevant to the answer, the farm's sensor readings, alerts and
+    FlyBrain line, and the question. Smaller than the answer prompt (no persona,
+    contract or conversation memory) to keep the check inside the Groq budget."""
+    parts = [f"# REFERENCE TEXT\n{_knowledge_block(_top_for_check(docs, answer))}"]
+    if ctx is not None:
+        parts.append(f"# FARM SENSOR READINGS\n{_sensor_block(ctx)}")
+        parts.append(f"# ACTIVE ALERTS\n{_alerts_block(ctx)}")
+        anomaly = _anomaly_block(ctx).strip()
+        if anomaly:
+            parts.append(anomaly)
+    parts.append(f"# FARMER QUESTION\n{question}")
+    return "\n\n".join(parts)
+
+
+def check_sources(ctx: FarmContext | None, docs: list[KnowledgeDoc],
+                  question: str) -> tuple[str, str, str]:
+    """(sources, readings, knowledge) for the local number/input/judgement
+    checks: everything the answer may take numbers from — ALL retrieved
+    chunks, the question, and the farm's readings and alerts."""
+    knowledge = "\n\n".join(d.text for d in docs)
+    readings = ""
+    if ctx is not None:
+        readings = f"{_sensor_block(ctx)}\n{_alerts_block(ctx)}\n{_anomaly_block(ctx)}"
+    return f"{knowledge}\n\n{readings}\n\n{question}", readings, knowledge
+
+
 def build(ctx: FarmContext, docs: list[KnowledgeDoc], question: str) -> str:
     """Assemble the full structured Crop Doctor prompt for the LLM."""
     intent = detect_intent(question)
     latest = ctx.latest
     return (
         f"{_PERSONA}\n\n{_RESPONSE_CONTRACT}\n\n"
+        f"{_QUESTION_TYPE_RULES[question_type(question)]}\n\n"
         f"# FOCUS FOR THIS QUESTION ({intent})\n{_INTENT_TEMPLATES[intent]}\n\n"
         f"# FARM\n"
         f"Name: {ctx.farm.name}\n"
         f"Crop: {ctx.crop_type}\n"
         f"Location: {ctx.location}\n"
-        f"Farmer: {ctx.farmer.name or 'unknown'}\n\n"
-        f"# CURRENT OBSERVATION\n{_observation_block(latest)}\n\n"
+        f"Farmer: {ctx.farmer.name or 'unknown'}\n"
+        # So "this season" / "this year" resolve to the right year in the text.
+        f"Today: {date.today():%d %B %Y}\n\n"
+        f"# CURRENT OBSERVATION\n{_observation_block(latest, _sensor_source(ctx))}\n\n"
         f"# SENSOR READINGS (latest)\n{_sensor_block(ctx)}\n\n"
         f"# RECENT HISTORY\n{_history_block(ctx)}\n\n"
         f"# ACTIVE ALERTS\n{_alerts_block(ctx)}\n\n"

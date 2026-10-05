@@ -28,17 +28,37 @@ class Settings(BaseSettings):
     # on-topic questions (English, or translated Kannada) scored >= 0.87, off-topic
     # ones <= 0.81. Below the floor a question retrieves nothing rather than noise.
     retrieval_min_score: float = 0.83
+    # Chunks given to the answering model. 4, not 3: the FRP price sits in the
+    # 4th chunk for "what is the FRP this season" (measured 2026-10-04).
+    retrieval_top_k: int = 4
+    # Skip the Sarvam translation and the Groq rewrite when the question as
+    # written already retrieves a chunk at this score: English questions scored
+    # >= 0.87 on this corpus, Kanglish ones 0.83-0.85 (too low to trust alone).
+    retrieval_direct_trigger: float = 0.87
     # Timeout for the small Groq helper calls (query rewrite, grounding check);
     # on timeout the answer goes ahead without them.
     groq_helper_timeout_s: float = 8.0
-    # The grounding check reads the whole context + answer; it gets longer, and the
-    # answer is returned with an 'unavailable' note if it runs out.
+    # The grounding check reads the top chunks + farm data + answer; it gets
+    # longer, and the answer is returned with an 'unavailable' note if it runs out.
     grounding_timeout_s: float = 20.0
 
     # Groq (OpenAI-compatible). Model is configurable; defaults to GPT-OSS 120B.
     groq_api_key: str = ""
     # Groq namespaces the GPT-OSS models — the id is "openai/gpt-oss-120b", not "gpt-oss-120b".
     groq_model: str = "openai/gpt-oss-120b"
+    # Smaller model for the query rewrite and the grounding check. On this
+    # account every model has its own tokens-per-minute bucket, so these calls
+    # no longer compete with the answer. (No "instant" model is offered here;
+    # gpt-oss-20b is the smallest one that returns valid JSON.)
+    groq_helper_model: str = "openai/gpt-oss-20b"
+    # Groq's tokens-per-minute limit per model on this account (free tier: 8000).
+    # Groq counts prompt + max_tokens against it when a request starts.
+    groq_tokens_per_minute: int = 8000
+    groq_rewrite_max_tokens: int = 160
+    groq_check_max_tokens: int = 1200
+    # Answer call rate-limited: wait and retry once if Groq says the wait is
+    # shorter than this; otherwise fail with 503 and the wait time.
+    groq_answer_retry_max_wait_s: float = 20.0
 
     # Speech (STT + TTS). mock | sarvam. Sarvam handles Kannada/English voice.
     speech_provider: str = "mock"
@@ -81,6 +101,11 @@ class Settings(BaseSettings):
     flybrain_threshold_percentile: float = 99.0
     flybrain_score_interval_minutes: int = 5   # score a farm at most this often
     flybrain_refit_hours: int = 24             # refit each farm's baseline this often
+    # Data cleaning: soil moisture exactly 0 for this many consecutive readings
+    # (or every channel 0) means a disconnected sensor, not a real field state;
+    # those rows are left out of fitting and calibration.
+    flybrain_zero_run: int = 3
+    flybrain_min_clean_rows: int = 100         # fewer clean rows -> no baseline, no flags
 
     # A node is considered offline if its last heartbeat is older than this.
     offline_seconds: int = 180

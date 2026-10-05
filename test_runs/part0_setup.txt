@@ -1,0 +1,38 @@
+# Part 0 setup evidence (2026-10-04T22:28:13+05:30)
+## LLM_PROVIDER lines
+.env:7:LLM_PROVIDER=groq
+.env.example:7:LLM_PROVIDER=groq
+## .env.example settings and code usages (excluding config.py)
+DATABASE_URL 6
+LLM_PROVIDER 1
+SARVAM_BASE_MODEL 2
+SARVAM_ADAPTER_PATH 1
+SARVAM_DEVICE 1
+SARVAM_QUANTIZATION 1
+SARVAM_MAX_NEW_TOKENS 1
+KNOWLEDGE_BASE_DIR 1
+EMBEDDING_MODEL 2
+RETRIEVAL_MIN_SCORE 1
+SUMMARY_INTERVAL_MINUTES 1
+GROQ_API_KEY 3
+GROQ_MODEL 2
+SPEECH_PROVIDER 1
+SARVAM_API_KEY 2
+SARVAM_STT_MODEL 1
+SARVAM_TTS_MODEL 1
+SARVAM_SPEAKER 1
+IMAGE_DIR 2
+JWT_SECRET 4
+JWT_EXPIRE_MINUTES 1
+SEED_DEMO 6
+NODE_KEY_SECRET 1
+Result: every .env.example setting is read by code; none removed.
+## p7.db
+ls: cannot access 'scratchpad/p7.db': No such file or directory
+p7.db deleted from the session scratchpad.
+## connectome tables (they live in models/malecns/raw, not _gage_build_tmp)
+total 1174568
+-rw-r--r-- 1 MOHAMMED ZAID 197121   14483314 Oct  4 15:01 body-annotations-male-cns-v1.0-minconf-0.5.feather
+-rw-r--r-- 1 MOHAMMED ZAID 197121   43282834 Oct  4 15:01 body-neurotransmitters-male-cns-v1.0.feather
+-rw-r--r-- 1 MOHAMMED ZAID 197121 1051241946 Oct  4 15:58 connectome-weights-male-cns-v1.0-minconf-0.5.feather
+-rw-r--r-- 1 MOHAMMED ZAID 197121   93745152 Oct  4 16:29 syn-points-male-cns-v1.0-minconf-0.5.feather

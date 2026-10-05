@@ -1,0 +1,119 @@
+{
+ "question": "Prathi irrigation ge eshtu cm neeru hakbeku",
+ "answer_seconds": 7.08,
+ "answer_prompt_chars": 13993,
+ "final_answer": "**Observation**  \n- ಸಮಯ: 2026‑09‑23 04:25 UTC  \n- ತಾಪಮಾನ: 27.9 °C  \n- ಆರ್ದ್ರತೆ: 72.4 %  \n- ಮಣ್ಣಿನ ತೇವಾಂಶ (ಸೆನ್ಸರ್): 32.3 % (ವಾಲ್ಯೂಮೆಟ್ರಿಕ್)  \n- GPS: 12.806987 N, 74.931933 E  \n- ಸಕ್ರಿಯ ಎಚ್ಚರಿಕೆ: ಇಲ್ಲ  \n\n**Analysis**  \nಮಣ್ಣಿನ ತೇವಾಂಶ 32 % ವಾಲ್ಯೂಮೆಟ್ರಿಕ್ ಮಟ್ಟದಲ್ಲಿ ಇದೆ. ಸಾಮಾನ್ಯವಾಗಿ ಕಬ್ಬು ಮಣ್ಣು‑ತೇವಾಂಶ ≈ 30‑35 % ಆಗಿರುವಾಗ, ಮಣ್ಣಿನ ನೀರಿನ‑ಉಪಲಭ್ಯತೆ ಮಧ್ಯಮ‑ಉನ್ನತ ಇರುತ್ತದೆ ಮತ್ತು ತಕ್ಷಣದ ನೀರಾವರಿಯ ಅವಶ್ಯಕತೆ ಕಡಿಮೆ. ಆದಾಗ್ಯೂ, ಇತ್ತೀಚಿನ ತೇವಾಂಶ ಪ್ರವೃತ್ತಿ (ಏರಿಕೆ/ಇಳಿಕೆ) ಮತ್ತು ಬೆಳೆಯ ಹಂತ (ಗುಂಪು, ತಿಲ್ಲರಿಂಗ್, ಗ್ರಾಂಡ್‑ಗ್ರೋತ್, ಮಚೂರಿ) ನಿರ್ಧರಿಸುವ ಮಾಹಿತಿಯು ಇಲ್ಲ; ಇದರಿಂದ ನಿಖರವಾದ ನಿರ್ಧಾರ ಕಷ್ಟ.  \n\n**Confidence** – **Medium** – ಮಣ್ಣಿನ ತೇವಾಂಶದ ಏಕಮಾತ್ರ ಮೌಲ್ಯದಿಂದ ನಿರ್ಣಯ ಮಾಡಲಾಗಿದೆ, ಆದರೆ ಹಂತ ಮತ್ತು ಪ್ರವೃತ್ತಿ ಇಲ್ಲದಿರುವುದರಿಂದ ಅನುಮಾನವಿದೆ.  \n\n**Recommendations**  \n\n- **Immediate actions**  \n  1. ಈಗ ತಕ್ಷಣ ನೀರಾವರಿಯ ಅಗತ್ಯವಿಲ್ಲ; ಮಣ್ಣು ತೇವಾಂಶ ≈ 32 % ಇದ್ದಾಗ, 7‑8 cm (70‑80 mm) ನೀರಿನ‑ಆಳವನ್ನು ನೀಡುವುದು ಅತಿಯಾದುದು.  \n  2. ಮೊದಲಿಗೆ ಬೆಳೆಯ ಹಂತವನ್ನು (ನೆಟ್ಟಿಗೆ 1‑35 DAP, ತಿಲ್ಲರಿಂಗ್ 36‑100 DAP, ಗ್ರಾಂಡ್‑ಗ್ರೋತ್ 101‑270 DAP, ಮಚೂರಿ > 270 DAP) ಪರಿಶೀಲಿಸಿ; ಹಂತದ ಪ್ರಕಾರ ನಿರ್ಧಾರ ಬದಲಾಗುತ್ತದೆ.  \n\n- **Monitoring advice**  \n  1. ಮಣ್ಣಿನ ತೇವಾಂಶವನ್ನು ಪ್ರತಿದಿನ ಬೆಳಿಗ್ಗೆ ದಾಖಲಿಸಿ; ಮೌಲ್ಯ 25 % ಕೆಳಗೆ ಇಳಿದರೆ ತಕ್ಷಣ ನೀರಾವರಿ ಯೋಜನೆಗೆ ಹೋಗಿ.  \n  2. ಹಂತದ ಪ್ರಕಾರ ಸಾಮಾನ್ಯ ನೀರಿನ‑ಆವಶ್ಯಕತೆ:  \n     - ನೆಟ್ಟಿಗೆ (1‑35 DAP): 7 cm ಪ್ರತಿ 7 ದಿನಗಳು  \n     - ತಿಲ್ಲರಿಂಗ್ (36‑100 DAP): 7 cm ಪ್ರತಿ 10 ದಿನಗಳು  \n     - ಗ್ರಾಂಡ್‑ಗ್ರೋತ್ (101‑270 DAP): 7 cm ಪ್ರತಿ 7 ದಿನಗಳು  \n     - ಮಚೂರಿ (>270 DAP): 7 cm ಪ್ರತಿ 15 ದಿನಗಳು  \n  3. ಮಣ್ಣಿನ ತೇವಾಂಶ 25 % ಕೆಳಗೆ ಇಳಿದಾಗ ಆಳ 7‑8 cm (70‑80 mm) ನೀರನ್ನು ಮೂಲ‑ಮಣ್ಣಿಗೆ (30‑45 cm) ತಲುಪುವಂತೆ ನೀಡಿರಿ.  \n\n- **When to seek expert help**  \n  1. ಮಣ್ಣಿನ ತೇವಾಂಶ 25 % ಕೆಳಗೆ ಇಳಿದು, 2‑3 ದಿನಗಳಲ್ಲಿ ಇನ್ನಷ್ಟು ಇಳಿಕೆಯು ಮುಂದುವರಿದರೆ, ಅಥವಾ ನೀರಾವರಿಯ ನಂತರವೂ 20 % ಕೆಳಗೇ ಉಳಿದರೆ.  \n  2. ಬೆಳೆ ಹಂತ ಅಥವಾ ಮಣ್ಣಿನ‑ತೇವಾಂಶ ಪ್ರವೃತ್ತಿ ದೃಢಪಡಿಸಲಾಗದಿದ್ದರೆ, ಸ್ಥಳೀಯ ಕೃಷಿ ವಿಸ್ತರಣಾ ಕೇಂದ್ರದ ತಜ್ಞರೊಂದಿಗೆ ಚರ್ಚಿಸಿ.  \n  3. ನೀರಾವರಿ ವ್ಯವಸ್ಥೆಯಲ್ಲಿ ಯಾವುದೇ ತಾಂತ್ರಿಕ ಸಮಸ್ಯೆ (ಪಂಪ್, ಪೈಪ್‌ಲೈನ್, ಎಮಿಟರ್‌ಗಳು) ಕಂಡುಬಂದರೂ, ಸ್ವಯಂ ಸರಿಪಡಿಸಲಾಗದಿದ್ದರೆ.\n\n(Automatic fact-checking was unavailable for this answer.)",
+ "summary": "The field is at 27.1 °C with 70 % humidity but soil moisture is at 0 %, indicating it is completely dry. Irrigation should be started as soon as possible.",
+ "groq_calls": [
+  {
+   "t": 1791133269.77,
+   "model": "openai/gpt-oss-120b",
+   "max_completion_tokens": 400,
+   "prompt_chars": 513,
+   "purpose": "rewrite",
+   "status": 200,
+   "seconds": 0.7,
+   "headers": {
+    "x-groq-region": "bom",
+    "x-ratelimit-limit-requests": "1000",
+    "x-ratelimit-limit-tokens": "8000",
+    "x-ratelimit-remaining-requests": "998",
+    "x-ratelimit-remaining-tokens": "7782",
+    "x-ratelimit-reset-requests": "2m52.8s",
+    "x-ratelimit-reset-tokens": "1.635s"
+   },
+   "prompt_tokens": 197,
+   "completion_tokens": 42,
+   "reasoning_tokens": 22
+  },
+  {
+   "t": 1791133274.53,
+   "model": "openai/gpt-oss-120b",
+   "max_completion_tokens": null,
+   "prompt_chars": 14615,
+   "purpose": "answer",
+   "status": 200,
+   "seconds": 3.18,
+   "headers": {
+    "x-groq-region": "bom",
+    "x-ratelimit-limit-requests": "1000",
+    "x-ratelimit-limit-tokens": "8000",
+    "x-ratelimit-remaining-requests": "997",
+    "x-ratelimit-remaining-tokens": "2239",
+    "x-ratelimit-reset-requests": "4m19.2s",
+    "x-ratelimit-reset-tokens": "43.207s"
+   },
+   "prompt_tokens": 5386,
+   "completion_tokens": 1161,
+   "reasoning_tokens": 217
+  },
+  {
+   "t": 1791133274.63,
+   "model": "openai/gpt-oss-120b",
+   "max_completion_tokens": 4000,
+   "prompt_chars": 17083,
+   "purpose": "fact_check",
+   "status": 429,
+   "seconds": 0.09,
+   "headers": {
+    "retry-after": "35",
+    "x-groq-region": "bom",
+    "x-ratelimit-limit-requests": "1000",
+    "x-ratelimit-limit-tokens": "8000",
+    "x-ratelimit-remaining-requests": "997",
+    "x-ratelimit-remaining-tokens": "1870",
+    "x-ratelimit-reset-requests": "4m19.2s",
+    "x-ratelimit-reset-tokens": "45.975s"
+   },
+   "error_body": {
+    "error": {
+     "message": "Rate limit reached for model `openai/gpt-oss-120b` in organization `org_01k8znjq18es1ajr54sx2m8ssh` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Used 6130, Requested 6517. Please try again in 34.8525s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing",
+     "type": "tokens",
+     "code": "rate_limit_exceeded"
+    }
+   }
+  },
+  {
+   "t": 1791133275.62,
+   "model": "openai/gpt-oss-120b",
+   "max_completion_tokens": null,
+   "prompt_chars": 509,
+   "purpose": "summary",
+   "status": 200,
+   "seconds": 0.94,
+   "headers": {
+    "x-groq-region": "bom",
+    "x-ratelimit-limit-requests": "1000",
+    "x-ratelimit-limit-tokens": "8000",
+    "x-ratelimit-remaining-requests": "996",
+    "x-ratelimit-remaining-tokens": "1270",
+    "x-ratelimit-reset-requests": "5m45.6s",
+    "x-ratelimit-reset-tokens": "50.475s"
+   },
+   "prompt_tokens": 189,
+   "completion_tokens": 218,
+   "reasoning_tokens": 168
+  },
+  {
+   "t": 1791133277.07,
+   "model": "openai/gpt-oss-120b",
+   "max_completion_tokens": 4000,
+   "prompt_chars": 1387,
+   "purpose": "fact_check",
+   "status": 200,
+   "seconds": 1.45,
+   "headers": {
+    "x-groq-region": "bom",
+    "x-ratelimit-limit-requests": "1000",
+    "x-ratelimit-limit-tokens": "8000",
+    "x-ratelimit-remaining-requests": "995",
+    "x-ratelimit-remaining-tokens": "762",
+    "x-ratelimit-reset-requests": "7m12s",
+    "x-ratelimit-reset-tokens": "54.285s"
+   },
+   "prompt_tokens": 414,
+   "completion_tokens": 309,
+   "reasoning_tokens": 160
+  }
+ ]
+}

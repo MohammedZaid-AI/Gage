@@ -1,0 +1,41 @@
+PART 1 - Groq load and rate limits
+
+1.1 The 429 (full body + headers in test_runs/part1_calls_before.json):
+  body: Rate limit reached for model `openai/gpt-oss-120b` in organization `org_01k8znjq18es1ajr54sx2m8ssh` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Used 6130, Requested 6517. Please try again in 34.8525s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing
+  headers: {'retry-after': '35', 'x-groq-region': 'bom', 'x-ratelimit-limit-requests': '1000', 'x-ratelimit-limit-tokens': '8000', 'x-ratelimit-remaining-requests': '997', 'x-ratelimit-remaining-tokens': '1870', 'x-ratelimit-reset-requests': '4m19.2s', 'x-ratelimit-reset-tokens': '45.975s'}
+  => limit hit: tokens per minute (TPM) on openai/gpt-oss-120b, 8000/min. Groq counted the
+     check's prompt + its max_tokens=4000 (Requested 6517) on top of the answer just sent.
+     It resets continuously; Groq said 'try again in 34.85s'. Requests: 1000/day, 997 left,
+     so no daily limit was involved. The fact check could never fit after an answer.
+
+1.2 BEFORE: every Groq call for one answer + one summary (Prathi irrigation ge eshtu cm neeru hakbeku)
+  rewrite    openai/gpt-oss-120b    HTTP 200  in 197  out 42  max_tokens 400
+  answer     openai/gpt-oss-120b    HTTP 200  in 5386  out 1161  max_tokens None
+  fact_check openai/gpt-oss-120b    HTTP 429  in None  out None  max_tokens 4000
+  summary    openai/gpt-oss-120b    HTTP 200  in 189  out 218  max_tokens None
+  fact_check openai/gpt-oss-120b    HTTP 200  in 414  out 309  max_tokens 4000
+  answer prompt: 13993 chars
+
+1.2 AFTER: every Groq call for one answer + one summary (Prathi irrigation ge eshtu cm neeru hakbeku)
+  rewrite    openai/gpt-oss-20b     HTTP 200  in 197  out 40  max_tokens 160
+  answer     openai/gpt-oss-120b    HTTP 200  in 1402  out 1234  max_tokens None
+  fact_check openai/gpt-oss-20b     HTTP 200  in 1414  out 747  max_tokens 900
+  summary    openai/gpt-oss-120b    HTTP 200  in 189  out 218  max_tokens None
+  fact_check openai/gpt-oss-20b     HTTP 200  in 413  out 157  max_tokens 900
+  answer prompt: 4758 chars
+
+Changes: rewrite + fact check moved to openai/gpt-oss-20b (own 8000 TPM bucket; no "instant"
+model exists on this account - see part1_models.txt), max_tokens rewrite 160 / check 1200
+(900 in the AFTER run above), check sees top-2 chunks + farm data only, conversation memory
+clipped (3 turns, 240 chars each), duplicate sensor block and persona removed: answer prompt
+5386 -> 1402 tokens. Sarvam + Groq rewrite skipped when direct retrieval >= 0.87.
+Token budget per model over a sliding 60 s window + Groq's own remaining-tokens header.
+
+Load test (test_runs/part1_load.txt, part1_load.json, part1_server.log):
+  10 questions 30 s apart: 10/10 fact checks completed, 0 HTTP 429.
+  Time added by the fact check: median 0.98 s, max 1.6 s (11 checks in server log).
+  Burst of 3 at once: all 3 answered HTTP 200 (6.1-7.0 s); 1 fact check ran, 2 were
+  skipped by the budget ("needs ~2490 tokens, 2370 left") and carry the unavailable note.
+  The answer's 429 retry-once / 503 path did not trigger live; it is covered by
+  selftest test_groq_budget_and_rate_limits (part1_selftest.txt).
+  Q3 and Q8 were content failures (refusals under the old evidence rule) - Part 2.

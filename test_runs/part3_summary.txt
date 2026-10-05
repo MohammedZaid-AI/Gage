@@ -1,0 +1,25 @@
+PART 3 - Local number check (works without Groq)
+
+New backend/ai/number_check.py, merged into claim_check.check (one caveat):
+- numbers with units vs. ALL retrieved chunks + question + farm readings/alerts;
+  normalised: mm/cm/m, %, kg/q/t, days/weeks/months, ₹/Rs, °C; Kannada digits and
+  units (ಸೆಂ.ಮೀ, ದಿನ ...); written numbers (two weeks); ranges 7-8 / 7–8 / 7 to 8 / 7 ರಿಂದ 8.
+- inputs never named in the sources; inputs tied to a purpose (gypsum -> iron) that no
+  source paragraph ties them to (aliases: FYM = farm yard manure, FeSO4 = ferrous sulphate).
+- farm readings called low/high/optimal/adequate with no range in that unit in the text.
+- name check kept. Groq findings that repeat a locally flagged number are not listed twice.
+- Groq skipped/unavailable -> note "only the local number and name checks ran".
+
+Unit tests (backend/selftest.py test_local_number_and_name_checks; part3_selftest.txt, exit 0):
+  gypsum called an iron source -> flagged ("gypsum for iron")
+  40 % soil moisture called below optimal -> flagged (judgement, no range in text)
+  invented 30 to 35 % range -> flagged
+  7 cm written as 70 mm -> not flagged
+  fully correct answer -> clean
+  + Kannada digits/units, two weeks == 2 weeks == 14 days, merged caveat, skipped note.
+
+Replay over 19 real Groq answers from Part 2 (part3_replay.txt/json, offline):
+  9 answers had findings. Spot-checked against the source text: invented intervals and depths
+  ("7-10 days", "2 weeks", "24 hours", "15-20 cm", "5-7 days"), gypsum not in the retrieved
+  text, "32.3 % adequate" with no range given. One false positive found and fixed during
+  this replay (FYM vs "farm yard manure"; purpose given in a list heading).

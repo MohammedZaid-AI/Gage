@@ -137,6 +137,21 @@ const jpost = (path, body) => api(path, { method: "POST", headers: { "Content-Ty
 
 // ---------- health helpers (client-side, mirrors backend thresholds) ----------
 const TH = { soilMin: 20, humMax: 85, tempMax: 40 };
+// FlyBrain sensor-pattern check: which graph, the latest score, or why nothing is scored.
+function flyBrainCard(fb) {
+  if (!fb || !fb.enabled) return "";
+  const L = fb.latest, d = fb.data;
+  let line;
+  if (L) line = `${L.is_anomalous ? "Unusual pattern" : "Normal pattern"} · score ${(+L.score).toFixed(2)} (threshold ${(+L.threshold).toFixed(2)}) · ${ago(L.at)}`;
+  else if (d && !d.fitted) line = `Not scoring: ${d.reason}`;
+  else line = "No reading scored yet";
+  const rows = d ? ` · ${d.clean} of ${d.history} readings usable (${d.excluded} left out as sensor faults)` : "";
+  return `<div class="section-title">Sensor pattern check</div>
+    <div class="card flat"><div class="calc-title">FlyBrain · ${esc(fb.graph_description || "")}</div>
+      <p style="margin:6px 0 0">${esc(line)}</p>
+      <p class="muted" style="margin:4px 0 0;font-size:13px">A statistical flag, not a diagnosis${esc(rows)}</p></div>`;
+}
+
 function clientHealth(o, alerts = []) {
   let s = 100;
   if (o.soil_moisture != null && o.soil_moisture < TH.soilMin) s -= 20;
@@ -255,6 +270,7 @@ VIEWS.home = async () => {
   const recentAlerts = await cachedGet(`/alerts?farm_id=${state.farmId}&include_resolved=true&limit=10`).catch(() => []);
   const resolved = recentAlerts.filter((a) => a.resolved).slice(0, 3);
   const nodes = await cachedGet(`/farms/${state.farmId}/nodes`).catch(() => state.nodes);
+  const fb = await cachedGet(`/farm/${state.farmId}/anomaly`).catch(() => null);
   state.lastSummary = s; state.node = nodes[0] || state.node;
   const nh = state.node?.health || {};
   const snap = s.sensor_snapshot || {}, o = s.latest_observation || {};
@@ -303,6 +319,8 @@ VIEWS.home = async () => {
       <div class="sensor m-batt"><div class="top"><span class="ic">${icon("battery")}</span></div><span class="v">${nh.battery != null ? fmt(nh.battery) + "<small>%</small>" : "—"}</span><span class="l">Node battery</span></div>
       ${o.gps_lat != null ? `<div class="sensor wide"><div class="top"><span class="ic">${icon("pin")}</span></div><span class="v word">${(+o.gps_lat).toFixed(4)}, ${(+o.gps_long).toFixed(4)}</span><span class="l">Last capture location</span></div>` : ""}
     </div>
+
+    ${flyBrainCard(fb)}
 
     ${(s.active_alerts || []).length ? `<div class="section-title">Active alerts</div>${[...s.active_alerts].sort((a, b) => (b.severity === "critical") - (a.severity === "critical")).map((a) => `
       <div class="alert ${a.severity === "critical" ? "crit" : ""}"><span class="ic">${icon("warning")}</span>

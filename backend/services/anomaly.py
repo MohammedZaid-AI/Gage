@@ -1,8 +1,12 @@
 """FlyBrain sensor-pattern anomaly detection, per farm (see backend/ai/flybrain.py).
 
 For each farm:
+- Clean the history first: rows from a disconnected sensor (soil moisture
+  exactly 0 for FLYBRAIN_ZERO_RUN+ consecutive readings, or every channel 0)
+  are left out. Fewer than FLYBRAIN_MIN_CLEAN_ROWS clean rows -> no baseline,
+  nothing flagged. A new reading with soil moisture 0 is not scored.
 - Normalise each channel (temperature, humidity, soil moisture) against that
-  farm's OWN minimum and maximum over its whole SensorReading history.
+  farm's OWN minimum and maximum over its clean history.
 - "Normal" readings are the farm's readings that trip no alert threshold.
   From those, a deterministic sample of FLYBRAIN_BASELINE_SIZE fits the
   baseline network response, and a separate held-out sample of
@@ -58,6 +62,7 @@ class FarmBaseline:
 _graph_cache: tuple | None = None          # (graph tuple, graph name)
 _baselines: dict[int, FarmBaseline] = {}
 _last_scored: dict[int, datetime] = {}
+_fit_info: dict[int, dict] = {}            # last fit attempt per farm: counts, reason
 _lock = threading.Lock()
 _executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="flybrain")
 
@@ -96,9 +101,39 @@ def _normalise(r, mins: dict, maxs: dict) -> dict:
     return out
 
 
+def _all_zero(r) -> bool:
+    return all(getattr(r, ch) == 0 for ch in CHANNELS)
+
+
+def clean_rows(history: list) -> tuple[list, dict]:
+    """Drop rows from a disconnected sensor: every channel 0, or soil moisture
+    exactly 0 for FLYBRAIN_ZERO_RUN or more consecutive readings. `history`
+    must be in time order. Returns (clean rows, counts)."""
+    run_min = get_settings().flybrain_zero_run
+    bad = [_all_zero(r) for r in history]
+    i = 0
+    while i < len(history):
+        if history[i].soil_moisture == 0:
+            j = i
+            while j < len(history) and history[j].soil_moisture == 0:
+                j += 1
+            if j - i >= run_min:
+                for k in range(i, j):
+                    bad[k] = True
+            i = j
+        else:
+            i += 1
+    clean = [r for r, b in zip(history, bad) if not b]
+    counts = {"history": len(history), "clean": len(clean), "excluded": len(history) - len(clean),
+              "all_zero": sum(_all_zero(r) for r in history),
+              "soil_zero_runs": sum(bad) - sum(_all_zero(r) for r in history)}
+    return clean, counts
+
+
 def fit_farm(db: Session, farm_id: int) -> FarmBaseline | None:
-    """Fit and calibrate this farm's baseline from its own history. None if the
-    farm does not have enough normal readings yet."""
+    """Fit and calibrate this farm's baseline from its own CLEAN history. None if
+    there are fewer than FLYBRAIN_MIN_CLEAN_ROWS clean rows, or too few normal
+    ones; then nothing is flagged for this farm."""
     from backend.ai import flybrain
 
     s = get_settings()
@@ -108,12 +143,22 @@ def fit_farm(db: Session, farm_id: int) -> FarmBaseline | None:
             SensorReading.humidity.is_not(None), SensorReading.soil_moisture.is_not(None),
         ).order_by(SensorReading.timestamp)
     ).scalars())
-    normal = [r for r in history if _is_normal(r)]
+    clean, counts = clean_rows(history)
+    normal = [r for r in clean if _is_normal(r)]
+    counts["normal"] = len(normal)
     need = s.flybrain_baseline_size + s.flybrain_heldout_size
-    if len(normal) < need:
-        logger.info("farm %d: %d normal readings, need %d to fit a FlyBrain baseline",
-                    farm_id, len(normal), need)
+    logger.info("farm %d: FlyBrain data cleaning: %d rows before, %d after (%d excluded: %d "
+                "in soil-moisture-zero runs of >= %d, %d all-zero); %d clean normal rows",
+                farm_id, counts["history"], counts["clean"], counts["excluded"],
+                counts["soil_zero_runs"], s.flybrain_zero_run, counts["all_zero"], len(normal))
+    if len(clean) < s.flybrain_min_clean_rows or len(normal) < need:
+        reason = (f"not enough clean history: {len(clean)} clean rows (need "
+                  f"{s.flybrain_min_clean_rows}), {len(normal)} clean normal rows (need {need})")
+        _fit_info[farm_id] = {**counts, "fitted": False, "reason": reason}
+        logger.info("farm %d: FlyBrain %s; nothing will be flagged", farm_id, reason)
         return None
+    _fit_info[farm_id] = {**counts, "fitted": True, "reason": None}
+    history = clean   # the normalisation range comes from clean rows only
     mins = {ch: min(getattr(r, ch) for r in history) for ch in CHANNELS}
     maxs = {ch: max(getattr(r, ch) for r in history) for ch in CHANNELS}
     order = np.random.default_rng(farm_id).permutation(len(normal))
@@ -148,6 +193,12 @@ def score_reading(db: Session, reading: SensorReading) -> AnomalyScore | None:
     """Score one reading against its farm's baseline, store the score, and raise
     or resolve the farm's anomaly alert. Caller commits. Blocking (simulation)."""
     if None in (reading.temperature, reading.humidity, reading.soil_moisture):
+        return None
+    if reading.soil_moisture == 0 or _all_zero(reading):
+        # A disconnected sensor, not a field pattern: not scored (the soil alert
+        # rule still reports it).
+        logger.info("farm %d reading %s: soil moisture 0 (sensor likely disconnected); "
+                    "not scored", reading.farm_id, reading.id)
         return None
     bl = _baseline(db, reading.farm_id)
     if bl is None:
@@ -222,6 +273,8 @@ def status(db: Session, farm_id: int) -> dict:
         "enabled": s.flybrain_enabled,
         "graph": graph,
         "graph_description": GRAPH_LABELS.get(graph) if graph else "no baseline fitted yet",
+        # Last fit attempt: rows before/after cleaning, and why nothing is flagged.
+        "data": _fit_info.get(farm_id),
         "baseline": None if bl is None else {
             "fitted_at": bl.fitted_at, "history_readings": bl.n_history,
             "normal_readings": bl.n_normal, "baseline_readings": bl.n_baseline,

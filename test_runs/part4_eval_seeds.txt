@@ -1,0 +1,8 @@
+seed 1: history 549 rows, clean 183, clean normal 165
+seed 1: flybrain          AUROC 0.995  recall@1%FPR 0.892  by type {'heat_spike': 0.975, 'drought': 0.9, 'humidity_jump': 0.8}
+seed 1: isolation_forest  AUROC 0.745  recall@1%FPR 0.000  by type {'heat_spike': 0.0, 'drought': 0.0, 'humidity_jump': 0.0}
+seed 1: z_score           AUROC 0.968  recall@1%FPR 0.333  by type {'heat_spike': 0.975, 'drought': 0.025, 'humidity_jump': 0.0}
+seed 2: history 549 rows, clean 183, clean normal 165
+seed 2: flybrain          AUROC 0.998  recall@1%FPR 0.933  by type {'heat_spike': 0.975, 'drought': 0.925, 'humidity_jump': 0.9}
+seed 2: isolation_forest  AUROC 0.858  recall@1%FPR 0.008  by type {'heat_spike': 0.0, 'drought': 0.0, 'humidity_jump': 0.025}
+seed 2: z_score           AUROC 0.990  recall@1%FPR 0.650  by type {'heat_spike': 0.925, 'drought': 0.225, 'humidity_jump': 0.8}

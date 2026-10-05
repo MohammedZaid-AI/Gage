@@ -15,7 +15,7 @@ from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 
 from backend import ai
-from backend.ai.base import LLMError
+from backend.ai.base import LLMBusy, LLMError
 from backend.ai.orchestrator import AIOrchestrator
 from backend.database import get_db
 from backend.dependencies import get_current_farmer, owned_farm
@@ -48,6 +48,10 @@ async def voice_ask(
 
     try:
         result = await run_in_threadpool(AIOrchestrator.answer, db, farm, transcript)
+    except LLMBusy as exc:
+        # Rate-limited model service: nothing saved; tell the farmer how long to wait.
+        raise HTTPException(503, f"The assistant is busy: {exc}. Nothing was saved.",
+                            headers={"Retry-After": str(int(exc.retry_after) + 1)}) from exc
     except LLMError as exc:
         raise HTTPException(503, f"The assistant could not answer right now: {exc}") from exc
     answer, language = result.answer, result.language

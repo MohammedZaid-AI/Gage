@@ -157,6 +157,13 @@ class ChatResponse(BaseModel):
     # Specific claims the grounding check could not find in the model's context
     # (the answer is already prefixed with a caveat when this is non-empty).
     unsupported_claims: list[str] = []
+    # Groq grounding check: checked | unavailable | skipped (token budget).
+    fact_check: str | None = None
+    fact_check_seconds: float | None = None
+    # The model's own text before any caveat or note was added.
+    raw_answer: str | None = None
+    # Retrieved knowledge chunks: source document, section and score.
+    sources: list[dict] = []
 
 
 # --- voice ---
