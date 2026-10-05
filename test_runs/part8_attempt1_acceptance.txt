@@ -1,0 +1,32 @@
+Q1: PASS 200 6.18s fact_check=checked top=pests/02_iisr_current_helpline_and_2024_2025_activities.md@0.8641 
+Q2: PASS 200 11.83s fact_check=checked top=nutrient_deficiency/01_iron_chlorosis_and_micronutrient_deficiency.md@0.8984 
+Q3: PASS 200 10.4s fact_check=checked top=irrigation/01_irrigation_water_management.md@0.9309 
+Q4: PASS 200 6.56s fact_check=checked top=irrigation/01_irrigation_water_management.md@0.9162 
+Q5: PASS 200 5.02s fact_check=checked top=government_schemes/02_viksit_krishi_sankalp_abhiyan_vksa_2025.md@0.8838 
+Q6: FAIL 200 7.24s fact_check=checked top=sugarcane/03_seed_selection_and_seed_treatment.md@0.8692 expected document not retrieved (got ['sugarcane/03_seed_selection_and_seed_treatment.md', 'sugarcane/03_seed_selection_and_seed_treatment.md', 'sugarcane/04_planting_methods_and_nursery_techniques.md', 'diseases/01_disease_management.md'])
+Q7: PASS 200 17.46s fact_check=checked top=irrigation/01_irrigation_water_management.md@0.9128 
+Q8: FAIL 503 7.58s fact_check=None top=None@None HTTP 503: {'detail': 'The assistant could not answer right now: Groq request failed: APIConnectionError: Connection error.'}
+Q9: FAIL 503 39.97s fact_check=None top=None@None HTTP 503: {'detail': 'The assistant could not answer right now: Groq request failed: APIConnectionError: Connection error.'}
+Q10: PASS 200 9.67s fact_check=checked top=sugarcane/01_sugarcane_cultivation_overview_india_and_karnataka.md@0.8792 
+sensor upload while answering: {'uploads': 17, 'all_200': True, 'p50_ms': 78.5, 'p95_ms': 344.1, 'max_ms': 344.1}
+{
+ "passed": 7,
+ "total": 10,
+ "right_document": 7,
+ "fact_checks_completed": 8,
+ "latency": {
+  "uploads": 17,
+  "all_200": true,
+  "p50_ms": 78.5,
+  "p95_ms": 344.1,
+  "max_ms": 344.1
+ },
+ "pass_bar": {
+  "right_document_10_of_10": false,
+  "no_uncaveated_numbers": true,
+  "q9_not_refused": false,
+  "grounding_at_least_8_of_10": true,
+  "sensor_upload_p95_under_150ms": false
+ },
+ "pass_bar_met": false
+}

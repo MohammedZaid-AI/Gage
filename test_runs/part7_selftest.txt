@@ -1,0 +1,24 @@
+W1005 11:26:44.842000 17912 site-packages\torch\utils\flop_counter.py:29] triton not found; flop counting will not work for triton kernels
+retrieval: sarvam query unavailable (offline selftest)
+retrieval: groq query unavailable (offline selftest)
+grounding check unavailable: grounding timed out
+retrieval: sarvam query unavailable (offline selftest)
+retrieval: groq query unavailable (offline selftest)
+grounding check unavailable: offline selftest
+retrieval: sarvam query unavailable (offline selftest)
+retrieval: groq query unavailable (offline selftest)
+grounding check unavailable: offline selftest
+retrieval: sarvam query unavailable (offline selftest)
+retrieval: groq query unavailable (offline selftest)
+grounding check unavailable: offline selftest
+retrieval: sarvam query unavailable (offline selftest)
+retrieval: groq query unavailable (offline selftest)
+grounding check unavailable: offline selftest
+D:\Zaids Work\Gage\backend\selftest.py:452: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  timestamp=_dt.utcnow())
+grounding check unavailable: offline selftest
+D:\Zaids Work\Gage\backend\selftest.py:695: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  last_seen=datetime.utcnow() - timedelta(minutes=10),  # stale
+ok  groq budget: priorities, 429 parsing, answer retry-once and 503
+ok  local checks: numbers (units, ranges, Kannada digits), inputs, judgements, merge
+OK — all self-checks passed

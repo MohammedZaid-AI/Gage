@@ -11,3 +11,4 @@ venv/
 models/
 test_runs/*.db
 test_runs/__pycache__/
+test_runs/*.wav

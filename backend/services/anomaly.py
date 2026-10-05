@@ -14,7 +14,9 @@ For each farm:
   FLYBRAIN_THRESHOLD_PERCENTILE of those scores. No fixed threshold.
 - The baseline is refitted once every FLYBRAIN_REFIT_HOURS; a farm's new
   readings are scored at most once every FLYBRAIN_SCORE_INTERVAL_MINUTES.
-- All simulation runs on one dedicated background thread: requests never wait.
+- Scoring is queued on one background thread, and the simulation itself runs in
+  a separate worker process, so it never holds the server's interpreter lock
+  (it slowed sensor uploads when it ran in-process).
 - A reading scoring above the threshold raises an `anomaly` alert; a later
   normal score resolves it. Every score is stored (AnomalyScore) and the
   latest one is described to the answering model in plain words.
@@ -41,12 +43,87 @@ logger = logging.getLogger("gage.flybrain")
 
 CHANNELS = ("temperature", "humidity", "soil_moisture")
 GRAPH_LABELS = {"synthetic": "synthetic test graph (not the real fly connectome)",
-                "malecns_v1": "real MaleCNS v1.0 connectome"}
+                "malecns_v1": "real MaleCNS v1.0 connectome",
+                "malecns_v1_no_positions": "real MaleCNS v1.0 connections (without synapse "
+                                           "positions)"}
+
+
+def _compiled_name(compiled_dir: str) -> str:
+    """'malecns_v1', or 'malecns_v1_no_positions' when the compiled graph was
+    built without the synapse-point table (read from flycns's manifest)."""
+    import json
+    from pathlib import Path
+
+    manifest = json.loads((Path(compiled_dir) / "manifest.json").read_text(encoding="utf-8"))
+    keys = {src.get("key") for src in manifest.get("sources", [])}
+    return "malecns_v1" if "synapses" in keys else "malecns_v1_no_positions"
+
+
+def _engine(graph_name: str) -> str:
+    """flycns simulation engine: FLYBRAIN_ENGINE, or for 'auto' the GPU (torch)
+    for the real graph when CUDA is available, else the NumPy reference."""
+    choice = get_settings().flybrain_engine
+    if choice in ("numpy", "torch"):
+        return choice
+    if graph_name.startswith("malecns"):
+        try:
+            import torch
+
+            if torch.cuda.is_available():
+                return "torch"
+        except ImportError:
+            pass
+    return "numpy"
+
+
+def _graph_spec() -> tuple[tuple, str]:
+    """(spec the worker builds the graph from, graph name). The real graph only
+    when FLYBRAIN_GRAPH=malecns; the worker compiles it on first use."""
+    s = get_settings()
+    if s.flybrain_graph == "malecns":
+        from pathlib import Path
+
+        compiled = Path(s.flybrain_compiled_dir) / "manifest.json"
+        name = _compiled_name(s.flybrain_compiled_dir) if compiled.exists() else "malecns_v1_no_positions"
+        return ("malecns", s.flybrain_raw_dir, s.flybrain_compiled_dir), name
+    return ("synthetic",), "synthetic"
+
+
+_pool = None
+
+
+def _worker():
+    """The single FlyBrain worker process (created on first use)."""
+    global _pool
+    if _pool is None:
+        from concurrent.futures import ProcessPoolExecutor
+
+        _pool = ProcessPoolExecutor(max_workers=1)
+    return _pool
+
+
+def _in_worker(fn, *args):
+    """Run backend.ai.flybrain_worker.fn(*args) in the worker process; restart
+    the worker once if it died."""
+    global _pool
+    from concurrent.futures.process import BrokenProcessPool
+
+    from backend.ai import flybrain_worker
+
+    try:
+        return _worker().submit(getattr(flybrain_worker, fn), *args).result()
+    except BrokenProcessPool:
+        logger.warning("FlyBrain worker process died; restarting it")
+        _pool = None
+        return _worker().submit(getattr(flybrain_worker, fn), *args).result()
 
 
 @dataclass
 class FarmBaseline:
-    detector: object
+    rates: np.ndarray        # baseline mean firing rate per neuron
+    std: np.ndarray          # baseline spread per neuron
+    graph_spec: tuple
+    engine: str
     mins: dict
     maxs: dict
     threshold: float
@@ -77,7 +154,7 @@ def _graph():
         if s.flybrain_graph == "malecns":
             try:
                 _graph_cache = (flybrain.load_real_malecns(s.flybrain_raw_dir, s.flybrain_compiled_dir),
-                                "malecns_v1")
+                                _compiled_name(s.flybrain_compiled_dir))
             except Exception:
                 logger.exception("FLYBRAIN_GRAPH=malecns but the real connectome could not be "
                                  "loaded; using the synthetic test graph")
@@ -133,9 +210,8 @@ def clean_rows(history: list) -> tuple[list, dict]:
 def fit_farm(db: Session, farm_id: int) -> FarmBaseline | None:
     """Fit and calibrate this farm's baseline from its own CLEAN history. None if
     there are fewer than FLYBRAIN_MIN_CLEAN_ROWS clean rows, or too few normal
-    ones; then nothing is flagged for this farm."""
-    from backend.ai import flybrain
-
+    ones; then nothing is flagged for this farm. The simulations run in the
+    FlyBrain worker process (backend/ai/flybrain_worker.py)."""
     s = get_settings()
     history = list(db.execute(
         select(SensorReading).where(
@@ -165,13 +241,21 @@ def fit_farm(db: Session, farm_id: int) -> FarmBaseline | None:
     base = [normal[i] for i in order[:s.flybrain_baseline_size]]
     heldout = [normal[i] for i in order[s.flybrain_baseline_size:need]]
 
-    graph, graph_name = _graph()
-    det = flybrain.FlyBrainAnomalyDetector(
-        graph, flybrain.SensorEncoder(n_neurons=graph[3]), sim_steps=s.flybrain_sim_steps)
-    det.fit_baseline([_normalise(r, mins, maxs) for r in base])
-    scores = [det.score(_normalise(r, mins, maxs))["anomaly_score"] for r in heldout]
+    spec, graph_name = _graph_spec()
+    args = ([_normalise(r, mins, maxs) for r in base], [_normalise(r, mins, maxs) for r in heldout])
+    try:
+        fitted = _in_worker("fit", spec, s.flybrain_sim_steps, _engine(graph_name), *args)
+    except Exception:
+        if spec[0] == "synthetic":
+            raise
+        logger.exception("FLYBRAIN_GRAPH=malecns but the real connectome could not be used; "
+                         "using the synthetic test graph")
+        spec, graph_name = ("synthetic",), "synthetic"
+        fitted = _in_worker("fit", spec, s.flybrain_sim_steps, _engine(graph_name), *args)
+    scores = fitted["heldout_scores"]
     threshold = float(np.percentile(scores, s.flybrain_threshold_percentile))
-    bl = FarmBaseline(det, mins, maxs, threshold, s.flybrain_threshold_percentile, graph_name,
+    bl = FarmBaseline(fitted["rates"], fitted["std"], spec, _engine(graph_name), mins, maxs,
+                      threshold, s.flybrain_threshold_percentile, graph_name,
                       _now(), len(history), len(normal), len(base), scores)
     logger.info("farm %d: FlyBrain baseline fitted on %s from %d normal readings; held-out "
                 "scores %.3f..%.3f, threshold (p%g) %.3f", farm_id, graph_name, len(base),
@@ -203,8 +287,8 @@ def score_reading(db: Session, reading: SensorReading) -> AnomalyScore | None:
     bl = _baseline(db, reading.farm_id)
     if bl is None:
         return None
-    result = bl.detector.score(_normalise(reading, bl.mins, bl.maxs))
-    score = result["anomaly_score"]
+    score = _in_worker("score", bl.graph_spec, get_settings().flybrain_sim_steps, bl.engine,
+                       bl.rates, bl.std, _normalise(reading, bl.mins, bl.maxs))
     row = AnomalyScore(
         farm_id=reading.farm_id, node_id=reading.node_id, reading_id=reading.id,
         score=round(score, 4), threshold=round(bl.threshold, 4),

@@ -1,0 +1,18 @@
+2026-10-05 11:25:09,744 sentence_transformers.SentenceTransformer INFO Load pretrained SentenceTransformer: ./models/embeddings/multilingual-e5-small
+newest observation has a summary: True
+observations with a summary: 12 of 560
+2026-10-05 11:25:28,533 gage.knowledge INFO knowledge index built: 167 chunks from 25 documents (./models/embeddings/multilingual-e5-small)
+2026-10-05 11:25:28,577 gage.offline INFO offline watcher started: every 60s, offline after 180s silence
+2026-10-05 11:25:28,593 gage.alerts INFO node demo-node-1 offline: no contact for 3016321s
+2026-10-05 11:25:28,595 gage.alerts INFO alert raised: node_offline node=demo-node-1 value=None
+2026-10-05 11:25:28,629 gage.realtime INFO dashboard updated: broadcast 'node_health' -> 0 client(s)
+2026-10-05 11:25:28,629 gage.realtime INFO dashboard updated: broadcast 'alert' -> 0 client(s)
+2026-10-05 11:25:28,954 httpx INFO HTTP Request: POST http://testserver/auth/login "HTTP/1.1 200 OK"
+2026-10-05 11:25:28,978 httpx INFO HTTP Request: GET http://testserver/farm/1/summary "HTTP/1.1 200 OK"
+GET /farm/1/summary ai_summary: **Observation**  
+The image analysis indicates the crop appears severely dried (100 % confidence); current conditions are 27.9 °C temperature, 72.4 % humidity, 
+stored summaries that mention image analysis (vision era): 1
+after inserting a newer observation with no summary:
+  latest_observation has summary: False
+  GET /farm/1/summary ai_summary is set: True | **Observation**  
+The image analysis indicates the crop appears severely dried (

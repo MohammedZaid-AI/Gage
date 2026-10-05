@@ -93,6 +93,8 @@ class Settings(BaseSettings):
     # FlyBrain sensor-pattern anomaly detection (services/anomaly.py).
     flybrain_enabled: bool = True
     flybrain_graph: str = "synthetic"          # synthetic | malecns (needs a compiled connectome)
+    # Simulation engine: auto (GPU for the real graph when CUDA is present) | numpy | torch.
+    flybrain_engine: str = "auto"
     flybrain_raw_dir: str = "./models/malecns/raw"
     flybrain_compiled_dir: str = "./models/malecns/compiled"
     flybrain_sim_steps: int = 1500

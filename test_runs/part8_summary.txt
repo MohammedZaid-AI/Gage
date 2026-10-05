@@ -1,0 +1,22 @@
+PART 8 - Final acceptance test
+
+scripts/acceptance.py: logs in to a running server, asks Q1-Q10 30 s apart, records sources and
+scores, raw answer, final answer, caveats, fact-check status, time, pass/fail per question;
+checks numbers independently (chunk texts re-read from knowledge_base/); --node-key runs the
+sensor-upload latency test during an answer; prints the pass bar.
+
+Attempt 1 (part8_attempt1_*): 7/10 pass. Right doc 7, no uncaveated numbers OK, Q9 HTTP 503,
+  grounding 8/10 OK, upload p95 344 ms (p50 78.5). Q8/Q9 = Groq connection errors; Q6 wrong doc.
+Changes between attempts:
+  - hybrid retrieval (cosine + 0.03 x IDF keyword overlap): offline on the logged queries the
+    expected doc is in the top 4 for 10/10 vs 9/10 (part8_hybrid_eval.txt)
+  - FlyBrain simulation moved to a worker process (backend/ai/flybrain_worker.py); same
+    scores as before on real data: 0.3859 / 0.1534 / 0.6351 (part8_flybrain_worker.txt)
+  - latency diagnosis without the fit: p95 99.3 and 107.7 ms (part8_latency_diag.txt)
+Attempt 2 (part8_acceptance.*): 7/10 pass. Q6 now cultivation overview first; Q9 answered;
+  no uncaveated numbers; Q1, Q2, Q8 HTTP 503 (Groq connection error / timeout); grounding
+  7/10; upload p95 318.6 ms (p50 78.8, 19 uploads, all HTTP 200).
+PASS BAR NOT MET (twice) -> docs/OPEN_ITEMS.md. Not retried a third time.
+Other checks on the attempt-2 server: scripts/check_security.py exit 0, no failures
+  (part8_check_security.txt); scripts/validate_pipeline.py 24/24 (part8_validate_pipeline.txt);
+  selftest OK (part8_selftest.txt).

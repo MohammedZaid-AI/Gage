@@ -1,0 +1,8 @@
+cleaning: {'history': 549, 'clean': 183, 'excluded': 366, 'all_zero': 0, 'soil_zero_runs': 366, 'normal': 165, 'fitted': True, 'reason': None}
+fit 410.6s graph=malecns_v1_no_positions baseline=40 held-out=60 threshold(p99)=192918.8708 held-out={'min': np.float64(16328.2989), 'median': 46183.4034, 'p95': 133652.8864, 'max': np.float64(202628.8602)}
+normalisation range (clean rows): {'temperature': 23.0, 'humidity': 55.0, 'soil_moisture': 0.0} {'temperature': 30.5, 'humidity': 88.0, 'soil_moisture': 100.0}
+reading 299 (26.9 C, 67.9 %, soil 61.0 %): score 36511.1862 vs 192918.8708 -> normal
+reading 534 (30.5 C, 88.0 %, soil 16.0 %): score 185453.8255 vs 192918.8708 -> normal
+alert rules on a soil=0 reading: [('soil_low', 'Low soil moisture 0% (water stress)')] | FlyBrain scored it: False | soil_low alerts in DB with value 0: 1
+API graph: real MaleCNS v1.0 connections (without synapse positions)
+exit 0

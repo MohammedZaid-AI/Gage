@@ -1,0 +1,12 @@
+tables verified
+retained neurons: 166700
+positions assigned
+weights: batch 0
+weights: batch 500
+weights: batch 1000
+weights: batch 1500
+weights: batch 2000
+edges: 25582938
+writing the compiled directory (49 s so far)
+LOADED neurons=166700 edges=25582938 weight range mV [-712.525, 516.450] excitatory edges 15418584 inhibitory 9862789 zero 301565 in 51s
+exit 0

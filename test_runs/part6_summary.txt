@@ -1,0 +1,36 @@
+PART 6 - Demo readiness from zero
+
+6.1 scripts/create_demo_farmer.py: one farmer, one farm, one node; password from
+    GAGE_DEMO_PASSWORD; prints the node key once (only its HMAC is stored); idempotent per
+    phone; creates tables on a new DB. Tested: refuses without a password; creates; a
+    second run changes nothing.
+6.2 Fresh install, done for real (D:\Zaids Work\_gage_fresh, clone of the hardening-pass
+    branch at 82cdab5 plus this part's two uncommitted files):
+      python -m venv .venv; python -m pip install -r requirements.txt -> exit 0
+        (part6_pip_install.log; 1.3 GB venv, CPU torch)
+      copy .env.example -> .env, set JWT_SECRET / NODE_KEY_SECRET / GROQ / SARVAM keys
+      scripts/create_demo_farmer.py -> farmer, farm 1, node; key printed (part6_create_demo_farmer.txt)
+      uvicorn start: embedding model downloaded from Hugging Face, index 167 chunks / 25 docs
+        (part6_fresh_server.log)
+      API: login OK; sensor upload with the printed key HTTP 200 in 85 ms; /chat answered
+        from the irrigation doc, fact check completed; /farm/1/anomaly "not enough clean
+        history: 1 clean rows (need 100)" (part6_fresh_install.txt)
+      Browser (headless Chrome, real login form): logged in, Home rendered
+        (part6_dashboard_fresh.png).
+    Broke and fixed: create_demo_farmer.py crashed after commit before printing the key
+    (DetachedInstanceError) -> fixed and re-run; the login form was pre-filled with the
+    public demo credentials (9999999999 / demo1234) -> removed. README Quick start now
+    lists the exact steps.
+6.3 Dashboard: FlyBrain card with graph label and score/threshold or reason, anomaly
+    alerts in Active alerts. Seen in two screenshots: fresh DB (part6_dashboard_fresh.png)
+    and real data (part6_dashboard_flybrain.png: "synthetic test graph (not the real fly
+    connectome)", "Unusual pattern - score 0.64 (threshold 0.39)", the FlyBrain warning
+    alert under Active alerts).
+6.4 Voice end to end (part6_voice.txt/json, part6_voice_server.log): browser-recorded
+    Kannada webm -> Sarvam STT "ನಿಮ್ಮ ಕಬ್ಬು ಚೆನ್ನಾಗಿದೆ, ನಾಳೆ ಬೆಳಿಗ್ಗೆ ನೀರು ಹಾಕಿ." -> Groq answer in
+    Kannada (2000 chars) -> TTS in 6 Sarvam requests joined into one 167.8 s WAV, HTTP 200
+    in 57.6 s. Long text via /voice/speak: 894 chars -> 2 requests -> one 82.6 s WAV.
+    Splitting at sentence ends (max 480 chars per request) and WAV joining already existed;
+    no Sarvam length error occurred. Note: a 2.8-minute spoken answer is long for a farmer.
+6.5 docs/ENVIRONMENT.md: exact versions (torch 2.12.0+cu130, bitsandbytes 0.50.2, ...),
+    what needs a GPU, and what to do without one.

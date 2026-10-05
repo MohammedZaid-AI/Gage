@@ -84,21 +84,25 @@ def load_real_malecns(raw_tables_dir: str, compiled_cache_dir: str):
     Returns (indptr, indices, weights_mv, n_neurons) in the same shape
     build_synthetic_graph() returns, so it's a drop-in swap.
     """
-    from flycns.release.malecns_v1 import compile_malecns_v1
     from flycns.compiled import read_compiled
+    from flycns.dynamics.lif import synaptic_weights
+    from flycns.release.malecns_v1 import compile_malecns_v1
 
     compiled_path = Path(compiled_cache_dir)
     if not (compiled_path / "manifest.json").exists():
-        compile_malecns_v1(Path(raw_tables_dir), compiled_path, progress=print)
+        # The neuron-to-neuron graph needs only the annotations, transmitter
+        # and weights tables. The 13 GB synapse-point table only supplies
+        # synapse centroids as positions for neurons without a soma location
+        # (flycns reads it for nothing else here), so it is skipped.
+        compile_malecns_v1(Path(raw_tables_dir), compiled_path,
+                           synapse_centroids_for_missing=False, progress=print)
 
     graph = read_compiled(compiled_path)
-    # NOTE: exact array names depend on flycns's manifest schema -- inspect
-    # graph.manifest / graph.arrays.keys() after your first real compile
-    # and adjust these three lines to match (kept abstracted here since
-    # this step cannot be run or verified without the real download).
-    indptr = graph.arrays["indptr"]
-    indices = graph.arrays["indices"]
-    weights_mv = graph.arrays["weights_mv"]
+    indptr = graph["csr_indptr"]
+    indices = graph["csr_indices"]
+    # flycns's own rule: presynaptic sign x synapse count x w_syn (0.275 mV).
+    weights_mv = synaptic_weights(indptr, indices, graph["csr_count"], graph["neuron_sign"],
+                                  LIFParams().w_syn_mv)
     n_neurons = len(indptr) - 1
     return indptr, indices, weights_mv, n_neurons
 
@@ -147,10 +151,16 @@ class SensorEncoder:
 # ============================================================
 class FlyBrainAnomalyDetector:
     def __init__(self, graph, encoder: SensorEncoder, sim_steps: int = 2000,
-                 params: LIFParams | None = None):
+                 params: LIFParams | None = None, engine: str = "numpy"):
         indptr, indices, weights_mv, n_neurons = graph
-        self.engine = LIFReference(indptr=indptr, indices=indices,
-                                    weights_mv=weights_mv, params=params or LIFParams())
+        if engine == "torch":
+            # flycns's PyTorch engine (float32, CUDA if available): same step rule.
+            from flycns.dynamics.lif import LIFTorch
+
+            self.engine = LIFTorch(indptr, indices, weights_mv, params or LIFParams())
+        else:
+            self.engine = LIFReference(indptr=indptr, indices=indices,
+                                        weights_mv=weights_mv, params=params or LIFParams())
         self.encoder = encoder
         self.sim_steps = sim_steps
         self.n_neurons = n_neurons
