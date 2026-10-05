@@ -11,9 +11,9 @@ class LLMProvider(ABC):
     """Answers a farmer's question given assembled field context."""
 
     # Which prompt the orchestrator builds for this provider: "structured" (the
-    # full Crop Doctor contract, for large instruction-following models) or
-    # "compact" (farm readings + knowledge only, for a small fine-tuned model
-    # trained on a short context window).
+    # full Crop Doctor contract with farm data, for large instruction-following
+    # models) or "compact" (retrieved knowledge + the farmer's question only, no
+    # sensor readings, for the small fine-tuned model trained on that shape).
     prompt_style: str = "structured"
 
     @abstractmethod

@@ -502,6 +502,45 @@ def test_dataset_stats_and_conversation_linking() -> None:
     assert entry.conversation_reference == convo.id
 
 
+def test_alert_resolution() -> None:
+    db = _memory_session()
+    farm, node = _farm_with_node(db)
+
+    def reading(soil, ts=None):
+        _, _, raised = observation_service.ingest_sensors(db, node, 30.0, 60.0, soil, 95.0, ts)
+        return raised
+
+    reading(10.0)                                   # dry -> soil_low opens
+    open_q = db.query(Alert).filter(Alert.type == "soil_low", Alert.resolved.is_(False))
+    assert open_q.count() == 1
+    reading(21.0)                                   # in range but inside the clear margin
+    assert open_q.count() == 1, "hysteresis: 21% must not clear (needs >= min + margin)"
+    reading(25.0)                                   # clearly recovered -> auto-resolved
+    assert open_q.count() == 0
+    a = db.query(Alert).filter(Alert.type == "soil_low").one()
+    assert a.resolved and a.resolved_at and a.resolution.startswith("auto: back in range")
+
+    # Reconcile: an alert left open from before auto-resolution existed closes
+    # against the node's latest reading, but only if that reading is newer.
+    stale = Alert(farm_id=farm.id, node_id=node.id, type="humidity_high", severity="warning",
+                  message="High humidity 90%", value=90.0, created_at=datetime(2026, 7, 26))
+    future = Alert(farm_id=farm.id, node_id=node.id, type="temp_high", severity="warning",
+                   message="High temperature 45C", value=45.0, created_at=datetime(2099, 1, 1))
+    db.add_all([stale, future])
+    db.commit()
+    closed = alerts.reconcile_open_alerts(db)
+    db.commit()
+    assert stale in closed and stale.resolved          # latest reading: humidity 60%
+    assert not future.resolved                          # reading predates it -> stays open
+
+    # Low battery clears from a heartbeat once comfortably above the threshold.
+    alerts.evaluate_battery(db, farm.id, node.id, 10.0)
+    db.commit()
+    alerts.evaluate_battery(db, farm.id, node.id, 80.0)
+    db.commit()
+    assert db.query(Alert).filter(Alert.type == "low_battery", Alert.resolved.is_(False)).count() == 0
+
+
 def test_offline_detection() -> None:
     db = _memory_session()
     farm, node = _farm_with_node(db)
@@ -516,11 +555,16 @@ def test_offline_detection() -> None:
     assert any(a.type == "node_offline" for a in raised)
     assert db.get(NodeHealth, node.id).status == "offline"
 
-    # Fresh heartbeat -> recovers, no duplicate alert on re-eval.
-    db.get(NodeHealth, node.id).last_seen = datetime.utcnow()
-    db.commit()
+    # Still silent -> no duplicate alert on the next timer tick.
     assert alerts.evaluate_offline(db) == []
+
+    # The node makes contact again -> online, and its offline alert is resolved.
+    _health, closed = alerts.mark_seen(db, node.id)
+    db.commit()
     assert db.get(NodeHealth, node.id).status == "online"
+    assert [a.type for a in closed] == ["node_offline"]
+    assert closed[0].resolved and closed[0].resolution == "auto: node back online"
+    assert alerts.evaluate_offline(db) == []      # fresh contact -> stays online
 
 
 if __name__ == "__main__":
@@ -541,5 +585,6 @@ if __name__ == "__main__":
     test_export_filtering_and_versioning()
     test_dataset_stats_and_conversation_linking()
     test_merge_and_alerts()
+    test_alert_resolution()
     test_offline_detection()
     print("OK — all self-checks passed")

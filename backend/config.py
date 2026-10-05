@@ -64,6 +64,8 @@ class Settings(BaseSettings):
 
     # A node is considered offline if its last heartbeat is older than this.
     offline_seconds: int = 180
+    # How often the server's background timer checks for silent nodes.
+    offline_check_seconds: int = 60
 
     # Alert rule thresholds. ponytail: global constants for V1; make them
     # per-crop / per-farm rows when agronomy demands it.
@@ -71,6 +73,13 @@ class Settings(BaseSettings):
     soil_moisture_min: float = 20.0  # % -> too dry (water stress)
     temperature_max: float = 40.0    # C -> heat stress
     low_battery_percent: float = 20.0
+    # An open alert auto-resolves only once a newer reading is back inside the
+    # safe range by this margin (hysteresis), so a value hovering at a threshold
+    # does not raise and resolve a fresh alert on every 30 s reading.
+    humidity_clear_margin: float = 3.0      # resolves at <= humidity_max - 3
+    soil_moisture_clear_margin: float = 2.0  # resolves at >= soil_moisture_min + 2
+    temperature_clear_margin: float = 1.0   # resolves at <= temperature_max - 1
+    battery_clear_margin: float = 5.0       # resolves at >= low_battery_percent + 5
 
 
 @lru_cache

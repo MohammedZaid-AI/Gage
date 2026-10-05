@@ -1,4 +1,5 @@
 """Gage backend entrypoint. Run: uvicorn backend.main:app --reload"""
+import asyncio
 import logging
 import mimetypes
 from pathlib import Path
@@ -26,6 +27,7 @@ except ImportError:  # optional: falls back to certifi
     pass
 
 from fastapi import Depends, FastAPI, HTTPException, WebSocket, WebSocketDisconnect  # noqa: E402
+from fastapi.concurrency import run_in_threadpool  # noqa: E402
 from fastapi.responses import FileResponse  # noqa: E402
 from fastapi.staticfiles import StaticFiles  # noqa: E402
 from sqlalchemy import select  # noqa: E402
@@ -42,6 +44,7 @@ from backend.dependencies import get_current_farmer  # noqa: E402
 from backend.models import Alert, Farm, Farmer, Node, NodeHealth, Observation  # noqa: E402
 from backend.realtime import broadcaster  # noqa: E402
 from backend.routers import (  # noqa: E402
+    alerts as alerts_router,
     auth,
     chat,
     dataset,
@@ -59,6 +62,7 @@ from backend.services import alerts  # noqa: E402
 app = FastAPI(title="Gage", description="AI agricultural field assistant")
 
 app.include_router(auth.router)
+app.include_router(alerts_router.router)
 app.include_router(farm.router)
 app.include_router(farm_intel.router)
 app.include_router(node_router.router)
@@ -78,6 +82,57 @@ def _startup() -> None:
     if get_settings().seed_demo:
         with SessionLocal() as db:
             seed_demo(db)
+    # Close alerts that newer readings already show are over (heals alerts left
+    # open from before auto-resolution existed).
+    with SessionLocal() as db:
+        closed = alerts.reconcile_open_alerts(db)
+        if closed:
+            db.commit()
+            logging.getLogger("gage.alerts").info("startup: resolved %d stale alert(s)", len(closed))
+
+
+def _offline_tick() -> list[tuple[int, str, dict]]:
+    """One offline check (blocking DB work, run in a worker thread). Returns the
+    (owner farmer id, event, payload) messages to push to dashboards."""
+    events = []
+    with SessionLocal() as db:
+        raised = alerts.evaluate_offline(db)
+        db.commit()
+        for a in raised:
+            node = db.get(Node, a.node_id)
+            owner = node.farm.farmer_id
+            health = NodeHealthOut.model_validate(db.get(NodeHealth, node.id)).model_dump(mode="json")
+            events.append((owner, "node_health", {"node_id": node.id, **health}))
+            events.append((owner, "alert", AlertOut.model_validate(a).model_dump(mode="json")))
+    return events
+
+
+async def _offline_watch() -> None:
+    """Background timer: mark nodes that have gone silent as offline, every
+    OFFLINE_CHECK_SECONDS, whether or not anyone is looking at a dashboard."""
+    log = logging.getLogger("gage.offline")
+    interval = get_settings().offline_check_seconds
+    log.info("offline watcher started: every %ds, offline after %ds silence",
+             interval, get_settings().offline_seconds)
+    while True:
+        try:
+            for owner, event, payload in await run_in_threadpool(_offline_tick):
+                await broadcaster.broadcast(event, payload, owner)
+        except Exception:  # never let one bad tick stop the watcher
+            log.exception("offline check failed")
+        await asyncio.sleep(interval)
+
+
+@app.on_event("startup")
+async def _start_background_tasks() -> None:
+    app.state.offline_task = asyncio.create_task(_offline_watch())
+
+
+@app.on_event("shutdown")
+async def _stop_background_tasks() -> None:
+    task = getattr(app.state, "offline_task", None)
+    if task:
+        task.cancel()
 
 
 @app.get("/api/state")
@@ -85,15 +140,8 @@ def get_state(
     farmer: Farmer = Depends(get_current_farmer),
     db: Session = Depends(get_db),
 ) -> dict:
-    """Snapshot of the caller's first farm (WS handles live updates).
-
-    Also runs lazy offline detection: querying state refreshes node online/offline
-    status and raises offline alerts.
-    ponytail: offline check on read. Move to a scheduled task (see services/alerts).
-    """
-    if alerts.evaluate_offline(db):
-        db.commit()
-
+    """Snapshot of the caller's first farm (WS handles live updates). Node
+    online/offline status is kept current by the background offline watcher."""
     farm_row = db.execute(
         select(Farm).where(Farm.farmer_id == farmer.id).order_by(Farm.id).limit(1)
     ).scalar_one_or_none()

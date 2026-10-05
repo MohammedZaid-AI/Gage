@@ -252,6 +252,8 @@ VIEWS.home = async () => {
     <p class="muted" style="margin:6px 0 16px;font-size:14px">Add your first farm to begin monitoring.</p>
     <button class="btn" onclick="go('settings')">Set up my farm</button></div>`;
   const s = await cachedGet(`/farm/${state.farmId}/summary`);
+  const recentAlerts = await cachedGet(`/alerts?farm_id=${state.farmId}&include_resolved=true&limit=10`).catch(() => []);
+  const resolved = recentAlerts.filter((a) => a.resolved).slice(0, 3);
   const nodes = await cachedGet(`/farms/${state.farmId}/nodes`).catch(() => state.nodes);
   state.lastSummary = s; state.node = nodes[0] || state.node;
   const nh = state.node?.health || {};
@@ -304,7 +306,13 @@ VIEWS.home = async () => {
 
     ${(s.active_alerts || []).length ? `<div class="section-title">Active alerts</div>${[...s.active_alerts].sort((a, b) => (b.severity === "critical") - (a.severity === "critical")).map((a) => `
       <div class="alert ${a.severity === "critical" ? "crit" : ""}"><span class="ic">${icon("warning")}</span>
-      <div><div class="sev">${esc(a.severity)}</div><div class="msg">${esc(a.message)}</div></div></div>`).join("")}` : ""}
+      <div style="flex:1"><div class="sev">${esc(a.severity)}</div><div class="msg">${esc(a.message)}</div></div>
+      <button class="btn ghost sm" onclick="resolveAlert(${a.id})">Resolve</button></div>`).join("")}` : ""}
+
+    ${resolved.length ? `<div class="section-title">Recently resolved</div>${resolved.map((a) => `
+      <div class="alert resolved"><span class="ic">${icon("check")}</span>
+      <div><div class="sev">Resolved · ${esc(ago(a.resolved_at))}</div><div class="msg">${esc(a.message)}</div>
+      <div class="how">${esc(a.resolution === "manual" ? "Resolved by you" : (a.resolution || "").replace(/^auto: /, "Cleared automatically: "))}</div></div></div>`).join("")}` : ""}
 
     <div class="section-title">Quick actions</div>
     <div class="qa">
@@ -312,6 +320,10 @@ VIEWS.home = async () => {
       <button onclick="go('timeline')"><span class="ic">${icon("clock")}</span>Timeline</button>
       <button onclick="go('reports')"><span class="ic">${icon("doc")}</span>Reports</button>
     </div>`;
+};
+window.resolveAlert = async (id) => {
+  try { await jpost(`/alerts/${id}/resolve`, {}); invalidate(); toast("Alert resolved"); go("home"); }
+  catch { toast("Could not resolve the alert"); }
 };
 WIRE.home = () => {
   requestAnimationFrame(() => { const v = $(".gauge .val"); if (v) v.style.strokeDashoffset = v.dataset.off; });
@@ -645,7 +657,7 @@ function connectWS() {
         showAnalyzing();
         setTimeout(async () => { await go("home"); ["#health-card"].forEach((s) => $(s)?.classList.add("flash")); document.querySelectorAll(".sensor").forEach((el) => el.classList.add("flash")); }, 1100);
       } else toast("New observation captured");
-    } else if (m.event === "alert" && state.view === "home") { invalidate(); go("home"); }
+    } else if (["alert", "alert_resolved", "node_health"].includes(m.event) && state.view === "home") { invalidate(); go("home"); }
   };
   ws.onclose = () => { if (state.token) setTimeout(connectWS, 4000); };
 }

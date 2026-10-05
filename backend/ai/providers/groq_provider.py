@@ -8,7 +8,7 @@ import logging
 
 from openai import OpenAI, OpenAIError
 
-from backend.ai.base import LLMProvider
+from backend.ai.base import LLMError, LLMProvider
 from backend.config import get_settings
 
 logger = logging.getLogger("gage.ai.groq")
@@ -23,11 +23,7 @@ _SYSTEM_PROMPT = (
     "instead of guessing. Reply in Kannada if the farmer wrote Kannada, else English."
 )
 
-# Bilingual so the farmer understands regardless of the language they asked in.
-_FRIENDLY_ERROR = (
-    "Sorry, the assistant is temporarily unavailable — please try again shortly. "
-    "/ ಕ್ಷಮಿಸಿ, ಸಹಾಯಕ ತಾತ್ಕಾಲಿಕವಾಗಿ ಲಭ್ಯವಿಲ್ಲ — ದಯವಿಟ್ಟು ಸ್ವಲ್ಪ ಸಮಯದ ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ."
-)
+_TIMEOUT_S = 60.0   # the SDK default is 600 s; a hung call should fail, not hold a worker
 
 
 class GroqLLMProvider(LLMProvider):
@@ -35,13 +31,18 @@ class GroqLLMProvider(LLMProvider):
         s = get_settings()
         self._model = s.groq_model
         # The SDK requires a non-empty key to construct; a missing/invalid key
-        # surfaces as a caught API error at call time rather than crashing boot.
+        # surfaces as an LLMError at call time rather than crashing boot.
         self._client = OpenAI(
             base_url="https://api.groq.com/openai/v1",
             api_key=s.groq_api_key or "not-set",
+            timeout=_TIMEOUT_S,
+            max_retries=2,
         )
 
     def answer(self, question: str, context: str, language: str) -> str:
+        """Blocking network call: callers run it off the event loop (the chat and
+        voice routers use a worker thread). Raises LLMError on any failure, so an
+        error is never returned, shown or saved as if it were an answer."""
         # `language` is ignored on purpose — the model matches the user's language.
         try:
             resp = self._client.chat.completions.create(
@@ -52,10 +53,13 @@ class GroqLLMProvider(LLMProvider):
                     {"role": "user", "content": question},
                 ],
             )
-            return resp.choices[0].message.content or _FRIENDLY_ERROR
-        except OpenAIError:
+        except OpenAIError as exc:
             logger.exception("Groq request failed (model=%s)", self._model)
-            return _FRIENDLY_ERROR
-        except Exception:  # network / unexpected — never crash the backend
+            raise LLMError(f"Groq request failed: {type(exc).__name__}") from exc
+        except Exception as exc:  # network / unexpected
             logger.exception("Unexpected error calling Groq")
-            return _FRIENDLY_ERROR
+            raise LLMError(f"Groq request failed: {type(exc).__name__}") from exc
+        text = (resp.choices[0].message.content or "").strip() if resp.choices else ""
+        if not text:
+            raise LLMError("Groq returned an empty answer")
+        return text
