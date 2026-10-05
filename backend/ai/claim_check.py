@@ -1,136 +1,69 @@
-"""Basic grounding check on a model answer — a safety net, not fact-checking.
+"""Grounding check on a model answer, run before the farmer sees it.
 
-Pulls the *specific* claims out of an answer (numbers, named nutrients and
-chemicals, months, acronyms / variety codes) and checks that each one appears
-somewhere in the context the model was given (retrieved knowledge + farm data +
-the farmer's own question). Anything specific that is not in that context gets
-a short caveat prepended, so it is not presented as established fact.
+1. A cheap first filter: a regex for invented people ("Dr. X Y", "Minister X Y",
+   "X Y, Minister") whose exact name is not in the context.
+2. The real check: one extra Groq call that reads the context the answering
+   model was given and the answer, lists each factual claim, and marks it
+   supported, unsupported or contradicted (strict JSON).
 
-Known limits (deliberately simple): it checks presence, not meaning — "iron" in
-the context supports any sentence using "iron"; chemical names written in
-Kannada script are only caught for the nutrients listed below.
+Unsupported or contradicted claims get a short caveat before the answer, naming
+them. The check never blocks the answer: if the Groq call fails or times out,
+the answer is returned with a one-line note that checking was unavailable.
 """
+import logging
 import re
-from dataclasses import dataclass
+import time
+from dataclasses import dataclass, field
 
-_KN_DIGITS = str.maketrans("೦೧೨೩೪೫೬೭೮೯", "0123456789")
-_SUBSCRIPTS = str.maketrans("₀₁₂₃₄₅₆₇₈₉", "0123456789")
+from backend.config import get_settings
 
-# Each group is one claim; any surface form found in the context supports it.
-_TERM_GROUPS: dict[str, tuple[str, ...]] = {
-    "iron": ("iron", "fe", "feso4", "ferrous", "fe-edta", "ಕಬ್ಬಿಣ"),
-    "calcium": ("calcium", "ಕ್ಯಾಲ್ಸಿಯಂ"),
-    "zinc": ("zinc", "zn", "znso4", "ಸತು", "ಜಿಂಕ್"),
-    "manganese": ("manganese", "mn", "mnso4"),
-    "magnesium": ("magnesium", "mg", "mgso4"),
-    "nitrogen": ("nitrogen", "ಸಾರಜನಕ"),
-    "phosphorus": ("phosphorus", "phosphate", "ರಂಜಕ"),
-    "potassium": ("potassium", "potash", "ಪೊಟ್ಯಾಷ್"),
-    "sulphur": ("sulphur", "sulfur", "ಗಂಧಕ"),
-    "boron": ("boron", "borax"),
-    "copper": ("copper", "cuso4"),
-    "molybdenum": ("molybdenum", "molybdate"),
-    "lime": ("lime", "ಸುಣ್ಣ"),
-    "gypsum": ("gypsum",),
-    "urea": ("urea", "ಯೂರಿಯಾ"),
-    "dap": ("dap",),
-    "mop": ("mop", "muriate"),
-    "npk": ("npk",),
-    "chlorpyrifos": ("chlorpyrifos", "chlorpyriphos"),
-    "imidacloprid": ("imidacloprid",),
-    "fipronil": ("fipronil",),
-    "carbofuran": ("carbofuran",),
-    "phorate": ("phorate", "thimet"),
-    "atrazine": ("atrazine",),
-    "metribuzin": ("metribuzin",),
-    "glyphosate": ("glyphosate",),
-    "2,4-d": ("2,4-d",),
-    "mancozeb": ("mancozeb",),
-    "carbendazim": ("carbendazim",),
-    "propiconazole": ("propiconazole",),
-    "trichogramma": ("trichogramma", "trichocard"),
-    "cotesia": ("cotesia",),
-    "trichoderma": ("trichoderma",),
-}
-# Case-sensitive month forms; "May" only when it is not the verb ("may be").
-_MONTHS: dict[str, tuple[str, ...]] = {
-    "January": ("January", "Jan", "ಜನವರಿ"), "February": ("February", "Feb", "ಫೆಬ್ರವರಿ"),
-    "March": ("March", "Mar", "ಮಾರ್ಚ್"), "April": ("April", "Apr", "ಏಪ್ರಿಲ್"),
-    "May": ("May", "ಮೇ"), "June": ("June", "Jun", "ಜೂನ್"), "July": ("July", "Jul", "ಜುಲೈ"),
-    "August": ("August", "Aug", "ಆಗಸ್ಟ್"), "September": ("September", "Sept", "Sep", "ಸೆಪ್ಟೆಂಬರ್"),
-    "October": ("October", "Oct", "ಅಕ್ಟೋಬರ್"), "November": ("November", "Nov", "ನವೆಂಬರ್"),
-    "December": ("December", "Dec", "ಡಿಸೆಂಬರ್"),
-}
-# Acronyms that are formatting or units, not claims.
-_NOT_ENTITIES = {"I", "OK", "UTC", "AM", "PM", "AI", "SMS", "ID", "NA", "N/A"}
+logger = logging.getLogger("gage.claim_check")
+
+_GROUNDING_SYSTEM = (
+    "You check an agricultural advisor's ANSWER against the CONTEXT it was given "
+    "(reference documents, the farm's own sensor readings and alerts, and the "
+    "farmer's question). List every specific factual claim in the ANSWER: numbers "
+    "and ranges, quantities and doses, chemicals and nutrients and what they "
+    "supply, dates, names and organisations, and agronomic judgements (for example "
+    "whether a reading is low, high or optimal, or what causes a symptom). Do not "
+    "list greetings, generic advice like 'monitor the field' or 'consult an expert', "
+    "or restatements of the farmer's own question.\n"
+    "For each claim choose exactly one status:\n"
+    "- supported: the CONTEXT states it or it follows directly from the CONTEXT "
+    "(a plain unit conversion of a context value counts as supported)\n"
+    "- unsupported: the CONTEXT does not say it\n"
+    "- contradicted: the CONTEXT says something incompatible\n"
+    "The answer may be in Kannada or Kanglish; write each claim in English.\n"
+    'Reply with strict JSON only: {"claims": [{"claim": "<short English '
+    'paraphrase>", "status": "supported|unsupported|contradicted", "reason": '
+    '"<one short sentence citing the context>"}]}'
+)
 
 _CAVEAT = {
-    "en": ("Please double-check before acting: these specifics in the answer are not in "
-           "Gage's reference documents or your farm data: {items}. Confirm them with your "
-           "local agriculture officer."),
-    "kn": ("ದಯವಿಟ್ಟು ಮುಂದುವರಿಯುವ ಮೊದಲು ಪರಿಶೀಲಿಸಿ: ಈ ಉತ್ತರದಲ್ಲಿನ ಈ ವಿವರಗಳು Gage ನ "
-           "ಮಾಹಿತಿ ದಾಖಲೆಗಳಲ್ಲಿ ಅಥವಾ ನಿಮ್ಮ ಜಮೀನಿನ ದತ್ತಾಂಶದಲ್ಲಿ ಇಲ್ಲ: {items}. "
-           "ನಿಮ್ಮ ಸ್ಥಳೀಯ ಕೃಷಿ ಅಧಿಕಾರಿಯನ್ನು ಸಂಪರ್ಕಿಸಿ ಖಚಿತಪಡಿಸಿಕೊಳ್ಳಿ."),
+    "en": "Please double-check before acting: {items}.",
+    "kn": "ದಯವಿಟ್ಟು ಮುಂದುವರಿಯುವ ಮೊದಲು ಪರಿಶೀಲಿಸಿ: {items}.",
 }
+_LABEL = {
+    "en": {"unsupported": "not in Gage's sources", "contradicted": "contradicts Gage's sources",
+           "name": "this person is not in Gage's sources"},
+    "kn": {"unsupported": "Gage ಮಾಹಿತಿ ದಾಖಲೆಗಳಲ್ಲಿ ಇಲ್ಲ", "contradicted": "Gage ಮಾಹಿತಿ ದಾಖಲೆಗಳಿಗೆ ವಿರುದ್ಧವಾಗಿದೆ",
+           "name": "ಈ ವ್ಯಕ್ತಿಯ ಹೆಸರು Gage ಮಾಹಿತಿ ದಾಖಲೆಗಳಲ್ಲಿ ಇಲ್ಲ"},
+}
+_UNAVAILABLE = {
+    "en": "(Automatic fact-checking was unavailable for this answer.)",
+    "kn": "(ಈ ಉತ್ತರದ ಸ್ವಯಂಚಾಲಿತ ಪರಿಶೀಲನೆ ಈಗ ಲಭ್ಯವಿಲ್ಲ.)",
+}
+_MAX_CAVEAT_ITEMS = 3
 
 
 @dataclass(frozen=True)
 class CheckResult:
-    answer: str              # what the farmer receives (caveated if needed)
-    unsupported: list[str]   # specific claims not found in the context
-    checked: list[str]       # every specific claim extracted
-
-
-def _norm(text: str) -> str:
-    return text.translate(_KN_DIGITS).translate(_SUBSCRIPTS)
-
-
-def _numbers(text: str) -> set[str]:
-    """Numeric claims, normalised (25.0 -> 25), ignoring list enumerators."""
-    text = re.sub(r"(?m)^\s*\d+[.)]\s", " ", _norm(text))
-    out = set()
-    for m in re.finditer(r"(?<![\w.])(\d+(?:[.,]\d+)?)(?![\w])", text):
-        n = m.group(1).replace(",", "")
-        try:
-            v = float(n)
-        except ValueError:
-            continue
-        out.add(str(int(v)) if v == int(v) else str(v))
-    return out
-
-
-def _has_form(text_lower: str, form: str) -> bool:
-    if re.fullmatch(r"[a-z0-9,\-]+", form):
-        return re.search(rf"(?<![a-z0-9]){re.escape(form)}(?![a-z0-9])", text_lower) is not None
-    return form in text_lower  # Kannada forms: substring (inflected suffixes)
-
-
-def _terms(text: str) -> set[str]:
-    low = _norm(text).lower()
-    return {g for g, forms in _TERM_GROUPS.items() if any(_has_form(low, f) for f in forms)}
-
-
-def _months(text: str) -> set[str]:
-    found = set()
-    for month, forms in _MONTHS.items():
-        for f in forms:
-            if f == "May":
-                pat = r"\bMay\b(?!\s+(?:be|have|not|also|help|cause|need|vary|lead|reduce|increase))"
-            elif f.isascii():
-                pat = rf"\b{f}\b"
-            else:
-                pat = re.escape(f)
-            if re.search(pat, text):
-                found.add(month)
-                break
-    return found
-
-
-def _entities(text: str) -> set[str]:
-    """Acronyms (ICAR, IISR, FRP) and sugarcane variety codes (Co 86032, CoC 671)."""
-    found = {m for m in re.findall(r"\b[A-Z]{2,6}\b", text) if m not in _NOT_ENTITIES}
-    found |= {re.sub(r"\s+", " ", m) for m in re.findall(r"\bCo[A-Z]{0,3}\s?\d{3,5}\b", text)}
-    return found
+    answer: str              # what the farmer receives (caveated / noted if needed)
+    unsupported: list[str]   # claims flagged, e.g. "unsupported: X", "name: Y"
+    checked: list[str]       # every claim examined, with its status
+    status: str = "checked"  # checked | unavailable
+    seconds: float = 0.0     # time spent in the grounding call
+    claims: list[dict] = field(default_factory=list)  # raw grounding verdicts
 
 
 _CAP = r"[A-Z][a-z]+(?:-[A-Z][a-z]+)?"
@@ -161,25 +94,63 @@ def _names(text: str) -> set[str]:
     return found
 
 
+
+
+def _grounding(answer: str, context: str) -> list[dict]:
+    """The second Groq call. Raises groq_client.GroqUnavailable on any failure."""
+    from backend.ai import groq_client
+
+    s = get_settings()
+    data = groq_client.chat_json(
+        _GROUNDING_SYSTEM, f"CONTEXT:\n{context}\n\nANSWER:\n{answer}",
+        timeout=s.grounding_timeout_s, max_tokens=4000,
+    )
+    claims = data.get("claims")
+    if not isinstance(claims, list):
+        raise groq_client.GroqUnavailable("JSON has no 'claims' list")
+    out = []
+    for c in claims:
+        if isinstance(c, dict) and c.get("status") in ("supported", "unsupported", "contradicted"):
+            out.append({"claim": str(c.get("claim", "")).strip(), "status": c["status"],
+                        "reason": str(c.get("reason", "")).strip()})
+    return out
+
+
 def check(answer: str, context: str, language: str = "en") -> CheckResult:
-    """Return the answer, caveated if any specific claim is absent from `context`."""
-    ctx_numbers, ctx_terms = _numbers(context), _terms(context)
-    # A rounded figure is not a new claim: "32%" is supported by a reading of 32.3.
-    ctx_numbers |= {str(f(float(n))) for n in ctx_numbers if "." in n for f in (round, int)}
-    ctx_months, ctx_entities = _months(context), _entities(context)
+    """Check `answer` against the `context` the model was given; caveat or note it."""
+    lang = "kn" if language == "kn" else "en"
+    labels = _LABEL[lang]
 
-    claims: list[tuple[str, bool]] = []
-    claims += [(n, n in ctx_numbers) for n in sorted(_numbers(answer))]
-    claims += [(t, t in ctx_terms) for t in sorted(_terms(answer))]
-    claims += [(m, m in ctx_months) for m in sorted(_months(answer))]
-    claims += [(e, e in ctx_entities or e in context) for e in sorted(_entities(answer))]
-    # A named person is supported only if that exact name appears in the context.
+    # 1. cheap first filter: invented people
     ctx_lower = context.lower()
-    claims += [(f"name: {n}", n.lower() in ctx_lower) for n in sorted(_names(answer))]
+    invented = [n for n in sorted(_names(answer)) if n.lower() not in ctx_lower]
+    flagged = [f"name: {n}" for n in invented]
+    caveat_items = [f'"{n}" ({labels["name"]})' for n in invented]
 
-    unsupported = [c for c, ok in claims if not ok]
+    # 2. grounding call; never blocks the answer
+    t0 = time.perf_counter()
+    try:
+        claims = _grounding(answer, context)
+        status = "checked"
+    except Exception as exc:
+        logger.warning("grounding check unavailable: %s", exc)
+        claims, status = [], "unavailable"
+    seconds = round(time.perf_counter() - t0, 2)
+
+    for c in claims:
+        if c["status"] != "supported":
+            flagged.append(f'{c["status"]}: {c["claim"]}')
+            caveat_items.append(f'"{c["claim"]}" ({labels[c["status"]]})')
+
     final = answer
-    if unsupported:
-        caveat = _CAVEAT["kn" if language == "kn" else "en"].format(items=", ".join(unsupported))
-        final = f"{caveat}\n\n{answer}"
-    return CheckResult(final, unsupported, [c for c, _ in claims])
+    if caveat_items:
+        shown = caveat_items[:_MAX_CAVEAT_ITEMS]
+        if len(caveat_items) > len(shown):
+            shown.append(f"+{len(caveat_items) - len(shown)}")
+        final = _CAVEAT[lang].format(items="; ".join(shown)) + "\n\n" + final
+    if status == "unavailable":
+        final = f"{final}\n\n{_UNAVAILABLE[lang]}"
+    logger.info("grounding %s in %.2fs: %d claims, %d flagged", status, seconds,
+                len(claims), len(flagged))
+    return CheckResult(final, flagged, [f'{c["status"]}: {c["claim"]}' for c in claims],
+                       status, seconds, claims)

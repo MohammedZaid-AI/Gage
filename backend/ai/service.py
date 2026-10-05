@@ -75,10 +75,6 @@ def synthesize(text: str, language: str) -> bytes:
 
 
 def summarize_observation(context: str, language: str = "en") -> str:
-    """One-line agronomic summary of a single observation. Reuses the LLM provider
-    interface (no new provider method) so it stays behind the same abstraction."""
-    return complete(
-        "In one short sentence, summarise the crop condition for the farmer.",
-        context,
-        language,
-    )
+    """One or two plain sentences on the farm's state, via the active provider's
+    own summary prompt (not the four-section answer format). Raises LLMError."""
+    return _llm.summarize(context, language)

@@ -28,9 +28,12 @@ class Settings(BaseSettings):
     # on-topic questions (English, or translated Kannada) scored >= 0.87, off-topic
     # ones <= 0.81. Below the floor a question retrieves nothing rather than noise.
     retrieval_min_score: float = 0.83
-    # Latin-script questions whose best direct match is below this are retried as
-    # romanized Kannada (transliterate -> translate).
-    retrieval_romanized_trigger: float = 0.86
+    # Timeout for the small Groq helper calls (query rewrite, grounding check);
+    # on timeout the answer goes ahead without them.
+    groq_helper_timeout_s: float = 8.0
+    # The grounding check reads the whole context + answer; it gets longer, and the
+    # answer is returned with an 'unavailable' note if it runs out.
+    grounding_timeout_s: float = 20.0
 
     # Groq (OpenAI-compatible). Model is configurable; defaults to GPT-OSS 120B.
     groq_api_key: str = ""
@@ -50,9 +53,14 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60 * 24 * 7  # 7 days
 
-    # Demo farmer/farm/node seeded on startup so the dashboard runs out of the box.
-    # ponytail: remove once real farmer onboarding exists.
-    seed_demo: bool = True
+    # Seed a demo farmer/farm/node with publicly known credentials on startup.
+    # Off by default; set SEED_DEMO=true in .env for a local demo only.
+    seed_demo: bool = False
+
+    # Key for hashing node API keys (HMAC-SHA256) before they are stored. If
+    # unset it is derived from JWT_SECRET; set it explicitly so JWT_SECRET can
+    # be rotated without invalidating every device key.
+    node_key_secret: str = ""
 
     # Observation merge: an image and a sensor reading from the same node within
     # this window are merged into one observation.
@@ -61,6 +69,18 @@ class Settings(BaseSettings):
     # AI farm summary from sensor data: on a new alert, or when the newest summary
     # is older than this. Never per reading (the ESP32 posts every 30 s).
     summary_interval_minutes: int = 60
+
+    # FlyBrain sensor-pattern anomaly detection (services/anomaly.py).
+    flybrain_enabled: bool = True
+    flybrain_graph: str = "synthetic"          # synthetic | malecns (needs a compiled connectome)
+    flybrain_raw_dir: str = "./models/malecns/raw"
+    flybrain_compiled_dir: str = "./models/malecns/compiled"
+    flybrain_sim_steps: int = 1500
+    flybrain_baseline_size: int = 40           # normal readings that define the baseline
+    flybrain_heldout_size: int = 60            # other normal readings, scored to calibrate
+    flybrain_threshold_percentile: float = 99.0
+    flybrain_score_interval_minutes: int = 5   # score a farm at most this often
+    flybrain_refit_hours: int = 24             # refit each farm's baseline this often
 
     # A node is considered offline if its last heartbeat is older than this.
     offline_seconds: int = 180

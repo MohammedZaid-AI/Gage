@@ -68,6 +68,7 @@ class Node(Base):
     id: Mapped[str] = mapped_column(String, primary_key=True)  # hardware/device id
     farm_id: Mapped[int] = mapped_column(ForeignKey("farms.id"), index=True)
     name: Mapped[str | None] = mapped_column(String, nullable=True)
+    # HMAC-SHA256 of the device key (core.security.hash_node_key), never the key.
     api_key: Mapped[str] = mapped_column(String, unique=True, index=True)
     location: Mapped[str | None] = mapped_column(String, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
@@ -169,6 +170,22 @@ class Alert(Base):
     resolved_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     # How it closed: "auto: back in range (...)", "auto: node back online", "manual".
     resolution: Mapped[str | None] = mapped_column(String, nullable=True)
+
+
+class AnomalyScore(Base):
+    """One FlyBrain sensor-pattern score (services/anomaly.py), kept for audit."""
+
+    __tablename__ = "anomaly_scores"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    farm_id: Mapped[int] = mapped_column(ForeignKey("farms.id"), index=True)
+    node_id: Mapped[str | None] = mapped_column(ForeignKey("nodes.id"), nullable=True)
+    reading_id: Mapped[int | None] = mapped_column(ForeignKey("sensor_readings.id"), nullable=True)
+    score: Mapped[float] = mapped_column(Float)
+    threshold: Mapped[float] = mapped_column(Float)
+    is_anomalous: Mapped[bool] = mapped_column(Boolean, index=True)
+    graph: Mapped[str] = mapped_column(String)            # synthetic | malecns_v1
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now, index=True)
 
 
 class Conversation(Base):

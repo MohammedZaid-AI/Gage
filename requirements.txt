@@ -24,3 +24,6 @@ bitsandbytes>=0.45   # 4-bit NF4 loading on GPU, as in training (SARVAM_QUANTIZA
 transformers>=4.45
 peft>=0.13
 accelerate>=0.34
+# FlyBrain sensor-pattern anomaly detection (fly connectome LIF simulation).
+# The [release] extra is only needed to compile the real MaleCNS connectome.
+flycns>=0.7

@@ -32,7 +32,7 @@ from backend.schemas import (
     SensorIn,
     SensorReadingOut,
 )
-from backend.services import alerts, observation_service
+from backend.services import alerts, anomaly, observation_service
 
 logger = logging.getLogger("gage.node")
 router = APIRouter(prefix="/node", tags=["node"])
@@ -82,11 +82,13 @@ async def upload_sensors(
     node=Depends(get_node),
     db: Session = Depends(get_db),
 ) -> Observation:
-    obs, _reading, raised = observation_service.ingest_sensors(
+    obs, reading, raised = observation_service.ingest_sensors(
         db, node, req.temperature, req.humidity, req.soil_moisture,
         req.battery, req.timestamp,
     )
     back_online = _seen(db, node)
+    # FlyBrain pattern check: queued on its own thread, rate-limited per farm.
+    anomaly.schedule(node.farm_id, reading.id)
     if observation_service.summary_due(db, obs, raised):
         # Runs after the response is sent, in a worker thread: the device never
         # waits on the model.

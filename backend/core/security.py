@@ -1,4 +1,6 @@
 """Password hashing (bcrypt), JWT access tokens, node API keys. Pure crypto, no DB."""
+import hashlib
+import hmac
 import secrets
 from datetime import datetime, timedelta, timezone
 
@@ -9,9 +11,29 @@ from backend.config import get_settings
 
 
 def generate_api_key() -> str:
-    """Opaque per-node API key. ponytail: stored in plaintext (needs lookup-by-key);
-    hash it with a separate key id if at-rest protection becomes a requirement."""
+    """A new random per-node API key (192 bits). Shown to the farmer once; only
+    its hash (hash_node_key) is stored."""
     return secrets.token_urlsafe(24)
+
+
+NODE_KEY_PREFIX = "hmac-sha256$"
+
+
+def _node_key_secret() -> bytes:
+    s = get_settings()
+    return (s.node_key_secret or f"gage-node-key-v1:{s.jwt_secret}").encode()
+
+
+def hash_node_key(raw_key: str) -> str:
+    """What is stored for a node API key: HMAC-SHA256 under a server secret.
+    Deterministic, so a device's key can be looked up by its hash; useless to
+    anyone who reads the database without the secret."""
+    digest = hmac.new(_node_key_secret(), raw_key.encode(), hashlib.sha256).hexdigest()
+    return NODE_KEY_PREFIX + digest
+
+
+def is_hashed_node_key(stored: str) -> bool:
+    return stored.startswith(NODE_KEY_PREFIX)
 
 # bcrypt hashes at most 72 bytes; longer passwords are silently truncated by the
 # algorithm, so we slice explicitly to keep hashing and verifying consistent.

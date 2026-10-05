@@ -520,7 +520,7 @@ VIEWS.settings = async () => {
     </div>
 
     <div class="section-title">Monitoring nodes</div>
-    <div class="card">${nodes.map((n) => `<div class="list-item"><div><b>${esc(n.id)}</b><div class="kv">key <span class="code">${esc(n.api_key)}</span></div></div><span class="health-pill ${n.health && n.health.status === "offline" ? "crit" : "good"}">${n.health ? esc(n.health.status) : "new"}</span></div>`).join("") || '<p class="muted">No nodes registered.</p>'}
+    <div class="card">${nodes.map((n) => `<div class="list-item"><div><b>${esc(n.id)}</b><div class="kv">key stored securely · <a href="#" onclick="rotateKey('${esc(n.id)}');return false">New key</a></div></div><span class="health-pill ${n.health && n.health.status === "offline" ? "crit" : "good"}">${n.health ? esc(n.health.status) : "new"}</span></div>`).join("") || '<p class="muted">No nodes registered.</p>'}
       ${state.farmId ? `<div class="row" style="margin-top:12px"><input id="nn-id" placeholder="node-id (device)"/><button class="btn" id="add-node" style="flex:0 0 auto">Register</button></div>` : ""}
     </div>
 
@@ -541,11 +541,20 @@ VIEWS.settings = async () => {
 };
 WIRE.settings = () => {
   const af = $("#add-farm"); if (af) af.onclick = async () => { const name = $("#nf-name").value.trim(); if (!name) return; await jpost("/farms", { name }); invalidate(); toast("Farm added"); go("settings"); };
-  const an = $("#add-node"); if (an) an.onclick = async () => { const id = $("#nn-id").value.trim(); if (!id) return; try { await jpost(`/farms/${state.farmId}/nodes`, { id }); invalidate(); toast("Node registered"); go("settings"); } catch { toast("Could not register node"); } };
+  const an = $("#add-node"); if (an) an.onclick = async () => { const id = $("#nn-id").value.trim(); if (!id) return; try { const n = await jpost(`/farms/${state.farmId}/nodes`, { id }); showKeyOnce(n.id, n.api_key); invalidate(); go("settings"); } catch { toast("Could not register node"); } };
   $("#lang-toggle")?.querySelectorAll("button").forEach((b) => (b.onclick = () => { state.prefs.lang = b.dataset.lang; savePrefs(); go("settings"); }));
   $("#speak-toggle")?.querySelectorAll("button").forEach((b) => (b.onclick = () => { state.prefs.speak = b.dataset.speak === "1"; savePrefs(); go("settings"); }));
   $("#theme-toggle")?.querySelectorAll("button").forEach((b) => (b.onclick = () => { state.prefs.theme = b.dataset.theme; savePrefs(); applyTheme(); go("settings"); }));
   $("#logout-btn").onclick = logout;
+};
+// Node keys are stored hashed, so a key can only be shown at the moment it is issued.
+function showKeyOnce(nodeId, key) {
+  window.prompt(`API key for node ${nodeId}. Copy it into the device (NODE_KEY) now; it cannot be shown again:`, key);
+}
+window.rotateKey = async (nodeId) => {
+  if (!confirm(`Issue a new key for ${nodeId}? The old key stops working immediately.`)) return;
+  try { const n = await jpost(`/farms/${state.farmId}/nodes/${encodeURIComponent(nodeId)}/rotate-key`, {}); showKeyOnce(n.id, n.api_key); invalidate(); go("settings"); }
+  catch { toast("Could not issue a new key"); }
 };
 window.switchFarm = async (id) => {
   const farms = await api("/farms"); const f = farms.find((x) => x.id === id);

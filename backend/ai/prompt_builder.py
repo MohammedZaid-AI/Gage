@@ -166,6 +166,14 @@ def _alerts_block(ctx: FarmContext) -> str:
             + "\n".join(f"- [{a.severity}] {a.message}" for a in ctx.active_alerts))
 
 
+def _anomaly_block(ctx: FarmContext) -> str:
+    """The latest FlyBrain sensor-pattern score as one plain sentence (or nothing)."""
+    from backend.services.anomaly import describe
+
+    sentence = describe(ctx.latest_anomaly)
+    return f"# SENSOR PATTERN CHECK (FlyBrain)\n{sentence}\n\n" if sentence else ""
+
+
 def _knowledge_block(docs: list[KnowledgeDoc]) -> str:
     if not docs:
         return "No specific knowledge-base entry matched this question."
@@ -208,6 +216,7 @@ def build(ctx: FarmContext, docs: list[KnowledgeDoc], question: str) -> str:
         f"# SENSOR READINGS (latest)\n{_sensor_block(ctx)}\n\n"
         f"# RECENT HISTORY\n{_history_block(ctx)}\n\n"
         f"# ACTIVE ALERTS\n{_alerts_block(ctx)}\n\n"
+        f"{_anomaly_block(ctx)}"
         f"# AGRICULTURAL KNOWLEDGE\n{_knowledge_block(docs)}"
         f"{_conversation_block(ctx)}\n\n"
         f"# USER QUESTION\n{question}"

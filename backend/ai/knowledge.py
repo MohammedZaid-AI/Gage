@@ -13,7 +13,7 @@ first query) and kept in memory: ~150 chunks, a few seconds on CPU.
 import logging
 import re
 import threading
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import numpy as np
@@ -34,6 +34,7 @@ class KnowledgeDoc:
     text: str
     source: str          # path relative to the knowledge base root
     score: float = 0.0   # cosine similarity to the query (0 when not retrieved)
+    via: str = ""        # which query found it: original | sarvam | groq
 
 
 def _split_long(text: str) -> list[str]:
@@ -114,18 +115,21 @@ class _Index:
             logger.info("knowledge index built: %d chunks from %d documents (%s)",
                         len(docs), len(files), s.embedding_model)
 
-    def search(self, query: str, k: int) -> list[KnowledgeDoc]:
+    def search(self, query: str, k: int, via: str = "",
+               min_score: float | None = None) -> list[KnowledgeDoc]:
+        """Top-k chunks for `query` scoring at least `min_score` (default:
+        RETRIEVAL_MIN_SCORE), tagged with the method `via` that produced the query."""
         if self._matrix is None:
             self.build()
         q = self._model.encode([f"query: {query}"], normalize_embeddings=True)[0]
         scores = self._matrix @ q
-        min_score = get_settings().retrieval_min_score
+        floor = get_settings().retrieval_min_score if min_score is None else min_score
         out = []
         for i in np.argsort(-scores)[:k]:
-            if scores[i] < min_score:
+            if scores[i] < floor:
                 break
             d = self._docs[i]
-            out.append(KnowledgeDoc(d.title, d.text, d.source, round(float(scores[i]), 4)))
+            out.append(KnowledgeDoc(d.title, d.text, d.source, round(float(scores[i]), 4), via))
         return out
 
 
@@ -140,7 +144,9 @@ def warm_up() -> None:
 @dataclass(frozen=True)
 class Retrieval:
     docs: list[KnowledgeDoc]
-    queries: list[str]   # the text(s) actually searched, for logging / audit
+    queries: list[str]                       # every text actually searched, for the log
+    methods: dict[str, str] = field(default_factory=dict)   # method -> query text
+    best_by_method: dict[str, float] = field(default_factory=dict)  # top score each, even below the floor
 
 
 def _has_kannada(text: str) -> bool:
@@ -148,7 +154,7 @@ def _has_kannada(text: str) -> bool:
 
 
 def _merge(*hit_lists: list[KnowledgeDoc], k: int) -> list[KnowledgeDoc]:
-    """Union of hit lists, keeping each chunk's best score."""
+    """Union of hit lists, keeping each chunk's best score (and the method that got it)."""
     best: dict[tuple[str, str], KnowledgeDoc] = {}
     for hits in hit_lists:
         for h in hits:
@@ -158,31 +164,56 @@ def _merge(*hit_lists: list[KnowledgeDoc], k: int) -> list[KnowledgeDoc]:
     return sorted(best.values(), key=lambda d: d.score, reverse=True)[:k]
 
 
+def _sarvam_english(question: str) -> str:
+    from backend.ai import query_translation as qt
+
+    if _has_kannada(question):
+        return qt.kannada_to_english(question)
+    return qt.romanized_kannada_to_english(question)
+
+
+def _groq_english(question: str) -> str:
+    from backend.ai import groq_client
+
+    return groq_client.rewrite_query(question)
+
+
 def retrieve(question: str, k: int = 3) -> Retrieval:
     """Up to k knowledge chunks relevant to the farmer's question, best first.
 
-    The corpus is English, so non-English questions are translated first (see
-    query_translation): Kannada script always; Latin text only when the direct
-    match is weak, which is how romanized Kannada shows up. Chunks scoring below
-    RETRIEVAL_MIN_SCORE are dropped, so an unrelated question returns no docs.
-    If translation is unavailable, retrieval degrades to the original text and
-    says so in the log rather than failing the answer.
+    The corpus is English and farmers write English, Kannada script or Kanglish,
+    so three queries are searched and every chunk keeps its best score from any
+    of them (no query ever replaces another's results):
+      - original: the question as written
+      - sarvam:   Sarvam translation (Kannada script directly; Latin text via
+                  transliteration first, which is how Kanglish is handled)
+      - groq:     Groq's rewrite of the question as a short English search query
+    The two network rewrites run in parallel; if either fails, the others still
+    count. Chunks below RETRIEVAL_MIN_SCORE are dropped, so an unrelated question
+    returns no docs.
     """
-    from backend.ai import query_translation as qt
+    from concurrent.futures import ThreadPoolExecutor
 
     if not question.strip():
         return Retrieval([], [])
-    s = get_settings()
-    try:
-        if _has_kannada(question):
-            english = qt.kannada_to_english(question)
-            return Retrieval(_index.search(english, k), [english])
-        direct = _index.search(question, k)
-        if direct and direct[0].score >= s.retrieval_romanized_trigger:
-            return Retrieval(direct, [question])
-        english = qt.romanized_kannada_to_english(question)
-        return Retrieval(_merge(direct, _index.search(english, k), k=k), [question, english])
-    except qt.TranslationUnavailable as exc:
-        logger.warning("query translation unavailable (%s); retrieving on the original text, "
-                       "which is unreliable for Kannada", exc)
-        return Retrieval(_index.search(question, k), [question])
+    queries = {"original": question}
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        futures = {"sarvam": pool.submit(_sarvam_english, question),
+                   "groq": pool.submit(_groq_english, question)}
+        for method, fut in futures.items():
+            try:
+                text = fut.result()
+                if text and text.strip() and text.strip() != question.strip():
+                    queries[method] = text.strip()
+            except Exception as exc:  # translation / rewrite are optional extras
+                logger.warning("retrieval: %s query unavailable (%s)", method, exc)
+
+    hit_lists, best = [], {}
+    for method, text in queries.items():
+        top = _index.search(text, 1, via=method, min_score=-1.0)
+        best[method] = top[0].score if top else 0.0
+        hit_lists.append(_index.search(text, k, via=method))
+    docs = _merge(*hit_lists, k=k)
+    logger.info("retrieval: %s -> %s", {m: round(v, 4) for m, v in best.items()},
+                [(d.via, d.score, d.source) for d in docs])
+    return Retrieval(docs, list(queries.values()), queries, best)

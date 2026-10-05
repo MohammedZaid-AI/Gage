@@ -18,7 +18,7 @@ from backend.schemas import (
     SensorSnapshot,
     TrendOut,
 )
-from backend.services import farm_context, health_score
+from backend.services import anomaly, farm_context, health_score
 
 router = APIRouter(prefix="/farm", tags=["farm-intelligence"])
 
@@ -75,6 +75,18 @@ def farm_timeline(
         .order_by(Observation.timestamp.desc()).limit(limit)
     ).scalars())
     return [ObservationOut.model_validate(o) for o in obs]
+
+
+@router.get("/{farm_id}/anomaly")
+def farm_anomaly(
+    farm_id: int,
+    farmer: Farmer = Depends(get_current_farmer),
+    db: Session = Depends(get_db),
+) -> dict:
+    """FlyBrain sensor-pattern check: which graph was used (synthetic or the real
+    MaleCNS connectome), this farm's calibrated threshold, and the latest score."""
+    farm = owned_farm(db, farmer, farm_id)
+    return anomaly.status(db, farm.id)
 
 
 @router.get("/{farm_id}/health", response_model=HealthOut)

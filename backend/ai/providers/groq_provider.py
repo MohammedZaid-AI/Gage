@@ -23,6 +23,15 @@ _SYSTEM_PROMPT = (
     "instead of guessing. Reply in Kannada if the farmer wrote Kannada, else English."
 )
 
+_SUMMARY_PROMPT = (
+    "You write the short status line shown on a sugarcane farmer's home screen. "
+    "Using only the farm data given, write one or two plain sentences: the field's "
+    "current state, and the single most important thing to watch or do if anything "
+    "needs attention. No headings, no lists, no 'Observation / Analysis / "
+    "Confidence / Recommendations' sections, and no numbers that are not in the "
+    "data. Write in {language}."
+)
+
 _TIMEOUT_S = 60.0   # the SDK default is 600 s; a hung call should fail, not hold a worker
 
 
@@ -44,15 +53,24 @@ class GroqLLMProvider(LLMProvider):
         voice routers use a worker thread). Raises LLMError on any failure, so an
         error is never returned, shown or saved as if it were an answer."""
         # `language` is ignored on purpose — the model matches the user's language.
+        return self._complete([
+            {"role": "system", "content": _SYSTEM_PROMPT},
+            {"role": "system", "content": f"Current field context:\n{context}"},
+            {"role": "user", "content": question},
+        ])
+
+    def summarize(self, context: str, language: str) -> str:
+        """Home-screen status: its own short prompt, not the four-section answer
+        contract of _SYSTEM_PROMPT. Raises LLMError."""
+        lang = "Kannada (Kannada script)" if language == "kn" else "English"
+        return self._complete([
+            {"role": "system", "content": _SUMMARY_PROMPT.format(language=lang)},
+            {"role": "user", "content": f"Farm data:\n{context}"},
+        ])
+
+    def _complete(self, messages: list[dict]) -> str:
         try:
-            resp = self._client.chat.completions.create(
-                model=self._model,
-                messages=[
-                    {"role": "system", "content": _SYSTEM_PROMPT},
-                    {"role": "system", "content": f"Current field context:\n{context}"},
-                    {"role": "user", "content": question},
-                ],
-            )
+            resp = self._client.chat.completions.create(model=self._model, messages=messages)
         except OpenAIError as exc:
             logger.exception("Groq request failed (model=%s)", self._model)
             raise LLMError(f"Groq request failed: {type(exc).__name__}") from exc

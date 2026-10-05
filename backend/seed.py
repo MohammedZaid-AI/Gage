@@ -7,7 +7,7 @@ import logging
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from backend.core.security import hash_password
+from backend.core.security import hash_node_key, hash_password
 from backend.models import Farm, Farmer, Node, NodeHealth, _now
 
 logger = logging.getLogger("gage.seed")
@@ -35,7 +35,7 @@ def seed_demo(db: Session) -> None:
     db.flush()
     db.add(Node(
         id=DEMO_NODE_ID, farm_id=farm.id, name="Field node 1",
-        api_key=DEMO_NODE_KEY, location="North plot",
+        api_key=hash_node_key(DEMO_NODE_KEY), location="North plot",
     ))
     db.add(NodeHealth(
         node_id=DEMO_NODE_ID, status="online", last_seen=_now(),

@@ -18,13 +18,14 @@ class MockLLMProvider(LLMProvider):
     prompt, so the demo is coherent without an API key. A real model replaces this
     transparently and does the genuine reasoning."""
 
+    def summarize(self, context: str, language: str) -> str:
+        return ("ಇತ್ತೀಚಿನ ಮಾಪನಗಳ ಆಧಾರದ ಮೇಲೆ ಗಿಡ ಸಾಮಾನ್ಯ ಸ್ಥಿತಿಯಲ್ಲಿದೆ; "
+                "ಮಣ್ಣಿನ ತೇವಾಂಶ ಮತ್ತು ಎಲೆಗಳ ಬಣ್ಣ ಗಮನಿಸಿ."
+                if language == "kn" else
+                "The crop appears broadly stable based on the latest readings; "
+                "monitor soil moisture and leaf colour.")
+
     def answer(self, question: str, context: str, language: str) -> str:
-        if "summ" in question.lower():  # short one-liner for observation summaries
-            return ("ಇತ್ತೀಚಿನ ಮಾಪನಗಳ ಆಧಾರದ ಮೇಲೆ ಗಿಡ ಸಾಮಾನ್ಯ ಸ್ಥಿತಿಯಲ್ಲಿದೆ; "
-                    "ಮಣ್ಣಿನ ತೇವಾಂಶ ಮತ್ತು ಎಲೆಗಳ ಬಣ್ಣ ಗಮನಿಸಿ."
-                    if language == "kn" else
-                    "The crop appears broadly stable based on the latest readings; "
-                    "monitor soil moisture and leaf colour.")
 
         facts, seen = [], set()
         for ln in context.splitlines():

@@ -71,7 +71,9 @@ class AIOrchestrator:
             "farm": farm.id, "language": language, "question": question,
             "retrieval_queries": retrieval.queries,
             "model_input": {"context": context, "farmer": model_question},
-            "retrieved": [{"source": d.source, "section": d.title, "score": d.score}
+            "retrieval_methods": retrieval.methods,
+            "retrieval_best_by_method": retrieval.best_by_method,
+            "retrieved": [{"source": d.source, "section": d.title, "score": d.score, "via": d.via}
                           for d in retrieval.docs],
             "raw_answer": raw, "claims": checked.checked,
             "unsupported": checked.unsupported, "final_answer": checked.answer,
