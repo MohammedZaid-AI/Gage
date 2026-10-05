@@ -1,0 +1,3 @@
+Created farmer 9876543210 (Ravi), farm 'Demo Farm' (id 1), node 'field-node-1'.
+Log in with that phone number and the password from GAGE_DEMO_PASSWORD.
+NODE API KEY (shown once, store it now): <redacted>

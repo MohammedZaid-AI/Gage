@@ -1,0 +1,25 @@
+{
+ "ask": {
+  "http": 200,
+  "seconds": 57.6,
+  "transcript": "ನಿಮ್ಮ ಕಬ್ಬು ಚೆನ್ನಾಗಿದೆ, ನಾಳೆ ಬೆಳಿಗ್ಗೆ ನೀರು ಹಾಕಿ.",
+  "language": "kn",
+  "answer_chars": 2000,
+  "answer": "ದಯವಿಟ್ಟು ಮುಂದುವರಿಯುವ ಮೊದಲು ಪರಿಶೀಲಿಸಿ: \"24 hours\" (ಈ ಸಂಖ್ಯೆ Gage ಮಾಹಿತಿ ದಾಖಲೆಗಳಲ್ಲಿ ಇಲ್ಲ); \"Node offline alert is active\" (Gage ಮಾಹಿತಿ ದಾಖಲೆಗಳಲ್ಲಿ ಇಲ್ಲ); \"Only a single soil‑moisture value is available\" (Gage ಮಾಹಿತಿ ದಾಖಲೆಗಳಲ್ಲಿ ಇಲ್ಲ); +2.\n\n**Observation**  \n- Active alert: **[critical] Node offline** (no contact for 50248 min).  \n- Sensor reading (2026‑09‑23 04:25 UTC):  \n  - Temperature: **27.9 °C**  \n  - Humidity: **72.4 %**  \n  - Soil moisture: **32.3 %**  \n- No prior soil‑moisture data available for trend analysis.  \n\n**Analysis**  \n- The critical node‑offline alert means the latest sensor data may be unreliable; the field’s current moisture status cannot be confirmed.  \n- With only a single soil‑moisture value (32.3 %) and no information on the crop’s growth stage (e.g., days after planting), it is not possible to determine whether the crop is in a phase that requires irrigation every 7–10 days or whether the moisture level is sufficient.  \n\n**Confidence** – **Low** (insufficient data on moisture trend and crop stage).  \n\n**Recommendations**  \n\n- **Immediate actions**  \n  1. Restore connectivity of the sensor node or use a backup moisture probe to obtain a current, reliable reading.  \n  2. Record the exact planting date or days‑after‑planting (DAP) for the sugarcane to identify the appropriate irrigation interval.  \n\n- **Monitoring advice**  \n  1. Once the node is online, check soil‑moisture daily for at least three consecutive days to see the trend.  \n  2. Compare the observed moisture with the irrigation schedule for the identified crop stage (e.g., ~7 days interval during grand growth, ~10 days during tillering).  \n\n- **When to seek expert help**  \n  1. If the node cannot be re‑connected within 24 hours, contact the local IISR extension officer for on‑site moisture assessment.  \n  2. If after obtaining reliable data the moisture remains around 32 % and you are unsure whether to irrigate, request a field visit to confirm crop stage and water‑requirement needs.",
+  "audio_bytes": 7398614,
+  "audio_seconds": 167.8,
+  "tts_log": [
+   "2026-10-05 11:01:17,265 gage.ai.sarvam INFO TTS: 1882 chars in 6 request(s), lang=kn-IN, starts 'ದಯವಿಟ್ಟು ಮುಂದುವರಿಯುವ ಮೊದಲು ಪರಿಶೀಲಿಸಿ: \"24 hours\" (ಈ ಸಂಖ್ಯೆ G'"
+  ]
+ },
+ "long": {
+  "http": 200,
+  "seconds": 19.6,
+  "text_chars": 894,
+  "audio_bytes": 3644762,
+  "audio_seconds": 82.6,
+  "tts_log": [
+   "2026-10-05 11:02:06,011 gage.ai.sarvam INFO TTS: 892 chars in 2 request(s), lang=kn-IN, starts 'ಪ್ರತಿ ನೀರಾವರಿಗೆ ಸುಮಾರು 7 ರಿಂದ 8 ಸೆಂಟಿಮೀಟರ್ ನೀರು ಹಾಕಬೇಕು. ಪ್ರ'"
+  ]
+ }
+}

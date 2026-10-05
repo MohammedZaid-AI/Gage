@@ -1,0 +1,2 @@
+ASK: 200 57.6 s | transcript: ನಿಮ್ಮ ಕಬ್ಬು ಚೆನ್ನಾಗಿದೆ, ನಾಳೆ ಬೆಳಿಗ್ಗೆ ನೀರು ಹಾಕಿ. | answer chars 2000 | audio 7398614 bytes, 167.8 s | ['2026-10-05 11:01:17,265 gage.ai.sarvam INFO TTS: 1882 chars in 6 request(s), lang=kn-IN, starts \'ದಯವಿಟ್ಟು ಮುಂದುವರಿಯುವ ಮೊದಲು ಪರಿಶೀಲಿಸಿ: "24 hours" (ಈ ಸಂಖ್ಯೆ G\'']
+LONG: {'http': 200, 'seconds': 19.6, 'text_chars': 894, 'audio_bytes': 3644762, 'audio_seconds': 82.6, 'tts_log': ["2026-10-05 11:02:06,011 gage.ai.sarvam INFO TTS: 892 chars in 2 request(s), lang=kn-IN, starts 'ಪ್ರತಿ ನೀರಾವರಿಗೆ ಸುಮಾರು 7 ರಿಂದ 8 ಸೆಂಟಿಮೀಟರ್ ನೀರು ಹಾಕಬೇಕು. ಪ್ರ'"]}

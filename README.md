@@ -10,28 +10,47 @@ answers questions in **English and Kannada**.
 
 ---
 
-## Quick start
+## Quick start (from a fresh clone)
 
-```bash
+Tested end to end on 5 October 2026 (clone of the local branch, new virtual environment,
+fresh database, login: `test_runs/part6_fresh_install.txt`). Windows PowerShell;
+on Linux/macOS use `source .venv/bin/activate` and `export` instead of `$env:`.
+
+```powershell
+git clone --branch hardening-pass https://github.com/MohammedZaid-AI/Gage.git
+cd Gage
 python -m venv .venv
-# Windows:  .venv\Scripts\activate
-# Unix:     source .venv/bin/activate
-
-pip install -r requirements.txt
-cp .env.example .env          # then set JWT_SECRET (required) and GROQ_API_KEY
-python -c "import secrets; print(secrets.token_urlsafe(48))"   # a JWT_SECRET value
-
-uvicorn backend.main:app --reload
+.venv\Scripts\activate
+python -m pip install -r requirements.txt        # ~1.3 GB installed (CPU torch); use python -m pip
+Copy-Item .env.example .env
+python -c "import secrets; print(secrets.token_urlsafe(48))"   # paste as JWT_SECRET
+python -c "import secrets; print(secrets.token_urlsafe(32))"   # paste as NODE_KEY_SECRET
 ```
 
-Open **http://localhost:8000** for the dashboard.
+Edit `.env`: set `JWT_SECRET` (required, the app refuses to start without it),
+`NODE_KEY_SECRET`, `GROQ_API_KEY` (the live answerer), and for voice
+`SPEECH_PROVIDER=sarvam` with `SARVAM_API_KEY`. Then create the database and a
+login (the script creates the tables on a new database):
+
+```powershell
+$env:GAGE_DEMO_PASSWORD = "choose-a-password"
+python scripts/create_demo_farmer.py --phone 9876543210 --name "Ravi"
+# prints the node API key ONCE: put it in the ESP32 firmware (NODE_KEY)
+python -m uvicorn backend.main:app --port 8000
+```
+
+Open **http://localhost:8000** and log in with that phone number and password.
+The first start downloads the embedding model (`intfloat/multilingual-e5-small`,
+~470 MB) and builds the knowledge index, so it takes a minute or two.
+For a GPU and the exact package versions, see [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md).
 
 ### Local demo data
 
-No demo account exists by default. For a local demo, set `SEED_DEMO=true` in `.env`
-before starting the server: it creates farmer `9999999999` / password `demo1234`, a
-farm, and node `demo-node-1` with API key `demo-node-key-123`. These credentials are
-public, so never enable `SEED_DEMO` on a server other people can reach.
+No demo account exists by default; use `scripts/create_demo_farmer.py` above.
+Alternatively set `SEED_DEMO=true` in `.env` before starting the server: it
+creates farmer `9999999999` / password `demo1234`, a farm, and node `demo-node-1`
+with API key `demo-node-key-123`. These credentials are public, so never enable
+`SEED_DEMO` on a server other people can reach.
 
 ### Node API keys
 
