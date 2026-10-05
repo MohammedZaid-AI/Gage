@@ -1,0 +1,21 @@
+PART 2 - Answer rules
+
+Changes: keyword question type (farm: my/now/today/currently/right now/nanna/iga/ivattu/
+ನನ್ನ/ಈಗ/ಇವತ್ತು, whole words; else knowledge). Knowledge questions are answered from the
+retrieved text and refuse only when it lacks the answer ("The reference text does not cover
+this." + what is missing). Farm questions use readings and name what is missing, Confidence Low,
+no outright refusal. New hard rules: numbers only from text/question/farm data; quote readings
+exactly; no good/bad label without a range in the text; inputs only for what the text says.
+Four-section format kept. Retrieval top-k 3 -> 4 (FRP price chunk was 4th). Today's date in
+the prompt. Fact check picks the two chunks sharing most numbers with the answer.
+
+Runs (10 acceptance questions, 30 s apart, Groq server on a DB copy):
+  run 1 (part2_questions_run1.*): 9/10. Q3 and Q9 now answered (were refusals in Part 1).
+        Q8 fail: FRP value was in the 4th chunk (fixed with top-k 4).
+  run 2 (part2_questions_run2_network_outage.txt): stopped by a DNS outage on this PC
+        (Q3 -> honest 503, nothing saved).
+  run 3 (part2_questions.*): 7/10. Q6 retrieved seed-selection doc instead of cultivation
+        overview; Q8 answered Rs 365 (2026-27, correct for today's date) vs note's Rs 355;
+        Q10 client read-timeout while the PC slept (server answered 293 s later).
+  No knowledge question was refused in runs 1 or 3. Q9 answered both times.
+Open items written to docs/OPEN_ITEMS.md. Selftest: part2_selftest.txt (exit 0).

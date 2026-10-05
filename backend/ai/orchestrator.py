@@ -18,6 +18,7 @@ from dataclasses import dataclass, field
 from sqlalchemy.orm import Session
 
 from backend.ai import claim_check, knowledge, prompt_builder, service
+from backend.config import get_settings
 from backend.models import Conversation, Farm
 from backend.services import farm_context
 
@@ -48,7 +49,7 @@ class AIOrchestrator:
         calls_before = groq_client.last_seq()
         language = service.detect_language(question)
         ctx = farm_context.build(db, farm)
-        retrieval = knowledge.retrieve(question, k=3)
+        retrieval = knowledge.retrieve(question, k=get_settings().retrieval_top_k)
 
         # What the model sees as the farmer's turn. The compact (fine-tuned) prompt
         # is knowledge + the farmer's question only; no sensor readings.
@@ -60,9 +61,9 @@ class AIOrchestrator:
 
         # LLMError propagates: nothing is saved, the router reports the failure.
         raw = service.complete(model_question, context, language)
-        # Checked against the top two chunks + farm data, not the whole prompt.
+        # Checked against two chunks (those the answer uses most) + farm data.
         checked = claim_check.check(
-            raw, prompt_builder.build_check_context(ctx, retrieval.docs, question), language)
+            raw, prompt_builder.build_check_context(ctx, retrieval.docs, question, raw), language)
 
         db.add(Conversation(
             farm_id=farm.id, farmer_id=farm.farmer_id,

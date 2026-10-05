@@ -156,10 +156,21 @@ def test_crop_doctor_prompt_and_intents() -> None:
     db.commit()
 
     prompt = prompt_builder.build(farm_context.build(db, farm), [], "Should I irrigate?")
-    # Response contract: sections + insufficient-evidence rule + expert-help step.
+    # Response contract: sections, expert-help step, number/reading rules.
     for token in ("Observation:", "Analysis:", "Confidence:", "When to seek expert help",
-                  "I don't have enough evidence from the latest observation."):
+                  "State only numbers", "Quote farm readings exactly"):
         assert token in prompt, f"missing {token!r}"
+    # Question type by keywords: knowledge questions are answered from the text;
+    # farm questions use the readings and say what is missing.
+    qt = prompt_builder.question_type
+    assert qt("Is my soil too dry right now?") == "farm"
+    assert qt("Nanna hola iga dry ide") == "farm" and qt("ನನ್ನ ಹೊಲದಲ್ಲಿ ಈಗ ನೀರು ಬೇಕಾ?") == "farm"
+    assert qt("Prathi irrigation ge eshtu cm neeru hakbeku") == "knowledge"
+    assert qt("Mysore variety yield") == "knowledge"          # whole words only
+    assert "QUESTION TYPE: knowledge" in prompt_builder.build(
+        farm_context.build(db, farm), [], "How deep should each irrigation be?")
+    assert "QUESTION TYPE: farm" in prompt_builder.build(
+        farm_context.build(db, farm), [], "Should I irrigate my field now?")
     assert "Observed Facts" in prompt and "Inference" in prompt  # facts vs inference
     assert "# FOCUS FOR THIS QUESTION (irrigation)" in prompt    # intent template
     assert "Address these FIRST" in prompt                       # alert prioritization

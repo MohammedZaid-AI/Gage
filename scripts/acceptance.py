@@ -53,7 +53,7 @@ QUESTIONS = [
      "note": "Uses the farm readings; says what is missing if data is thin."},
 ]
 
-REFUSAL = ("don't have enough evidence", "do not have enough evidence", "not enough evidence",
+REFUSAL = ("does not cover this", "don't have enough evidence", "do not have enough evidence", "not enough evidence",
            "ಸಾಕಷ್ಟು ಪುರಾವೆ", "ಸಾಕಷ್ಟು ಸಾಕ್ಷ್ಯ", "ಸಾಕಷ್ಟು ಮಾಹಿತಿ ಇಲ್ಲ")
 _lock = threading.Lock()
 

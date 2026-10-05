@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     # on-topic questions (English, or translated Kannada) scored >= 0.87, off-topic
     # ones <= 0.81. Below the floor a question retrieves nothing rather than noise.
     retrieval_min_score: float = 0.83
+    # Chunks given to the answering model. 4, not 3: the FRP price sits in the
+    # 4th chunk for "what is the FRP this season" (measured 2026-10-04).
+    retrieval_top_k: int = 4
     # Skip the Sarvam translation and the Groq rewrite when the question as
     # written already retrieves a chunk at this score: English questions scored
     # >= 0.87 on this corpus, Kanglish ones 0.83-0.85 (too low to trust alone).
