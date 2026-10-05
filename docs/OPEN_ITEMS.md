@@ -55,3 +55,14 @@ hardware. Each says what was seen and where the evidence is.
   The loader (backend/ai/flybrain.load_real_malecns) currently always compiles
   without it; using it would mean passing synapse_centroids_for_missing=True and
   deleting models/malecns/compiled. Positions do not change the connections.
+
+### One stored AI summary still describes the removed photo analysis
+- The real database (storage/observations.db) has 1 observation whose
+  `ai_summary` says "The image analysis indicates the crop appears severely dried
+  (100 % confidence)" — written before the vision feature was removed. It is the
+  newest stored summary, so the dashboard's "Today's report" shows it until a new
+  summary is generated (on the next alert, or within SUMMARY_INTERVAL_MINUTES of
+  new sensor data). Not changed here (data). To clear it, back up the database,
+  then run:
+  sqlite3 storage/observations.db "UPDATE observations SET ai_summary = NULL WHERE ai_summary LIKE '%image analysis%';"
+  (test_runs/part7_summary_endpoint.txt)

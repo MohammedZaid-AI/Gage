@@ -59,58 +59,86 @@ A node's API key is shown **once**, when the node is registered (or when you pre
 `NODE_KEY`. Set `NODE_KEY_SECRET` in `.env` so `JWT_SECRET` can be rotated without
 invalidating device keys.
 
-Run the smoke test (starts nothing, checks the core logic):
-
-```bash
-python -m backend.selftest
-```
-
 ---
 
 ## What runs where
 
-| Layer      | Tech                                    |
-|------------|-----------------------------------------|
-| Backend    | FastAPI, SQLAlchemy 2, Pydantic v2      |
-| Database   | SQLite (`storage/observations.db`)      |
-| LLM        | Groq `openai/gpt-oss-120b` (default)    |
-| Retrieval  | multilingual-e5 over `knowledge_base/`  |
-| Voice      | Sarvam STT/TTS                          |
-| Frontend   | Plain HTML/CSS/JS + WebSocket           |
+| Layer | What it is |
+|---|---|
+| Backend | FastAPI, SQLAlchemy 2, Pydantic v2 |
+| Database | SQLite (`storage/observations.db`) |
+| Answers | Groq `openai/gpt-oss-120b` (default, `LLM_PROVIDER=groq`) |
+| Query rewrite + fact check | Groq `openai/gpt-oss-20b` (`GROQ_HELPER_MODEL`), under a per-minute token budget |
+| Local checks | numbers, inputs, judgements and names checked against the sources, no network (`backend/ai/number_check.py`, `claim_check.py`) |
+| Retrieval | multilingual-e5-small over `knowledge_base/` (25 documents) |
+| Voice | Sarvam STT (saarika) and TTS (bulbul), Kannada and English |
+| Sensor-pattern check | FlyBrain (flycns LIF simulation) on a synthetic test graph by default; see `GET /farm/{id}/anomaly` for the graph in use |
+| Frontend | plain HTML/CSS/JS + WebSocket (`frontend/`) |
 
-The default LLM provider is **Groq** (`LLM_PROVIDER=groq` in `.env.example`; needs
-`GROQ_API_KEY`). `LLM_PROVIDER=mock` runs fully offline with templated answers, and
-`LLM_PROVIDER=sarvam_finetuned` runs the local fine-tuned Sarvam-1 adapter (GPU).
+`LLM_PROVIDER=groq` is the default and the only live answerer. Two other values
+exist: `sarvam_finetuned` loads the local fine-tuned Sarvam-1 adapter (GPU; kept
+as an option, not used live — see [docs/KNOWN_LIMITATIONS.md](docs/KNOWN_LIMITATIONS.md)),
+and `mock` returns a fixed text for offline tests only. Gage does not analyse
+photos: images uploaded by a node are stored with the observation, nothing more.
+
+How an answer is made (`backend/ai/orchestrator.py`): build the farm context →
+retrieve the top 4 knowledge chunks (the question as written; if that scores
+below 0.87, also a Sarvam translation and a Groq rewrite) → structured prompt
+(knowledge or farm question, number rules, four sections) → Groq answer →
+local checks + Groq fact check → one caveat naming anything unsupported.
 
 ---
 
 ## API
 
-| Method | Path                  | Purpose                                  |
-|--------|-----------------------|------------------------------------------|
-| GET    | `/`                   | Dashboard                                |
-| GET    | `/api/state`          | Snapshot for initial render              |
-| WS     | `/ws`                 | Live updates                             |
-| POST   | `/chat`               | Ask the assistant (auto-detects language)|
+Interactive docs at **http://localhost:8000/docs**. Farmer endpoints take
+`Authorization: Bearer <token>` from `/auth/login`; node endpoints take
+`X-Node-Key: <node key>`.
 
-Interactive docs at **http://localhost:8000/docs**.
+| Method | Path | Purpose |
+|---|---|---|
+| POST | `/auth/register`, `/auth/login` · GET `/auth/me` | accounts |
+| GET/POST | `/farms` · `/farms/{id}/nodes` · POST `/farms/{id}/nodes/{node}/rotate-key` | farms, nodes, node keys |
+| POST | `/node/sensors`, `/node/heartbeat`, `/node/image` · GET `/node/status`, `/node/history` | device ingest (node key) |
+| GET | `/farm/{id}/summary`, `/timeline`, `/health`, `/anomaly` | dashboard data |
+| GET | `/alerts` · POST `/alerts/{id}/resolve` | alerts |
+| POST | `/chat` | ask Gage (English, Kannada, Kanglish) |
+| POST | `/voice/ask` (audio) · `/voice/speak` (text) | voice in and out |
+| GET/POST | `/dataset`, `/dataset/stats`, `/dataset/export` | collected training data |
+| GET | `/api/state` · WS `/ws` | dashboard snapshot and live updates |
 
 ### Ask in Kannada
 
-`/chat` needs a login token and the id of one of your farms:
-
 ```bash
-# 1. log in (the demo farmer is seeded on first start) and copy access_token
+# 1. log in and copy access_token
 curl -X POST http://localhost:8000/auth/login \
      -H "Content-Type: application/json" \
-     -d '{"phone": "9999999999", "password": "demo1234"}'
+     -d '{"phone": "9876543210", "password": "<your password>"}'
 
 # 2. ask, with the token and your farm id (GET /farms lists them)
 curl -X POST http://localhost:8000/chat \
      -H "Authorization: Bearer <access_token>" \
      -H "Content-Type: application/json" \
-     -d '{"farm_id": 1, "question": "ಈ ಗಿಡ ಹೇಗಿದೆ?"}'
+     -d '{"farm_id": 1, "question": "ಪ್ರತಿ irrigation ಗೆ ಎಷ್ಟು cm water ಹಾಕ್ಬೇಕು?"}'
 ```
+
+The response has the answer, `sources` (retrieved documents and scores),
+`fact_check` (`checked`, `skipped` or `unavailable`) and `unsupported_claims`.
+
+---
+
+## Tests
+
+```bash
+python -m backend.selftest                 # offline logic checks (mock providers)
+python scripts/check_security.py --base http://localhost:8000   # security checks, running server
+python scripts/validate_pipeline.py        # against a running server
+python scripts/acceptance.py --base http://localhost:8000 --phone ... --password ...
+python scripts/eval_flybrain.py            # FlyBrain vs IsolationForest vs z-score (requirements-dev.txt)
+```
+
+Raw outputs of the October 2026 runs are in `test_runs/`; the summary is
+[docs/FINAL_REPORT.md](docs/FINAL_REPORT.md).
 
 ---
 
@@ -118,32 +146,31 @@ curl -X POST http://localhost:8000/chat \
 
 ```
 backend/
-  main.py          FastAPI app, static mounts, WebSocket, /api/state
-  config.py        env-driven settings (.env)
-  database.py      engine + session
-  models.py        Observation, Conversation
-  schemas.py       Pydantic I/O
-  realtime.py      WebSocket broadcast hub
-  ai/              provider abstraction (base + mock + service facade)
-  routers/         observation, chat
-frontend/
-  dashboard.html · css/style.css · js/dashboard.js
-storage/
-  images/          uploaded photos
-  observations.db  SQLite
+  main.py            FastAPI app, static mounts, WebSocket, /api/state, startup tasks
+  config.py          settings from .env
+  models.py          SQLAlchemy tables (farmers, farms, nodes, readings, observations,
+                     alerts, conversations, anomaly scores, ...)
+  ai/                orchestrator, prompt builder, retrieval, Groq client + budget,
+                     claim/number checks, FlyBrain, providers (groq, sarvam_finetuned, mock)
+  services/          farm context, alerts, health score, observations, anomaly, node keys
+  routers/           auth, farm, farm_intel, node, observation, chat, voice, alerts, dataset
+  dataset/           training-data collection and export
+knowledge_base/      the curated documents Gage answers from
+frontend/            dashboard.html · css/style.css · js/dashboard.js
+firmware/            ESP32 node sketch
+scripts/             create_demo_farmer, acceptance, eval_flybrain, security and pipeline checks
+docs/                ENVIRONMENT, KNOWN_LIMITATIONS, OPEN_ITEMS, FINAL_REPORT, audit
+storage/             images/ (uploaded photos) and observations.db (SQLite, not in git)
 ```
 
 ---
 
 ## Extending the AI
 
-Chat goes through `AIOrchestrator.answer` (`backend/ai/orchestrator.py`), which
-assembles the Farm Context, retrieves knowledge, builds the structured prompt,
-and calls the provider via `backend/ai/service.py`. To add Gemini, OpenAI,
-Ollama or Gemma:
+To add another answering model (Gemini, OpenAI, Ollama ...):
 
-1. Implement `LLMProvider` (`backend/ai/base.py`).
+1. Implement `LLMProvider` (`backend/ai/base.py`): `answer()` and optionally `summarize()`.
 2. Route to it in `_select_llm` (`backend/ai/service.py`).
-3. Set `LLM_PROVIDER` + keys in `.env`.
+3. Set `LLM_PROVIDER` and its keys in `.env`.
 
 No router or database changes needed.

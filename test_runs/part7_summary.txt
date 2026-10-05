@@ -1,0 +1,18 @@
+PART 7 - Docs and leftovers
+
+7.1 docs/KNOWN_LIMITATIONS.md: fine-tuned adapter (4 epochs, ~0.15 s/token on the GPU, 2 of 5
+    correct, ignored retrieved text -> Groq is live; validation set may overlap training),
+    FlyBrain graph (synthetic by default; real graph built but misses the abnormal reading),
+    sensor gaps (366/549 soil-zero rows), Groq check skipped under the rate limit -> only the
+    local number and name checks run; plus retrieval variance, long spoken answers, no
+    offline answerer, no photo analysis.
+7.2 backend/routers/farm_intel.py: the "generated at merge" comment was stale (summaries are
+    made by a background task on a new alert or at most every SUMMARY_INTERVAL_MINUTES). It
+    also hid a gap: Home read only the NEWEST observation's summary, which most observations
+    do not have. Now returns the newest stored summary. Tested on a DB copy: with a newer
+    observation that has no summary, /farm/1/summary still returns the stored one
+    (part7_summary_endpoint.txt).
+    Found while testing: the newest stored summary in the real DB is from the removed
+    vision feature -> docs/OPEN_ITEMS.md (data not changed).
+7.3 README matched to the code: no vision, robot or mock-as-default claims; answer pipeline,
+    full API table, tests, layout updated. Selftest: part7_selftest.txt.
