@@ -74,6 +74,37 @@ retrieval), and an upload p95 of 318–344 ms that coincided with FlyBrain's
 first fit. That latency did not recur in the revised run, but its cause was
 never proven, so it may come back on a cold start.
 
+## v9 switch (14 October 2026)
+
+`sarvam_agri_v9` replaces `sarvam_agri_final` as the default fine-tuned adapter.
+v9 was trained on a **clean train/val split** where no record appears in both
+training and validation sets (the previous adapter's split was not verified clean,
+so its reported validation loss may have been optimistic).
+
+| Engine | Right document | Key facts | Uncaveated invented numbers | Refusals | Seconds/answer (mean / max) | Engine time (mean) |
+|---|---|---|---|---|---|---|
+| Groq `openai/gpt-oss-120b` | 10 / 10 | 9 / 10 | 0 | 0 | 7.7 / 19.3 | 3.3 s |
+| Fine-tuned `sarvam_agri_final` (Part 8) | 10 / 10 | 5 / 10 | 0 | 0 | 18.5 / 28.6 | 14.1 s |
+| Fine-tuned `sarvam_agri_v9` (14 Oct) | 10 / 10 | 5 / 10 | 0 | 0 | 17.1 / 32.9 | 13.7 s |
+
+Same ten questions, same server, same retrieval. v9 results are in
+`test_runs/v9_acceptance.txt`; server startup log in `test_runs/v9_server_final.log`.
+
+- v9 failures: Q2 (no iron), Q5 (no date / city / 8 camps), Q7 (no 7–8 cm depth),
+  Q8 (does not cite the FRP figure; grounding check unavailable for that question),
+  Q10 (discusses rainfall instead of quoting the soil reading).
+- v9 does **not** score lower than `sarvam_agri_final` (same key facts on all ten
+  questions), so the Part 5 revert condition was not triggered.
+  `LLM_PROVIDER=sarvam_finetuned` stays as the live default.
+- Cold-start load: ~17 s on RTX 3050 (4-bit NF4, bf16 compute, CUDA 13.0).
+- **Sensor upload latency**: could not be measured — the demo ESP32 node was
+  offline during the v9 acceptance run; `sensor_upload_p95_under_150ms` is null
+  in the acceptance JSON. The node needs a power cycle to resume uploads.
+- **Loading fix (Windows, CUDA 13, safetensors 0.7)**: the default `safe_open`
+  mmap path causes a segfault or Win32 error 1455. `sarvam_llm.py` patches
+  `safe_open` with `_NomapReader`, a plain file-IO reader, for the duration of
+  the base-model load, then restores the original.
+
 ## Open items
 
 Full text in [OPEN_ITEMS.md](OPEN_ITEMS.md); summary:
@@ -90,8 +121,11 @@ Full text in [OPEN_ITEMS.md](OPEN_ITEMS.md); summary:
 6. **One AI summary from the removed photo-analysis feature** in the real
    database is still shown on Home; the SQL to clear it (after a backup) is in
    OPEN_ITEMS.md.
-7. **The fine-tuned engine** gets 5 / 10 key facts; better training data or
-   retrieval-grounded fine-tuning would be needed before it can be the default.
+7. **The fine-tuned engine (v9)** is the live default and gets 5 / 10 key facts;
+   better training data or retrieval-grounded fine-tuning would be needed to
+   close the gap with Groq (9 / 10). Groq remains selectable per request.
+8. **ESP32 node offline**: the demo node needs a power cycle to resume sensor
+   uploads; upload latency could not be verified in the v9 acceptance run.
 
 ## Things to know
 
@@ -99,7 +133,9 @@ Full text in [OPEN_ITEMS.md](OPEN_ITEMS.md); summary:
   already on disk, not made in this pass: `HUM_MAX` 90 → 85 in
   `firmware/esp32_node.ino`, matching the backend's `humidity_max`. Existing
   commits were not rewritten.
-- `.env` (not committed) has a single `LLM_PROVIDER=groq` and the new
-  `GROQ_HELPER_MODEL` / `GROQ_TOKENS_PER_MINUTE` lines.
+- `.env` (not committed) has `LLM_PROVIDER=sarvam_finetuned` and
+  `SARVAM_ADAPTER_PATH=./models/sarvam_agri_v9` (set 14 October 2026; previously
+  `LLM_PROVIDER=groq`). The `GROQ_HELPER_MODEL` / `GROQ_TOKENS_PER_MINUTE` lines
+  remain; Groq is still used for fact-checking and is selectable per request.
 - Limitations are in [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md); exact
   working versions are in [ENVIRONMENT.md](ENVIRONMENT.md).
